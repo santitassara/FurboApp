@@ -8,7 +8,7 @@ import Boton from '../components/Boton';
 import BadgeSancion from '../components/BadgeSancion';
 
 export default function Home() {
-  const { perfil, estaSancionado, esAdmin, cerrarSesion } = useAuth();
+  const { perfil, estaSancionado, esAdmin, cerrarSesion, refrescarPerfil } = useAuth();
   const [partidos, setPartidos] = useState([]);
   const [inscripcionesPorPartido, setInscripcionesPorPartido] = useState({});
   const [cargando, setCargando] = useState(true);
@@ -65,6 +65,7 @@ export default function Home() {
     try {
       await api.post(`/partidos/${partidoId}/bajarse`);
       await cargarPartidos();
+      await refrescarPerfil();
     } catch (err) {
       setError(err.message);
     } finally {

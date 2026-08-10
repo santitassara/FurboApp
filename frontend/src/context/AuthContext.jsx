@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
   const [usuarioFirebase, setUsuarioFirebase] = useState(null);
   const [perfil, setPerfil] = useState(null);
   const [cargando, setCargando] = useState(true);
+  const [errorAuth, setErrorAuth] = useState('');
 
   useEffect(() => {
     if (!auth) {
@@ -17,18 +18,40 @@ export function AuthProvider({ children }) {
     }
     const unsubscribe = onAuthStateChanged(auth, async (usuario) => {
       setUsuarioFirebase(usuario);
-      if (usuario) {
-        const { data } = await api.post('/auth/sync');
-        setPerfil(data);
-      } else {
-        setPerfil(null);
+      try {
+        if (usuario) {
+          const { data } = await api.post('/auth/sync');
+          setPerfil(data);
+          setErrorAuth('');
+        } else {
+          setPerfil(null);
+        }
+      } catch (error) {
+        setErrorAuth(error.message || 'No se pudo sincronizar el perfil.');
+      } finally {
+        setCargando(false);
       }
-      setCargando(false);
     });
     return unsubscribe;
   }, []);
 
+  async function refrescarPerfil() {
+    if (!usuarioFirebase) {
+      return;
+    }
+    try {
+      const { data } = await api.post('/auth/sync');
+      setPerfil(data);
+      setErrorAuth('');
+    } catch (error) {
+      // No dejamos que un refresco fallido rompa la app; el perfil queda como estaba.
+    }
+  }
+
   async function iniciarSesion() {
+    if (!auth || !googleProvider) {
+      throw new Error('Firebase no está configurado. Completá frontend/.env con tus credenciales.');
+    }
     await signInWithPopup(auth, googleProvider);
   }
 
@@ -40,8 +63,10 @@ export function AuthProvider({ children }) {
     usuarioFirebase,
     perfil,
     cargando,
+    errorAuth,
     iniciarSesion,
     cerrarSesion,
+    refrescarPerfil,
     esAdmin: perfil?.rol === 'admin',
     estaSancionado: Boolean(perfil?.estaSancionado),
   };
