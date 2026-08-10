@@ -77,6 +77,17 @@ async function bajarse(partidoId, usuarioId) {
   return { ...inscripcion, estado: 'dado_de_baja' };
 }
 
+async function sancionarManualmente(partidoId, usuarioId) {
+  const inscripcion = await obtenerInscripcionActiva(partidoId, usuarioId);
+  if (!inscripcion) throw crearError('El jugador no está anotado en este partido', 404);
+  if (inscripcion.tipo !== 'titular') throw crearError('Solo se puede sancionar a jugadores titulares', 400);
+
+  await db.collection(COLECCION).doc(inscripcion.id).update({ estado: 'dado_de_baja' });
+  await usuariosService.sancionar(usuarioId);
+
+  return { ...inscripcion, estado: 'dado_de_baja' };
+}
+
 async function promover(partidoId, usuarioId) {
   const inscripcion = await obtenerInscripcionActiva(partidoId, usuarioId);
   if (!inscripcion) throw crearError('El jugador no está anotado en este partido', 404);
@@ -99,4 +110,4 @@ async function listarActivas(partidoId) {
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
 
-module.exports = { anotarse, bajarse, promover, contarOcupados, obtenerInscripcionActiva, listarActivas };
+module.exports = { anotarse, bajarse, sancionarManualmente, promover, contarOcupados, obtenerInscripcionActiva, listarActivas };

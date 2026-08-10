@@ -187,6 +187,41 @@ describe('inscripcionesService.promover', () => {
   });
 });
 
+describe('inscripcionesService.sancionarManualmente', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('rechaza con 404 si no hay inscripción activa', async () => {
+    mockInscripcionesCol.get.mockResolvedValueOnce({ empty: true, docs: [] });
+
+    await expect(inscripcionesService.sancionarManualmente('p1', 'u1')).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('rechaza con 400 si el jugador es suplente', async () => {
+    mockInscripcionesCol.get.mockResolvedValueOnce({
+      empty: false,
+      docs: [{ id: 'i1', data: () => ({ tipo: 'suplente', estado: 'anotado' }) }],
+    });
+
+    await expect(inscripcionesService.sancionarManualmente('p1', 'u1')).rejects.toMatchObject({ status: 400 });
+    expect(usuariosService.sancionar).not.toHaveBeenCalled();
+  });
+
+  it('da de baja y sanciona al usuario si es titular', async () => {
+    const docActualizarMock = crearDocMock();
+    mockInscripcionesCol.get.mockResolvedValueOnce({
+      empty: false,
+      docs: [{ id: 'i1', data: () => ({ tipo: 'titular', estado: 'anotado' }) }],
+    });
+    mockInscripcionesCol.doc.mockReturnValue(docActualizarMock);
+
+    const inscripcion = await inscripcionesService.sancionarManualmente('p1', 'u1');
+
+    expect(docActualizarMock.update).toHaveBeenCalledWith({ estado: 'dado_de_baja' });
+    expect(usuariosService.sancionar).toHaveBeenCalledWith('u1');
+    expect(inscripcion.estado).toBe('dado_de_baja');
+  });
+});
+
 describe('inscripcionesService.listarActivas', () => {
   it('devuelve solo inscripciones con estado anotado, mapeadas con id', async () => {
     const docs = [
