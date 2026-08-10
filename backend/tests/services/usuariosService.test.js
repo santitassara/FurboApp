@@ -1,39 +1,10 @@
-// Import helper functions (see backend/tests/helpers/mockFirestore.js)
-const { crearDocMock: crearDocMockHelper, crearColeccionMock: crearColeccionMockHelper } = require('../helpers/mockFirestore');
+const { crearDocMock, crearColeccionMock } = require('../helpers/mockFirestore');
 
-let mockUsuariosCol;
+const mockUsuariosCol = crearColeccionMock();
 
-jest.mock('../../src/config/firebase', () => {
-  // Helper functions must be defined here due to jest.mock's isolated scope
-  // Implementation matches backend/tests/helpers/mockFirestore.js
-  function crearDocMock({ get, set, update, id = 'id-generado' } = {}) {
-    return {
-      id,
-      get: get || jest.fn(),
-      set: set || jest.fn(),
-      update: update || jest.fn(),
-    };
-  }
-
-  function crearColeccionMock({ get, add, doc } = {}) {
-    const coleccion = {
-      where: jest.fn(() => coleccion),
-      get: get || jest.fn(),
-      add: add || jest.fn(),
-      doc: jest.fn(() => doc || crearDocMock()),
-    };
-    return coleccion;
-  }
-
-  mockUsuariosCol = crearColeccionMock();
-  return {
-    db: { collection: jest.fn(() => mockUsuariosCol) },
-  };
-});
-
-// Use the imported helpers in test code (outside jest.mock scope)
-const crearDocMock = crearDocMockHelper;
-const crearColeccionMock = crearColeccionMockHelper;
+jest.mock('../../src/config/firebase', () => ({
+  db: { collection: jest.fn(() => mockUsuariosCol) },
+}));
 
 const usuariosService = require('../../src/services/usuariosService');
 
