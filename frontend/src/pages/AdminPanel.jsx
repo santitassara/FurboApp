@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 import Boton from '../components/Boton';
 import ListaJugadores from '../components/ListaJugadores';
@@ -91,7 +92,12 @@ export default function AdminPanel() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-4 py-8">
-      <h1 className="text-2xl font-extrabold text-albiceleste">Panel de admin</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-extrabold text-albiceleste">Panel de admin</h1>
+        <Link to="/inicio" className="text-sm font-semibold text-pasto-500 hover:underline">
+          Volver al inicio
+        </Link>
+      </div>
 
       {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
       {mensaje && <p className="rounded-lg bg-pasto-600/20 px-4 py-2 text-sm text-pasto-500">{mensaje}</p>}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '../services/api';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import TarjetaPartido from '../components/TarjetaPartido';
 import ModalConfirmacionSancion from '../components/ModalConfirmacionSancion';
@@ -7,7 +8,7 @@ import Boton from '../components/Boton';
 import BadgeSancion from '../components/BadgeSancion';
 
 export default function Home() {
-  const { perfil, estaSancionado, cerrarSesion } = useAuth();
+  const { perfil, estaSancionado, esAdmin, cerrarSesion } = useAuth();
   const [partidos, setPartidos] = useState([]);
   const [inscripcionesPorPartido, setInscripcionesPorPartido] = useState({});
   const [cargando, setCargando] = useState(true);
@@ -90,6 +91,11 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-3">
           <BadgeSancion sancionado={estaSancionado} />
+          {esAdmin && (
+            <Link to="/admin" className="text-sm font-semibold text-albiceleste hover:underline">
+              Panel admin
+            </Link>
+          )}
           <Boton variante="ghost" onClick={cerrarSesion}>
             Salir
           </Boton>
