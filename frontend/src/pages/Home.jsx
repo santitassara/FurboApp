@@ -63,11 +63,11 @@ export default function Home() {
     setPartidoEnProceso(partidoId);
     try {
       await api.post(`/partidos/${partidoId}/bajarse`);
-      setPartidoParaBaja(null);
       await cargarPartidos();
     } catch (err) {
       setError(err.message);
     } finally {
+      setPartidoParaBaja(null);
       setPartidoEnProceso(null);
     }
   }
