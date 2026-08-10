@@ -1,5 +1,6 @@
 import BarraCupos from './BarraCupos';
 import Boton from './Boton';
+import ListaJugadores from './ListaJugadores';
 
 function formatearFecha(fechaISO) {
   return new Date(fechaISO).toLocaleString('es-AR', {
@@ -18,6 +19,7 @@ export default function TarjetaPartido({
   procesando,
   onAnotarse,
   onSolicitarBaja,
+  jugadores,
 }) {
   const ocupados = partido.ocupados || { titulares: 0, suplentes: 0 };
   const partidoCompleto = ocupados.titulares >= partido.cupoTitulares && ocupados.suplentes >= partido.cupoSuplentes;
@@ -37,6 +39,12 @@ export default function TarjetaPartido({
         <BarraCupos etiqueta="Titulares" ocupados={ocupados.titulares} cupo={partido.cupoTitulares} />
         <BarraCupos etiqueta="Suplentes" ocupados={ocupados.suplentes} cupo={partido.cupoSuplentes} />
       </div>
+
+      {jugadores && (
+        <div className="mb-4">
+          <ListaJugadores jugadores={jugadores} />
+        </div>
+      )}
 
       {inscripcionUsuario ? (
         <Boton variante="peligro" className="w-full" onClick={onSolicitarBaja} disabled={procesando}>

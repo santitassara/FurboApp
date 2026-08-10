@@ -120,6 +120,7 @@ export default function Home() {
               procesando={partidoEnProceso === partido.id}
               onAnotarse={() => anotarse(partido.id)}
               onSolicitarBaja={() => solicitarBaja(partido)}
+              jugadores={inscripcionesPorPartido[partido.id] || []}
             />
           ))}
         </div>
