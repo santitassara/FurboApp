@@ -1,4 +1,5 @@
 const inscripcionesService = require('../services/inscripcionesService');
+const usuariosService = require('../services/usuariosService');
 
 async function anotarse(req, res) {
   const inscripcion = await inscripcionesService.anotarse(req.params.partidoId, req.usuario.uid);
@@ -15,4 +16,19 @@ async function promover(req, res) {
   res.json(inscripcion);
 }
 
-module.exports = { anotarse, bajarse, promover };
+async function listarPorPartido(req, res) {
+  const inscripciones = await inscripcionesService.listarActivas(req.params.partidoId);
+  const conNombre = await Promise.all(
+    inscripciones.map(async (inscripcion) => {
+      const usuario = await usuariosService.obtenerUsuario(inscripcion.usuarioId);
+      return {
+        usuarioId: inscripcion.usuarioId,
+        nombre: usuario?.nombre || 'Jugador',
+        tipo: inscripcion.tipo,
+      };
+    })
+  );
+  res.json(conNombre);
+}
+
+module.exports = { anotarse, bajarse, promover, listarPorPartido };

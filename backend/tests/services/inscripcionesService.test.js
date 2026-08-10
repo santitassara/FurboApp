@@ -186,3 +186,17 @@ describe('inscripcionesService.promover', () => {
     await expect(inscripcionesService.promover('p1', 'u1')).rejects.toMatchObject({ status: 404 });
   });
 });
+
+describe('inscripcionesService.listarActivas', () => {
+  it('devuelve solo inscripciones con estado anotado, mapeadas con id', async () => {
+    const docs = [
+      { id: 'i1', data: () => ({ partidoId: 'p1', usuarioId: 'u1', estado: 'anotado', tipo: 'titular' }) },
+    ];
+    mockInscripcionesCol.get.mockResolvedValueOnce({ docs });
+
+    const activas = await inscripcionesService.listarActivas('p1');
+
+    expect(activas).toEqual([{ id: 'i1', partidoId: 'p1', usuarioId: 'u1', estado: 'anotado', tipo: 'titular' }]);
+    expect(mockInscripcionesCol.where).toHaveBeenCalledWith('estado', '==', 'anotado');
+  });
+});

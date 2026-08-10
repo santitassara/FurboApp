@@ -94,4 +94,9 @@ async function promover(partidoId, usuarioId) {
   return { ...inscripcion, tipo: 'titular' };
 }
 
-module.exports = { anotarse, bajarse, promover, contarOcupados, obtenerInscripcionActiva };
+async function listarActivas(partidoId) {
+  const snapshot = await consultaAnotadosBase(partidoId).get();
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+}
+
+module.exports = { anotarse, bajarse, promover, contarOcupados, obtenerInscripcionActiva, listarActivas };
