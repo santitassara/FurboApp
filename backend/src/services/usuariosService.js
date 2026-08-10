@@ -9,10 +9,10 @@ function obtenerAdminEmails() {
     .filter(Boolean);
 }
 
-async function sincronizarUsuario({ uid, email, nombre }) {
+async function sincronizarUsuario({ uid, email, nombre, emailVerificado }) {
   const ref = db.collection(COLECCION).doc(uid);
   const snapshot = await ref.get();
-  const esAdmin = obtenerAdminEmails().includes((email || '').toLowerCase());
+  const esAdmin = Boolean(emailVerificado) && obtenerAdminEmails().includes((email || '').toLowerCase());
 
   if (!snapshot.exists) {
     const nuevoUsuario = {

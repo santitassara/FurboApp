@@ -38,9 +38,25 @@ describe('usuariosService.sincronizarUsuario', () => {
       uid: 'uid-2',
       email: 'admin@gmail.com',
       nombre: 'Admin Uno',
+      emailVerificado: true,
     });
 
     expect(usuario.rol).toBe('admin');
+  });
+
+  it('crea un usuario nuevo como jugador si el email está en ADMIN_EMAILS pero no está verificado', async () => {
+    process.env.ADMIN_EMAILS = 'admin@gmail.com, otro@gmail.com';
+    const docMock = crearDocMock({ get: jest.fn().mockResolvedValue({ exists: false }) });
+    mockUsuariosCol.doc.mockReturnValue(docMock);
+
+    const usuario = await usuariosService.sincronizarUsuario({
+      uid: 'uid-4',
+      email: 'admin@gmail.com',
+      nombre: 'Admin Sin Verificar',
+      emailVerificado: false,
+    });
+
+    expect(usuario.rol).toBe('jugador');
   });
 
   it('no degrada a un admin existente y devuelve el usuario tal cual si no hay cambios', async () => {

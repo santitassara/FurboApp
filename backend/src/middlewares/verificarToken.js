@@ -14,6 +14,7 @@ async function verificarToken(req, res, next) {
       uid: decoded.uid,
       email: decoded.email,
       nombre: decoded.name || decoded.email,
+      emailVerificado: decoded.email_verified === true,
     };
     next();
   } catch (error) {
