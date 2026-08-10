@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cancha-900: #07130d;
+  --color-cancha-800: #0d1f16;
+  --color-cancha-700: #123321;
+  --color-pasto-500: #22c55e;
+  --color-pasto-600: #16a34a;
+  --color-albiceleste: #75aadb;
+  --color-tarjeta: #eab308;
+  --color-sancion: #ef4444;
+}
+
+body {
+  @apply bg-cancha-900 text-white;
+}
