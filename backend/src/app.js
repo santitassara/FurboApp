@@ -14,6 +14,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/partidos', partidosRoutes);
 
+app.use((req, res) => {
+  res.status(404).json({ error: 'Ruta no encontrada' });
+});
+
 app.use(manejadorErrores);
 
 module.exports = app;
