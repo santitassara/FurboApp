@@ -1,7 +1,11 @@
+// Import helper functions (see backend/tests/helpers/mockFirestore.js)
+const { crearDocMock: crearDocMockHelper, crearColeccionMock: crearColeccionMockHelper } = require('../helpers/mockFirestore');
+
 let mockUsuariosCol;
 
 jest.mock('../../src/config/firebase', () => {
-  // Helper functions inlined to avoid Jest mock scope issues
+  // Helper functions must be defined here due to jest.mock's isolated scope
+  // Implementation matches backend/tests/helpers/mockFirestore.js
   function crearDocMock({ get, set, update, id = 'id-generado' } = {}) {
     return {
       id,
@@ -27,6 +31,10 @@ jest.mock('../../src/config/firebase', () => {
   };
 });
 
+// Use the imported helpers in test code (outside jest.mock scope)
+const crearDocMock = crearDocMockHelper;
+const crearColeccionMock = crearColeccionMockHelper;
+
 const usuariosService = require('../../src/services/usuariosService');
 
 describe('usuariosService.sincronizarUsuario', () => {
@@ -36,15 +44,6 @@ describe('usuariosService.sincronizarUsuario', () => {
   });
 
   it('crea un usuario nuevo como jugador si el email no está en ADMIN_EMAILS', async () => {
-    function crearDocMock({ get, set, update, id = 'id-generado' } = {}) {
-      return {
-        id,
-        get: get || jest.fn(),
-        set: set || jest.fn(),
-        update: update || jest.fn(),
-      };
-    }
-
     const docMock = crearDocMock({ get: jest.fn().mockResolvedValue({ exists: false }) });
     mockUsuariosCol.doc.mockReturnValue(docMock);
 
@@ -60,15 +59,6 @@ describe('usuariosService.sincronizarUsuario', () => {
   });
 
   it('crea un usuario nuevo como admin si el email está en ADMIN_EMAILS', async () => {
-    function crearDocMock({ get, set, update, id = 'id-generado' } = {}) {
-      return {
-        id,
-        get: get || jest.fn(),
-        set: set || jest.fn(),
-        update: update || jest.fn(),
-      };
-    }
-
     process.env.ADMIN_EMAILS = 'admin@gmail.com, otro@gmail.com';
     const docMock = crearDocMock({ get: jest.fn().mockResolvedValue({ exists: false }) });
     mockUsuariosCol.doc.mockReturnValue(docMock);
@@ -83,15 +73,6 @@ describe('usuariosService.sincronizarUsuario', () => {
   });
 
   it('no degrada a un admin existente y devuelve el usuario tal cual si no hay cambios', async () => {
-    function crearDocMock({ get, set, update, id = 'id-generado' } = {}) {
-      return {
-        id,
-        get: get || jest.fn(),
-        set: set || jest.fn(),
-        update: update || jest.fn(),
-      };
-    }
-
     const usuarioExistente = {
       uid: 'uid-3',
       nombre: 'Jugador Tres',
@@ -120,15 +101,6 @@ describe('usuariosService.obtenerUsuario', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('devuelve null si el usuario no existe', async () => {
-    function crearDocMock({ get, set, update, id = 'id-generado' } = {}) {
-      return {
-        id,
-        get: get || jest.fn(),
-        set: set || jest.fn(),
-        update: update || jest.fn(),
-      };
-    }
-
     const docMock = crearDocMock({ get: jest.fn().mockResolvedValue({ exists: false }) });
     mockUsuariosCol.doc.mockReturnValue(docMock);
 
@@ -138,15 +110,6 @@ describe('usuariosService.obtenerUsuario', () => {
   });
 
   it('devuelve los datos si el usuario existe', async () => {
-    function crearDocMock({ get, set, update, id = 'id-generado' } = {}) {
-      return {
-        id,
-        get: get || jest.fn(),
-        set: set || jest.fn(),
-        update: update || jest.fn(),
-      };
-    }
-
     const datos = { uid: 'uid-x', rol: 'jugador' };
     const docMock = crearDocMock({ get: jest.fn().mockResolvedValue({ exists: true, data: () => datos }) });
     mockUsuariosCol.doc.mockReturnValue(docMock);
@@ -173,15 +136,6 @@ describe('usuariosService.perdonarSancion', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('lanza error 404 si el usuario no existe', async () => {
-    function crearDocMock({ get, set, update, id = 'id-generado' } = {}) {
-      return {
-        id,
-        get: get || jest.fn(),
-        set: set || jest.fn(),
-        update: update || jest.fn(),
-      };
-    }
-
     const docMock = crearDocMock({ get: jest.fn().mockResolvedValue({ exists: false }) });
     mockUsuariosCol.doc.mockReturnValue(docMock);
 
@@ -189,15 +143,6 @@ describe('usuariosService.perdonarSancion', () => {
   });
 
   it('setea estaSancionado en false si el usuario existe', async () => {
-    function crearDocMock({ get, set, update, id = 'id-generado' } = {}) {
-      return {
-        id,
-        get: get || jest.fn(),
-        set: set || jest.fn(),
-        update: update || jest.fn(),
-      };
-    }
-
     const docMock = crearDocMock({ get: jest.fn().mockResolvedValue({ exists: true }) });
     mockUsuariosCol.doc.mockReturnValue(docMock);
 
