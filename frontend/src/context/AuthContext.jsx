@@ -11,6 +11,10 @@ export function AuthProvider({ children }) {
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
+    if (!auth) {
+      setCargando(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, async (usuario) => {
       setUsuarioFirebase(usuario);
       if (usuario) {

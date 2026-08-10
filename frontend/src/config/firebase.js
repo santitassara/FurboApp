@@ -10,6 +10,18 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
+let auth;
+let googleProvider;
+
+try {
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  googleProvider = new GoogleAuthProvider();
+} catch (error) {
+  console.error(
+    'Firebase no está configurado. Completá frontend/.env con tus credenciales (ver .env.example).',
+    error
+  );
+}
+
+export { auth, googleProvider };
