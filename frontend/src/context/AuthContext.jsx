@@ -25,6 +25,7 @@ export function AuthProvider({ children }) {
           setErrorAuth('');
         } else {
           setPerfil(null);
+          setErrorAuth('');
         }
       } catch (error) {
         setErrorAuth(error.message || 'No se pudo sincronizar el perfil.');
