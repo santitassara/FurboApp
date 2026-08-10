@@ -85,6 +85,13 @@ describe('inscripcionesService.anotarse', () => {
 
     await expect(inscripcionesService.anotarse('p1', 'u1')).rejects.toMatchObject({ status: 400 });
   });
+
+  it('rechaza con 400 si el partido no está abierto', async () => {
+    usuariosService.obtenerUsuario.mockResolvedValue(USUARIO_OK);
+    partidosService.obtenerPartido.mockResolvedValue({ ...PARTIDO_ABIERTO, estado: 'cerrado' });
+
+    await expect(inscripcionesService.anotarse('p1', 'u1')).rejects.toMatchObject({ status: 400 });
+  });
 });
 
 describe('inscripcionesService.bajarse', () => {
@@ -167,5 +174,15 @@ describe('inscripcionesService.promover', () => {
 
     expect(inscripcion.tipo).toBe('titular');
     expect(docActualizarMock.update).toHaveBeenCalledWith({ tipo: 'titular' });
+  });
+
+  it('rechaza con 404 si el partido no existe', async () => {
+    mockInscripcionesCol.get.mockResolvedValueOnce({
+      empty: false,
+      docs: [{ id: 'i1', data: () => ({ tipo: 'suplente', estado: 'anotado' }) }],
+    });
+    partidosService.obtenerPartido.mockResolvedValue(null);
+
+    await expect(inscripcionesService.promover('p1', 'u1')).rejects.toMatchObject({ status: 404 });
   });
 });

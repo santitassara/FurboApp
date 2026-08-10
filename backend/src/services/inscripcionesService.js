@@ -10,24 +10,19 @@ function crearError(mensaje, status) {
   return error;
 }
 
+function consultaAnotadosBase(partidoId) {
+  return db.collection(COLECCION).where('partidoId', '==', partidoId).where('estado', '==', 'anotado');
+}
+
 async function obtenerInscripcionActiva(partidoId, usuarioId) {
-  const snapshot = await db
-    .collection(COLECCION)
-    .where('partidoId', '==', partidoId)
-    .where('usuarioId', '==', usuarioId)
-    .where('estado', '==', 'anotado')
-    .get();
+  const snapshot = await consultaAnotadosBase(partidoId).where('usuarioId', '==', usuarioId).get();
   if (snapshot.empty) return null;
   const doc = snapshot.docs[0];
   return { id: doc.id, ...doc.data() };
 }
 
 async function contarOcupados(partidoId) {
-  const snapshot = await db
-    .collection(COLECCION)
-    .where('partidoId', '==', partidoId)
-    .where('estado', '==', 'anotado')
-    .get();
+  const snapshot = await consultaAnotadosBase(partidoId).get();
   const inscripciones = snapshot.docs.map((doc) => doc.data());
   return {
     titulares: inscripciones.filter((i) => i.tipo === 'titular').length,
