@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS Usuarios (
   uid TEXT PRIMARY KEY,
   nombre TEXT NOT NULL,
-  email TEXT NOT NULL UNIQUE,
+  email TEXT NOT NULL,
   rol TEXT NOT NULL CHECK (rol IN ('admin', 'jugador')),
   estaSancionado INTEGER NOT NULL DEFAULT 0,
   fechaCreacion TEXT NOT NULL

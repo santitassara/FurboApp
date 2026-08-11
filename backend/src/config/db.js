@@ -2,7 +2,16 @@ const fs = require('node:fs');
 const path = require('node:path');
 const Database = require('better-sqlite3');
 
-const DB_PATH = process.env.SQLITE_DB_PATH || path.join(__dirname, '../../data/furboapp.db');
+function resolverRutaDb() {
+  const configurada = process.env.SQLITE_DB_PATH;
+  if (!configurada) return path.join(__dirname, '../../data/furboapp.db');
+  if (configurada === ':memory:') return configurada;
+  return path.resolve(__dirname, '../..', configurada);
+}
+
+const DB_PATH = resolverRutaDb();
+
+console.log(`SQLite DB: ${DB_PATH}`);
 
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
