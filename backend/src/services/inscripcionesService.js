@@ -1,8 +1,7 @@
-const { db } = require('../config/firebase');
+const crypto = require('node:crypto');
+const { db } = require('../config/db');
 const usuariosService = require('./usuariosService');
 const partidosService = require('./partidosService');
-
-const COLECCION = 'Inscripciones';
 
 function crearError(mensaje, status) {
   const error = new Error(mensaje);
@@ -10,23 +9,21 @@ function crearError(mensaje, status) {
   return error;
 }
 
-function consultaAnotadosBase(partidoId) {
-  return db.collection(COLECCION).where('partidoId', '==', partidoId).where('estado', '==', 'anotado');
-}
-
 async function obtenerInscripcionActiva(partidoId, usuarioId) {
-  const snapshot = await consultaAnotadosBase(partidoId).where('usuarioId', '==', usuarioId).get();
-  if (snapshot.empty) return null;
-  const doc = snapshot.docs[0];
-  return { id: doc.id, ...doc.data() };
+  return (
+    db
+      .prepare(`SELECT * FROM Inscripciones WHERE partidoId = ? AND usuarioId = ? AND estado = 'anotado'`)
+      .get(partidoId, usuarioId) || null
+  );
 }
 
 async function contarOcupados(partidoId) {
-  const snapshot = await consultaAnotadosBase(partidoId).get();
-  const inscripciones = snapshot.docs.map((doc) => doc.data());
+  const filas = db
+    .prepare(`SELECT tipo FROM Inscripciones WHERE partidoId = ? AND estado = 'anotado'`)
+    .all(partidoId);
   return {
-    titulares: inscripciones.filter((i) => i.tipo === 'titular').length,
-    suplentes: inscripciones.filter((i) => i.tipo === 'suplente').length,
+    titulares: filas.filter((f) => f.tipo === 'titular').length,
+    suplentes: filas.filter((f) => f.tipo === 'suplente').length,
   };
 }
 
@@ -53,6 +50,7 @@ async function anotarse(partidoId, usuarioId) {
   }
 
   const nuevaInscripcion = {
+    id: crypto.randomUUID(),
     partidoId,
     usuarioId,
     estado: 'anotado',
@@ -60,15 +58,18 @@ async function anotarse(partidoId, usuarioId) {
     orden: ocupados.titulares + ocupados.suplentes,
     fechaInscripcion: new Date().toISOString(),
   };
-  const ref = await db.collection(COLECCION).add(nuevaInscripcion);
-  return { id: ref.id, ...nuevaInscripcion };
+  db.prepare(
+    `INSERT INTO Inscripciones (id, partidoId, usuarioId, estado, tipo, orden, fechaInscripcion)
+     VALUES (@id, @partidoId, @usuarioId, @estado, @tipo, @orden, @fechaInscripcion)`
+  ).run(nuevaInscripcion);
+  return nuevaInscripcion;
 }
 
 async function bajarse(partidoId, usuarioId) {
   const inscripcion = await obtenerInscripcionActiva(partidoId, usuarioId);
   if (!inscripcion) throw crearError('No estás anotado en este partido', 400);
 
-  await db.collection(COLECCION).doc(inscripcion.id).update({ estado: 'dado_de_baja' });
+  db.prepare("UPDATE Inscripciones SET estado = 'dado_de_baja' WHERE id = ?").run(inscripcion.id);
 
   if (inscripcion.tipo === 'titular') {
     await usuariosService.sancionar(usuarioId);
@@ -90,13 +91,12 @@ async function promover(partidoId, usuarioId) {
     throw crearError('No hay lugares de titular disponibles', 400);
   }
 
-  await db.collection(COLECCION).doc(inscripcion.id).update({ tipo: 'titular' });
+  db.prepare("UPDATE Inscripciones SET tipo = 'titular' WHERE id = ?").run(inscripcion.id);
   return { ...inscripcion, tipo: 'titular' };
 }
 
 async function listarActivas(partidoId) {
-  const snapshot = await consultaAnotadosBase(partidoId).get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  return db.prepare(`SELECT * FROM Inscripciones WHERE partidoId = ? AND estado = 'anotado'`).all(partidoId);
 }
 
 module.exports = { anotarse, bajarse, promover, contarOcupados, obtenerInscripcionActiva, listarActivas };
