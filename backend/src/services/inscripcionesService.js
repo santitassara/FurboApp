@@ -82,8 +82,8 @@ async function sancionarManualmente(partidoId, usuarioId) {
   if (!inscripcion) throw crearError('El jugador no está anotado en este partido', 404);
   if (inscripcion.tipo !== 'titular') throw crearError('Solo se puede sancionar a jugadores titulares', 400);
 
-  await db.collection(COLECCION).doc(inscripcion.id).update({ estado: 'dado_de_baja' });
   await usuariosService.sancionar(usuarioId);
+  await db.collection(COLECCION).doc(inscripcion.id).update({ estado: 'dado_de_baja' });
 
   return { ...inscripcion, estado: 'dado_de_baja' };
 }
