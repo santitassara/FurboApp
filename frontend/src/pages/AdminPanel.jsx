@@ -102,6 +102,7 @@ export default function AdminPanel() {
       await cargarTodo();
     } catch (err) {
       setError(err.message);
+      setJugadorASancionar(null);
     } finally {
       setAccionEnCurso(false);
     }
