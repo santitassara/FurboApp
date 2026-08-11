@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import Boton from '../components/Boton';
 import ListaJugadores from '../components/ListaJugadores';
+import ModalConfirmacionSancionAdmin from '../components/ModalConfirmacionSancionAdmin';
 
 const FORMULARIO_INICIAL = { fecha: '', cupoTitulares: 10, cupoSuplentes: 5 };
 
@@ -14,6 +15,7 @@ export default function AdminPanel() {
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
   const [accionEnCurso, setAccionEnCurso] = useState(false);
+  const [jugadorASancionar, setJugadorASancionar] = useState(null);
 
   const cargarTodo = useCallback(async () => {
     setError('');
@@ -82,6 +84,21 @@ export default function AdminPanel() {
     setAccionEnCurso(true);
     try {
       await api.post(`/partidos/${partidoId}/promover/${usuarioId}`);
+      await cargarTodo();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAccionEnCurso(false);
+    }
+  }
+
+  async function sancionar(partidoId, usuarioId) {
+    setError('');
+    setMensaje('');
+    setAccionEnCurso(true);
+    try {
+      await api.post(`/partidos/${partidoId}/sancionar/${usuarioId}`);
+      setJugadorASancionar(null);
       await cargarTodo();
     } catch (err) {
       setError(err.message);
@@ -177,12 +194,24 @@ export default function AdminPanel() {
               <ListaJugadores
                 jugadores={inscripcionesPorPartido[partido.id] || []}
                 onPromover={(usuarioId) => promover(partido.id, usuarioId)}
+                onSancionar={(usuarioId) => {
+                  const jugador = (inscripcionesPorPartido[partido.id] || []).find((j) => j.usuarioId === usuarioId);
+                  setJugadorASancionar({ partidoId: partido.id, usuarioId, nombre: jugador?.nombre || 'este jugador' });
+                }}
                 deshabilitado={accionEnCurso}
               />
             </div>
           ))
         )}
       </section>
+
+      <ModalConfirmacionSancionAdmin
+        abierto={Boolean(jugadorASancionar)}
+        nombre={jugadorASancionar?.nombre}
+        procesando={accionEnCurso}
+        onConfirmar={() => sancionar(jugadorASancionar.partidoId, jugadorASancionar.usuarioId)}
+        onCancelar={() => setJugadorASancionar(null)}
+      />
     </div>
   );
 }
