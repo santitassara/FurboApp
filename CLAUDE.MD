@@ -19,7 +19,8 @@ FurboApp/
 ## 3. Stack Tecnológico
 *   **Frontend**: React.js (recomendado usar Vite), React Router, TailwindCSS (opcional pero recomendado para UI), Axios (peticiones HTTP), Firebase Client SDK (solo para Auth).
 *   **Backend**: Node.js, Express.js, CORS, dotenv.
-*   **Base de Datos & Auth**: Firebase Firestore (NoSQL) y Firebase Authentication (Google Provider), gestionados desde el backend mediante **Firebase Admin SDK**.
+*   **Base de Datos**: SQLite (`better-sqlite3`), archivo local gestionado desde el backend (`backend/src/config/db.js`), sin dependencias cloud.
+*   **Auth**: Firebase Authentication (Google Provider), verificado desde el backend mediante **Firebase Admin SDK** (`admin.auth().verifyIdToken()`). Requiere conexión a internet para validar el login con Google; esto es independiente de dónde corre la base de datos.
 
 ---
 
@@ -38,28 +39,32 @@ FurboApp/
 
 ---
 
-## 5. Modelo de Datos (Firestore NoSQL)
+## 5. Modelo de Datos (SQLite)
 
-### Colección: `Usuarios`
-*   `uid` (String, PK, ID de Google)
-*   `nombre` (String)
-*   `email` (String)
-*   `rol` (String: "admin" | "jugador")
-*   `estaSancionado` (Boolean)
-*   `fechaCreacion` (Timestamp)
+### Tabla: `Usuarios`
+*   `uid` (TEXT, PK, ID de Google)
+*   `nombre` (TEXT)
+*   `email` (TEXT, UNIQUE)
+*   `rol` (TEXT: "admin" | "jugador")
+*   `estaSancionado` (INTEGER, 0/1)
+*   `fechaCreacion` (TEXT, ISO 8601)
 
-### Colección: `Partidos`
-*   `id` (String, PK, autogenerado)
-*   `fecha` (Timestamp, día y hora del partido)
-*   `estado` (String: "abierto" | "cerrado" | "jugado")
-*   `creadoPor` (String, uid del Admin)
+### Tabla: `Partidos`
+*   `id` (TEXT, PK, generado con `crypto.randomUUID()`)
+*   `fecha` (TEXT, ISO 8601)
+*   `estado` (TEXT: "abierto" | "cerrado" | "jugado")
+*   `creadoPor` (TEXT, uid del Admin)
+*   `cupoTitulares` (INTEGER)
+*   `cupoSuplentes` (INTEGER)
 
-### Colección: `Inscripciones`
-*   `id` (String, PK, autogenerado)
-*   `partidoId` (String, FK -> Partidos)
-*   `usuarioId` (String, FK -> Usuarios)
-*   `estado` (String: "anotado" | "dado_de_baja")
-*   `fechaInscripcion` (Timestamp)
+### Tabla: `Inscripciones`
+*   `id` (TEXT, PK, generado con `crypto.randomUUID()`)
+*   `partidoId` (TEXT, FK -> Partidos)
+*   `usuarioId` (TEXT, FK -> Usuarios)
+*   `estado` (TEXT: "anotado" | "dado_de_baja")
+*   `tipo` (TEXT: "titular" | "suplente")
+*   `orden` (INTEGER)
+*   `fechaInscripcion` (TEXT, ISO 8601)
 
 ---
 
