@@ -19,4 +19,11 @@ router.post(
   envolverAsync(inscripcionesController.promover)
 );
 
+router.post(
+  '/:partidoId/sancionar/:usuarioId',
+  verificarToken,
+  verificarAdmin,
+  envolverAsync(inscripcionesController.sancionarManualmente)
+);
+
 module.exports = router;

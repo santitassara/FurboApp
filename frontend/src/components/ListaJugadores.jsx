@@ -1,6 +1,6 @@
 import Boton from './Boton';
 
-export default function ListaJugadores({ jugadores, onPromover, deshabilitado }) {
+export default function ListaJugadores({ jugadores, onPromover, onSancionar, deshabilitado }) {
   const titulares = jugadores.filter((jugador) => jugador.tipo === 'titular');
   const suplentes = jugadores.filter((jugador) => jugador.tipo === 'suplente');
 
@@ -13,8 +13,18 @@ export default function ListaJugadores({ jugadores, onPromover, deshabilitado })
         ) : (
           <ul className="flex flex-col gap-1">
             {titulares.map((jugador) => (
-              <li key={jugador.usuarioId} className="text-sm text-white/90">
-                {jugador.nombre}
+              <li key={jugador.usuarioId} className="flex items-center justify-between text-sm text-white/90">
+                <span>{jugador.nombre}</span>
+                {onSancionar && (
+                  <Boton
+                    variante="peligro"
+                    className="px-3 py-1 text-xs"
+                    onClick={() => onSancionar(jugador.usuarioId)}
+                    disabled={deshabilitado}
+                  >
+                    Sancionar
+                  </Boton>
+                )}
               </li>
             ))}
           </ul>
