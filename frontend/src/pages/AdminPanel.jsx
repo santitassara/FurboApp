@@ -195,6 +195,7 @@ export default function AdminPanel() {
                 jugadores={inscripcionesPorPartido[partido.id] || []}
                 onPromover={(usuarioId) => promover(partido.id, usuarioId)}
                 onSancionar={(usuarioId) => {
+                  setError('');
                   const jugador = (inscripcionesPorPartido[partido.id] || []).find((j) => j.usuarioId === usuarioId);
                   setJugadorASancionar({ partidoId: partido.id, usuarioId, nombre: jugador?.nombre || 'este jugador' });
                 }}
