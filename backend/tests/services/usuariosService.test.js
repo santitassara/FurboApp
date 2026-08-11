@@ -82,6 +82,23 @@ describe('usuariosService.sincronizarUsuario', () => {
     expect(usuario.rol).toBe('jugador');
     expect(usuario.estaSancionado).toBe(true);
   });
+
+  it('promueve a admin un usuario existente que era jugador cuando su email está en ADMIN_EMAILS y verificado', async () => {
+    insertarUsuario({ uid: 'uid-5', email: 'nuevo-admin@gmail.com', rol: 'jugador' });
+    process.env.ADMIN_EMAILS = 'nuevo-admin@gmail.com';
+
+    const usuario = await usuariosService.sincronizarUsuario({
+      uid: 'uid-5',
+      email: 'nuevo-admin@gmail.com',
+      nombre: 'Nuevo Admin',
+      emailVerificado: true,
+    });
+
+    expect(usuario.rol).toBe('admin');
+
+    const fila = mockDb.prepare('SELECT rol FROM Usuarios WHERE uid = ?').get('uid-5');
+    expect(fila.rol).toBe('admin');
+  });
 });
 
 describe('usuariosService.obtenerUsuario', () => {
