@@ -8,6 +8,7 @@ fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = OFF');
 db.exec(fs.readFileSync(path.join(__dirname, '../db/schema.sql'), 'utf8'));
 
 module.exports = { db };
