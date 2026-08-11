@@ -1,6 +1,6 @@
 import Boton from './Boton';
 
-export default function ModalConfirmacionSancionAdmin({ abierto, nombre, procesando, onConfirmar, onCancelar }) {
+export default function ModalConfirmacionSancionAdmin({ abierto, nombre, procesando, error, onConfirmar, onCancelar }) {
   if (!abierto) return null;
 
   return (
@@ -11,6 +11,7 @@ export default function ModalConfirmacionSancionAdmin({ abierto, nombre, procesa
           Va a quedar dado de baja de este partido y sancionado: no va a poder anotarse al próximo partido hasta que
           lo perdones.
         </p>
+        {error && <p className="mb-4 text-sm text-sancion">{error}</p>}
         <div className="flex justify-center gap-3">
           <Boton variante="ghost" onClick={onCancelar} disabled={procesando}>
             Cancelar

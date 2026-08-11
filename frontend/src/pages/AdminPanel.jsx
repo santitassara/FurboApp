@@ -102,7 +102,6 @@ export default function AdminPanel() {
       await cargarTodo();
     } catch (err) {
       setError(err.message);
-      setJugadorASancionar(null);
     } finally {
       setAccionEnCurso(false);
     }
@@ -210,8 +209,12 @@ export default function AdminPanel() {
         abierto={Boolean(jugadorASancionar)}
         nombre={jugadorASancionar?.nombre}
         procesando={accionEnCurso}
+        error={error}
         onConfirmar={() => sancionar(jugadorASancionar.partidoId, jugadorASancionar.usuarioId)}
-        onCancelar={() => setJugadorASancionar(null)}
+        onCancelar={() => {
+          setJugadorASancionar(null);
+          setError('');
+        }}
       />
     </div>
   );
