@@ -469,7 +469,7 @@ En una terminal, levantar el servidor con una base descartable:
 cd backend
 rm -f /tmp/furboapp-endpoints-test.db
 SQLITE_DB_PATH=/tmp/furboapp-endpoints-test.db PORT=4055 ADMIN_EMAILS=admin@test.com \
-  FIREBASE_SERVICE_ACCOUNT='{"type":"service_account","project_id":"x","private_key":"-----BEGIN PRIVATE KEY-----\nMIIBVAIBADANBgkqhkiG9w0BAQEFAASCAT4wggE6AgEAAkEAvL5wg==\n-----END PRIVATE KEY-----\n","client_email":"x@x.iam.gserviceaccount.com"}' \
+  FIREBASE_SERVICE_ACCOUNT='{"type":"service_account","project_id":"x","private_key":"<PEM_DE_PRUEBA_DESCARTABLE_AQUI>","client_email":"x@x.iam.gserviceaccount.com"}' \
   node --watch server.js &
 sleep 1
 ```
@@ -587,7 +587,7 @@ Repetir el arranque del servidor de la Task 4 (mismo puerto 4055 o el que prefie
 cd backend
 rm -f /tmp/furboapp-mw-test.db
 SQLITE_DB_PATH=/tmp/furboapp-mw-test.db PORT=4056 ADMIN_EMAILS=admin@test.com \
-  FIREBASE_SERVICE_ACCOUNT='{"type":"service_account","project_id":"x","private_key":"-----BEGIN PRIVATE KEY-----\nMIIBVAIBADANBgkqhkiG9w0BAQEFAASCAT4wggE6AgEAAkEAvL5wg==\n-----END PRIVATE KEY-----\n","client_email":"x@x.iam.gserviceaccount.com"}' \
+  FIREBASE_SERVICE_ACCOUNT='{"type":"service_account","project_id":"x","private_key":"<PEM_DE_PRUEBA_DESCARTABLE_AQUI>","client_email":"x@x.iam.gserviceaccount.com"}' \
   node --watch server.js &
 sleep 1
 
