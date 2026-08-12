@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 const { db } = require('../config/db');
 const usuariosService = require('./usuariosService');
 const partidosService = require('./partidosService');
+const { sonPosicionesValidas } = require('../constants/posiciones');
 
 function crearError(mensaje, status) {
   const error = new Error(mensaje);
@@ -27,7 +28,11 @@ async function contarOcupados(partidoId) {
   };
 }
 
-async function anotarse(partidoId, usuarioId) {
+async function anotarse(partidoId, usuarioId, { posicionPrincipal, posicionSecundaria } = {}) {
+  if (!sonPosicionesValidas(posicionPrincipal, posicionSecundaria)) {
+    throw crearError('Posiciones inválidas', 400);
+  }
+
   const usuario = await usuariosService.obtenerUsuario(usuarioId);
   if (!usuario) throw crearError('Usuario no encontrado', 404);
   if (usuario.estaSancionado) throw crearError('Estás sancionado y no podés anotarte', 403);
@@ -57,10 +62,12 @@ async function anotarse(partidoId, usuarioId) {
     tipo,
     orden: ocupados.titulares + ocupados.suplentes,
     fechaInscripcion: new Date().toISOString(),
+    posicionPrincipal,
+    posicionSecundaria,
   };
   db.prepare(
-    `INSERT INTO Inscripciones (id, partidoId, usuarioId, estado, tipo, orden, fechaInscripcion)
-     VALUES (@id, @partidoId, @usuarioId, @estado, @tipo, @orden, @fechaInscripcion)`
+    `INSERT INTO Inscripciones (id, partidoId, usuarioId, estado, tipo, orden, fechaInscripcion, posicionPrincipal, posicionSecundaria)
+     VALUES (@id, @partidoId, @usuarioId, @estado, @tipo, @orden, @fechaInscripcion, @posicionPrincipal, @posicionSecundaria)`
   ).run(nuevaInscripcion);
   return nuevaInscripcion;
 }
