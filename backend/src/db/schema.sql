@@ -5,7 +5,9 @@ CREATE TABLE IF NOT EXISTS Usuarios (
   rol TEXT NOT NULL CHECK (rol IN ('admin', 'jugador')),
   estaSancionado INTEGER NOT NULL DEFAULT 0,
   fechaCreacion TEXT NOT NULL,
-  passwordHash TEXT
+  passwordHash TEXT,
+  posicionPrincipal TEXT,
+  posicionSecundaria TEXT
 );
 
 CREATE TABLE IF NOT EXISTS Partidos (
@@ -24,7 +26,9 @@ CREATE TABLE IF NOT EXISTS Inscripciones (
   estado TEXT NOT NULL CHECK (estado IN ('anotado', 'dado_de_baja')),
   tipo TEXT NOT NULL CHECK (tipo IN ('titular', 'suplente')),
   orden INTEGER NOT NULL,
-  fechaInscripcion TEXT NOT NULL
+  fechaInscripcion TEXT NOT NULL,
+  posicionPrincipal TEXT,
+  posicionSecundaria TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_inscripciones_partido_estado

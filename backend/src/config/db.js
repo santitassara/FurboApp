@@ -25,5 +25,27 @@ const tienePasswordHash = columnasUsuarios.some((columna) => columna.name === 'p
 if (!tienePasswordHash) {
   db.exec('ALTER TABLE Usuarios ADD COLUMN passwordHash TEXT');
 }
+const tienePosicionPrincipalUsuario = columnasUsuarios.some((columna) => columna.name === 'posicionPrincipal');
+if (!tienePosicionPrincipalUsuario) {
+  db.exec('ALTER TABLE Usuarios ADD COLUMN posicionPrincipal TEXT');
+}
+const tienePosicionSecundariaUsuario = columnasUsuarios.some((columna) => columna.name === 'posicionSecundaria');
+if (!tienePosicionSecundariaUsuario) {
+  db.exec('ALTER TABLE Usuarios ADD COLUMN posicionSecundaria TEXT');
+}
+
+const columnasInscripciones = db.prepare('PRAGMA table_info(Inscripciones)').all();
+const tienePosicionPrincipalInscripcion = columnasInscripciones.some(
+  (columna) => columna.name === 'posicionPrincipal'
+);
+if (!tienePosicionPrincipalInscripcion) {
+  db.exec('ALTER TABLE Inscripciones ADD COLUMN posicionPrincipal TEXT');
+}
+const tienePosicionSecundariaInscripcion = columnasInscripciones.some(
+  (columna) => columna.name === 'posicionSecundaria'
+);
+if (!tienePosicionSecundariaInscripcion) {
+  db.exec('ALTER TABLE Inscripciones ADD COLUMN posicionSecundaria TEXT');
+}
 
 module.exports = { db };
