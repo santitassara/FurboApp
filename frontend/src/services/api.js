@@ -10,6 +10,11 @@ api.interceptors.request.use(async (config) => {
   if (usuarioActual) {
     const token = await usuarioActual.getIdToken();
     config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    const tokenPropio = localStorage.getItem('furboapp_token');
+    if (tokenPropio) {
+      config.headers.Authorization = `Bearer ${tokenPropio}`;
+    }
   }
   return config;
 });
