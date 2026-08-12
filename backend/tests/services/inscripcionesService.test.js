@@ -181,37 +181,40 @@ describe('inscripcionesService.promover', () => {
 });
 
 describe('inscripcionesService.sancionarManualmente', () => {
-  beforeEach(() => jest.clearAllMocks());
-
   it('rechaza con 404 si no hay inscripción activa', async () => {
-    mockInscripcionesCol.get.mockResolvedValueOnce({ empty: true, docs: [] });
+    const partido = await crearPartidoAbierto();
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
 
-    await expect(inscripcionesService.sancionarManualmente('p1', 'u1')).rejects.toMatchObject({ status: 404 });
+    await expect(inscripcionesService.sancionarManualmente(partido.id, 'u1')).rejects.toMatchObject({
+      status: 404,
+    });
   });
 
   it('rechaza con 400 si el jugador es suplente', async () => {
-    mockInscripcionesCol.get.mockResolvedValueOnce({
-      empty: false,
-      docs: [{ id: 'i1', data: () => ({ tipo: 'suplente', estado: 'anotado' }) }],
+    const partido = await crearPartidoAbierto({ cupoTitulares: 1, cupoSuplentes: 1 });
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
+    await crearUsuario({ uid: 'u2', email: 'u2@gmail.com' });
+    await inscripcionesService.anotarse(partido.id, 'u1');
+    await inscripcionesService.anotarse(partido.id, 'u2');
+
+    await expect(inscripcionesService.sancionarManualmente(partido.id, 'u2')).rejects.toMatchObject({
+      status: 400,
     });
 
-    await expect(inscripcionesService.sancionarManualmente('p1', 'u1')).rejects.toMatchObject({ status: 400 });
-    expect(usuariosService.sancionar).not.toHaveBeenCalled();
+    const usuario = await usuariosService.obtenerUsuario('u2');
+    expect(usuario.estaSancionado).toBe(false);
   });
 
   it('da de baja y sanciona al usuario si es titular', async () => {
-    const docActualizarMock = crearDocMock();
-    mockInscripcionesCol.get.mockResolvedValueOnce({
-      empty: false,
-      docs: [{ id: 'i1', data: () => ({ tipo: 'titular', estado: 'anotado' }) }],
-    });
-    mockInscripcionesCol.doc.mockReturnValue(docActualizarMock);
+    const partido = await crearPartidoAbierto();
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
+    await inscripcionesService.anotarse(partido.id, 'u1');
 
-    const inscripcion = await inscripcionesService.sancionarManualmente('p1', 'u1');
+    const inscripcion = await inscripcionesService.sancionarManualmente(partido.id, 'u1');
 
-    expect(docActualizarMock.update).toHaveBeenCalledWith({ estado: 'dado_de_baja' });
-    expect(usuariosService.sancionar).toHaveBeenCalledWith('u1');
     expect(inscripcion.estado).toBe('dado_de_baja');
+    const usuario = await usuariosService.obtenerUsuario('u1');
+    expect(usuario.estaSancionado).toBe(true);
   });
 });
 
