@@ -1,189 +1,182 @@
-const { crearDocMock, crearColeccionMock } = require('../helpers/mockFirestore');
+const { crearDbDeTest } = require('../helpers/testDb');
 
-const mockInscripcionesCol = crearColeccionMock();
-
-jest.mock('../../src/config/firebase', () => ({
-  db: { collection: jest.fn(() => mockInscripcionesCol) },
-}));
-jest.mock('../../src/services/usuariosService');
-jest.mock('../../src/services/partidosService');
+const mockDb = crearDbDeTest();
+jest.mock('../../src/config/db', () => ({ db: mockDb }));
 
 const usuariosService = require('../../src/services/usuariosService');
 const partidosService = require('../../src/services/partidosService');
 const inscripcionesService = require('../../src/services/inscripcionesService');
 
-const USUARIO_OK = { uid: 'u1', estaSancionado: false };
-const PARTIDO_ABIERTO = { id: 'p1', estado: 'abierto', cupoTitulares: 2, cupoSuplentes: 1 };
-
-function mockSinInscripcionActiva() {
-  mockInscripcionesCol.get.mockResolvedValueOnce({ empty: true, docs: [] });
+async function crearUsuario(overrides = {}) {
+  return usuariosService.sincronizarUsuario({
+    uid: 'u1',
+    email: 'u1@gmail.com',
+    nombre: 'Usuario Uno',
+    ...overrides,
+  });
 }
 
-function mockConteo(titulares, suplentes) {
-  const docs = [
-    ...Array(titulares).fill({ data: () => ({ tipo: 'titular' }) }),
-    ...Array(suplentes).fill({ data: () => ({ tipo: 'suplente' }) }),
-  ];
-  mockInscripcionesCol.get.mockResolvedValueOnce({ docs });
+async function crearPartidoAbierto(overrides = {}) {
+  const admin = await crearUsuario({ uid: 'admin-1', email: 'admin@gmail.com' });
+  return partidosService.crearPartido({
+    fecha: '2099-01-01T20:00:00.000Z',
+    cupoTitulares: 2,
+    cupoSuplentes: 1,
+    creadoPor: admin.uid,
+    ...overrides,
+  });
 }
+
+beforeEach(() => {
+  mockDb.exec('DELETE FROM Inscripciones');
+  mockDb.exec('DELETE FROM Partidos');
+  mockDb.exec('DELETE FROM Usuarios');
+});
 
 describe('inscripcionesService.anotarse', () => {
-  beforeEach(() => jest.clearAllMocks());
-
   it('rechaza con 404 si el usuario no existe', async () => {
-    usuariosService.obtenerUsuario.mockResolvedValue(null);
+    const partido = await crearPartidoAbierto();
 
-    await expect(inscripcionesService.anotarse('p1', 'u1')).rejects.toMatchObject({ status: 404 });
+    await expect(inscripcionesService.anotarse(partido.id, 'no-existe')).rejects.toMatchObject({ status: 404 });
   });
 
   it('rechaza con 403 si el usuario está sancionado', async () => {
-    usuariosService.obtenerUsuario.mockResolvedValue({ ...USUARIO_OK, estaSancionado: true });
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
+    await usuariosService.sancionar('u1');
+    const partido = await crearPartidoAbierto();
 
-    await expect(inscripcionesService.anotarse('p1', 'u1')).rejects.toMatchObject({ status: 403 });
+    await expect(inscripcionesService.anotarse(partido.id, 'u1')).rejects.toMatchObject({ status: 403 });
   });
 
   it('rechaza con 400 si ya tiene una inscripción activa', async () => {
-    usuariosService.obtenerUsuario.mockResolvedValue(USUARIO_OK);
-    partidosService.obtenerPartido.mockResolvedValue(PARTIDO_ABIERTO);
-    mockInscripcionesCol.get.mockResolvedValueOnce({
-      empty: false,
-      docs: [{ id: 'i1', data: () => ({ tipo: 'titular', estado: 'anotado' }) }],
-    });
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
+    const partido = await crearPartidoAbierto();
+    await inscripcionesService.anotarse(partido.id, 'u1');
 
-    await expect(inscripcionesService.anotarse('p1', 'u1')).rejects.toMatchObject({ status: 400 });
+    await expect(inscripcionesService.anotarse(partido.id, 'u1')).rejects.toMatchObject({ status: 400 });
   });
 
   it('asigna tipo titular si hay lugar', async () => {
-    usuariosService.obtenerUsuario.mockResolvedValue(USUARIO_OK);
-    partidosService.obtenerPartido.mockResolvedValue(PARTIDO_ABIERTO);
-    mockSinInscripcionActiva();
-    mockConteo(0, 0);
-    mockInscripcionesCol.add.mockResolvedValue({ id: 'nueva-1' });
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
+    const partido = await crearPartidoAbierto();
 
-    const inscripcion = await inscripcionesService.anotarse('p1', 'u1');
+    const inscripcion = await inscripcionesService.anotarse(partido.id, 'u1');
 
     expect(inscripcion.tipo).toBe('titular');
   });
 
   it('asigna tipo suplente si los titulares están completos', async () => {
-    usuariosService.obtenerUsuario.mockResolvedValue(USUARIO_OK);
-    partidosService.obtenerPartido.mockResolvedValue(PARTIDO_ABIERTO);
-    mockSinInscripcionActiva();
-    mockConteo(2, 0);
-    mockInscripcionesCol.add.mockResolvedValue({ id: 'nueva-2' });
+    const partido = await crearPartidoAbierto({ cupoTitulares: 1, cupoSuplentes: 1 });
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
+    await crearUsuario({ uid: 'u2', email: 'u2@gmail.com' });
+    await inscripcionesService.anotarse(partido.id, 'u1');
 
-    const inscripcion = await inscripcionesService.anotarse('p1', 'u1');
+    const inscripcion = await inscripcionesService.anotarse(partido.id, 'u2');
 
     expect(inscripcion.tipo).toBe('suplente');
   });
 
   it('rechaza con 400 "Partido completo" si titulares y suplentes están llenos', async () => {
-    usuariosService.obtenerUsuario.mockResolvedValue(USUARIO_OK);
-    partidosService.obtenerPartido.mockResolvedValue(PARTIDO_ABIERTO);
-    mockSinInscripcionActiva();
-    mockConteo(2, 1);
+    const partido = await crearPartidoAbierto({ cupoTitulares: 1, cupoSuplentes: 1 });
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
+    await crearUsuario({ uid: 'u2', email: 'u2@gmail.com' });
+    await crearUsuario({ uid: 'u3', email: 'u3@gmail.com' });
+    await inscripcionesService.anotarse(partido.id, 'u1');
+    await inscripcionesService.anotarse(partido.id, 'u2');
 
-    await expect(inscripcionesService.anotarse('p1', 'u1')).rejects.toMatchObject({ status: 400 });
+    await expect(inscripcionesService.anotarse(partido.id, 'u3')).rejects.toMatchObject({ status: 400 });
   });
 
   it('rechaza con 400 si el partido no está abierto', async () => {
-    usuariosService.obtenerUsuario.mockResolvedValue(USUARIO_OK);
-    partidosService.obtenerPartido.mockResolvedValue({ ...PARTIDO_ABIERTO, estado: 'cerrado' });
+    const partido = await crearPartidoAbierto();
+    mockDb.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE id = ?").run(partido.id);
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
 
-    await expect(inscripcionesService.anotarse('p1', 'u1')).rejects.toMatchObject({ status: 400 });
+    await expect(inscripcionesService.anotarse(partido.id, 'u1')).rejects.toMatchObject({ status: 400 });
   });
 });
 
 describe('inscripcionesService.bajarse', () => {
-  beforeEach(() => jest.clearAllMocks());
-
   it('rechaza con 400 si no hay inscripción activa', async () => {
-    mockInscripcionesCol.get.mockResolvedValueOnce({ empty: true, docs: [] });
+    const partido = await crearPartidoAbierto();
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
 
-    await expect(inscripcionesService.bajarse('p1', 'u1')).rejects.toMatchObject({ status: 400 });
+    await expect(inscripcionesService.bajarse(partido.id, 'u1')).rejects.toMatchObject({ status: 400 });
   });
 
   it('sanciona al usuario si era titular', async () => {
-    const docActualizarMock = crearDocMock();
-    mockInscripcionesCol.get.mockResolvedValueOnce({
-      empty: false,
-      docs: [{ id: 'i1', data: () => ({ tipo: 'titular', estado: 'anotado' }) }],
-    });
-    mockInscripcionesCol.doc.mockReturnValue(docActualizarMock);
+    const partido = await crearPartidoAbierto();
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
+    await inscripcionesService.anotarse(partido.id, 'u1');
 
-    await inscripcionesService.bajarse('p1', 'u1');
+    await inscripcionesService.bajarse(partido.id, 'u1');
 
-    expect(docActualizarMock.update).toHaveBeenCalledWith({ estado: 'dado_de_baja' });
-    expect(usuariosService.sancionar).toHaveBeenCalledWith('u1');
+    const usuario = await usuariosService.obtenerUsuario('u1');
+    expect(usuario.estaSancionado).toBe(true);
   });
 
   it('NO sanciona al usuario si era suplente', async () => {
-    const docActualizarMock = crearDocMock();
-    mockInscripcionesCol.get.mockResolvedValueOnce({
-      empty: false,
-      docs: [{ id: 'i1', data: () => ({ tipo: 'suplente', estado: 'anotado' }) }],
-    });
-    mockInscripcionesCol.doc.mockReturnValue(docActualizarMock);
+    const partido = await crearPartidoAbierto({ cupoTitulares: 1, cupoSuplentes: 1 });
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
+    await crearUsuario({ uid: 'u2', email: 'u2@gmail.com' });
+    await inscripcionesService.anotarse(partido.id, 'u1');
+    await inscripcionesService.anotarse(partido.id, 'u2');
 
-    await inscripcionesService.bajarse('p1', 'u1');
+    await inscripcionesService.bajarse(partido.id, 'u2');
 
-    expect(usuariosService.sancionar).not.toHaveBeenCalled();
+    const usuario = await usuariosService.obtenerUsuario('u2');
+    expect(usuario.estaSancionado).toBe(false);
   });
 });
 
 describe('inscripcionesService.promover', () => {
-  beforeEach(() => jest.clearAllMocks());
-
   it('rechaza con 404 si el usuario no tiene inscripción activa', async () => {
-    mockInscripcionesCol.get.mockResolvedValueOnce({ empty: true, docs: [] });
+    const partido = await crearPartidoAbierto();
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
 
-    await expect(inscripcionesService.promover('p1', 'u1')).rejects.toMatchObject({ status: 404 });
+    await expect(inscripcionesService.promover(partido.id, 'u1')).rejects.toMatchObject({ status: 404 });
   });
 
   it('rechaza con 400 si el usuario ya es titular', async () => {
-    mockInscripcionesCol.get.mockResolvedValueOnce({
-      empty: false,
-      docs: [{ id: 'i1', data: () => ({ tipo: 'titular', estado: 'anotado' }) }],
-    });
+    const partido = await crearPartidoAbierto();
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
+    await inscripcionesService.anotarse(partido.id, 'u1');
 
-    await expect(inscripcionesService.promover('p1', 'u1')).rejects.toMatchObject({ status: 400 });
+    await expect(inscripcionesService.promover(partido.id, 'u1')).rejects.toMatchObject({ status: 400 });
   });
 
   it('rechaza con 400 si no hay cupo de titular libre', async () => {
-    mockInscripcionesCol.get.mockResolvedValueOnce({
-      empty: false,
-      docs: [{ id: 'i1', data: () => ({ tipo: 'suplente', estado: 'anotado' }) }],
-    });
-    partidosService.obtenerPartido.mockResolvedValue(PARTIDO_ABIERTO);
-    mockConteo(2, 1);
+    const partido = await crearPartidoAbierto({ cupoTitulares: 1, cupoSuplentes: 1 });
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
+    await crearUsuario({ uid: 'u2', email: 'u2@gmail.com' });
+    await inscripcionesService.anotarse(partido.id, 'u1');
+    await inscripcionesService.anotarse(partido.id, 'u2');
 
-    await expect(inscripcionesService.promover('p1', 'u1')).rejects.toMatchObject({ status: 400 });
+    await expect(inscripcionesService.promover(partido.id, 'u2')).rejects.toMatchObject({ status: 400 });
   });
 
   it('promueve a titular si hay cupo libre', async () => {
-    const docActualizarMock = crearDocMock();
-    mockInscripcionesCol.get.mockResolvedValueOnce({
-      empty: false,
-      docs: [{ id: 'i1', data: () => ({ tipo: 'suplente', estado: 'anotado' }) }],
-    });
-    partidosService.obtenerPartido.mockResolvedValue(PARTIDO_ABIERTO);
-    mockConteo(1, 1);
-    mockInscripcionesCol.doc.mockReturnValue(docActualizarMock);
+    const partido = await crearPartidoAbierto({ cupoTitulares: 1, cupoSuplentes: 1 });
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
+    await crearUsuario({ uid: 'u2', email: 'u2@gmail.com' });
+    await inscripcionesService.anotarse(partido.id, 'u1');
+    await inscripcionesService.anotarse(partido.id, 'u2');
+    await inscripcionesService.bajarse(partido.id, 'u1');
 
-    const inscripcion = await inscripcionesService.promover('p1', 'u1');
+    const inscripcion = await inscripcionesService.promover(partido.id, 'u2');
 
     expect(inscripcion.tipo).toBe('titular');
-    expect(docActualizarMock.update).toHaveBeenCalledWith({ tipo: 'titular' });
   });
 
   it('rechaza con 404 si el partido no existe', async () => {
-    mockInscripcionesCol.get.mockResolvedValueOnce({
-      empty: false,
-      docs: [{ id: 'i1', data: () => ({ tipo: 'suplente', estado: 'anotado' }) }],
-    });
-    partidosService.obtenerPartido.mockResolvedValue(null);
+    const partido = await crearPartidoAbierto({ cupoTitulares: 1, cupoSuplentes: 1 });
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
+    await crearUsuario({ uid: 'u2', email: 'u2@gmail.com' });
+    await inscripcionesService.anotarse(partido.id, 'u1');
+    await inscripcionesService.anotarse(partido.id, 'u2');
+    mockDb.prepare('DELETE FROM Partidos WHERE id = ?').run(partido.id);
 
-    await expect(inscripcionesService.promover('p1', 'u1')).rejects.toMatchObject({ status: 404 });
+    await expect(inscripcionesService.promover(partido.id, 'u2')).rejects.toMatchObject({ status: 404 });
   });
 });
 
@@ -223,15 +216,16 @@ describe('inscripcionesService.sancionarManualmente', () => {
 });
 
 describe('inscripcionesService.listarActivas', () => {
-  it('devuelve solo inscripciones con estado anotado, mapeadas con id', async () => {
-    const docs = [
-      { id: 'i1', data: () => ({ partidoId: 'p1', usuarioId: 'u1', estado: 'anotado', tipo: 'titular' }) },
-    ];
-    mockInscripcionesCol.get.mockResolvedValueOnce({ docs });
+  it('devuelve solo inscripciones con estado anotado', async () => {
+    const partido = await crearPartidoAbierto();
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
+    await crearUsuario({ uid: 'u2', email: 'u2@gmail.com' });
+    await inscripcionesService.anotarse(partido.id, 'u1');
+    await inscripcionesService.anotarse(partido.id, 'u2');
+    await inscripcionesService.bajarse(partido.id, 'u2');
 
-    const activas = await inscripcionesService.listarActivas('p1');
+    const activas = await inscripcionesService.listarActivas(partido.id);
 
-    expect(activas).toEqual([{ id: 'i1', partidoId: 'p1', usuarioId: 'u1', estado: 'anotado', tipo: 'titular' }]);
-    expect(mockInscripcionesCol.where).toHaveBeenCalledWith('estado', '==', 'anotado');
+    expect(activas.map((i) => i.usuarioId)).toEqual(['u1']);
   });
 });

@@ -1,16 +1,26 @@
-const { crearDocMock, crearColeccionMock } = require('../helpers/mockFirestore');
+const { crearDbDeTest } = require('../helpers/testDb');
 
-const mockPartidosCol = crearColeccionMock();
-
-jest.mock('../../src/config/firebase', () => ({
-  db: { collection: jest.fn(() => mockPartidosCol) },
-}));
+const mockDb = crearDbDeTest();
+jest.mock('../../src/config/db', () => ({ db: mockDb }));
 
 const partidosService = require('../../src/services/partidosService');
 
-describe('partidosService.crearPartido', () => {
-  beforeEach(() => jest.clearAllMocks());
+function insertarUsuarioAdmin() {
+  mockDb
+    .prepare(
+      `INSERT INTO Usuarios (uid, nombre, email, rol, estaSancionado, fechaCreacion)
+       VALUES ('admin-1', 'Admin Uno', 'admin@gmail.com', 'admin', 0, '2026-01-01T00:00:00.000Z')`
+    )
+    .run();
+}
 
+beforeEach(() => {
+  mockDb.exec('DELETE FROM Partidos');
+  mockDb.exec('DELETE FROM Usuarios');
+  insertarUsuarioAdmin();
+});
+
+describe('partidosService.crearPartido', () => {
   it('rechaza una fecha pasada', async () => {
     await expect(
       partidosService.crearPartido({
@@ -34,8 +44,6 @@ describe('partidosService.crearPartido', () => {
   });
 
   it('crea el partido con estado abierto cuando los datos son válidos', async () => {
-    mockPartidosCol.add.mockResolvedValue({ id: 'partido-1' });
-
     const partido = await partidosService.crearPartido({
       fecha: '2099-01-01T20:00:00.000Z',
       cupoTitulares: 10,
@@ -44,7 +52,7 @@ describe('partidosService.crearPartido', () => {
     });
 
     expect(partido).toMatchObject({
-      id: 'partido-1',
+      id: expect.any(String),
       estado: 'abierto',
       cupoTitulares: 10,
       cupoSuplentes: 5,
@@ -54,47 +62,44 @@ describe('partidosService.crearPartido', () => {
 });
 
 describe('partidosService.obtenerPartido', () => {
-  beforeEach(() => jest.clearAllMocks());
-
   it('devuelve null si no existe', async () => {
-    const docMock = crearDocMock({ get: jest.fn().mockResolvedValue({ exists: false }) });
-    mockPartidosCol.doc.mockReturnValue(docMock);
-
     const partido = await partidosService.obtenerPartido('no-existe');
 
     expect(partido).toBeNull();
   });
 
   it('devuelve el partido con id si existe', async () => {
-    const docMock = crearDocMock({
-      get: jest.fn().mockResolvedValue({
-        exists: true,
-        id: 'partido-1',
-        data: () => ({ estado: 'abierto', cupoTitulares: 10, cupoSuplentes: 5 }),
-      }),
+    const creado = await partidosService.crearPartido({
+      fecha: '2099-01-01T20:00:00.000Z',
+      cupoTitulares: 10,
+      cupoSuplentes: 5,
+      creadoPor: 'admin-1',
     });
-    mockPartidosCol.doc.mockReturnValue(docMock);
 
-    const partido = await partidosService.obtenerPartido('partido-1');
+    const partido = await partidosService.obtenerPartido(creado.id);
 
-    expect(partido).toEqual({ id: 'partido-1', estado: 'abierto', cupoTitulares: 10, cupoSuplentes: 5 });
+    expect(partido).toEqual(creado);
   });
 });
 
 describe('partidosService.listarPartidosAbiertos', () => {
-  it('mapea los docs a partidos con id', async () => {
-    const docs = [
-      { id: 'p1', data: () => ({ estado: 'abierto' }) },
-      { id: 'p2', data: () => ({ estado: 'abierto' }) },
-    ];
-    mockPartidosCol.get.mockResolvedValue({ docs });
+  it('devuelve solo los partidos con estado abierto', async () => {
+    const abierto = await partidosService.crearPartido({
+      fecha: '2099-01-01T20:00:00.000Z',
+      cupoTitulares: 10,
+      cupoSuplentes: 5,
+      creadoPor: 'admin-1',
+    });
+    const otro = await partidosService.crearPartido({
+      fecha: '2099-02-01T20:00:00.000Z',
+      cupoTitulares: 8,
+      cupoSuplentes: 4,
+      creadoPor: 'admin-1',
+    });
+    mockDb.prepare("UPDATE Partidos SET estado = 'jugado' WHERE id = ?").run(otro.id);
 
     const partidos = await partidosService.listarPartidosAbiertos();
 
-    expect(partidos).toEqual([
-      { id: 'p1', estado: 'abierto' },
-      { id: 'p2', estado: 'abierto' },
-    ]);
-    expect(mockPartidosCol.where).toHaveBeenCalledWith('estado', '==', 'abierto');
+    expect(partidos).toEqual([abierto]);
   });
 });
