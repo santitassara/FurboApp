@@ -1,4 +1,5 @@
 import Boton from './Boton';
+import { etiquetaPosicion } from '../constants/posiciones';
 
 export default function ListaJugadores({ jugadores, onPromover, onSancionar, deshabilitado }) {
   const titulares = jugadores.filter((jugador) => jugador.tipo === 'titular');
@@ -14,7 +15,13 @@ export default function ListaJugadores({ jugadores, onPromover, onSancionar, des
           <ul className="flex flex-col gap-1">
             {titulares.map((jugador) => (
               <li key={jugador.usuarioId} className="flex items-center justify-between text-sm text-white/90">
-                <span>{jugador.nombre}</span>
+                <span>
+                  {jugador.nombre}
+                  <span className="ml-2 text-xs text-white/50">
+                    {etiquetaPosicion(jugador.posicionPrincipal)}
+                    {jugador.posicionSecundaria && ` / ${etiquetaPosicion(jugador.posicionSecundaria)}`}
+                  </span>
+                </span>
                 {onSancionar && (
                   <Boton
                     variante="peligro"
@@ -38,7 +45,13 @@ export default function ListaJugadores({ jugadores, onPromover, onSancionar, des
           <ul className="flex flex-col gap-2">
             {suplentes.map((jugador) => (
               <li key={jugador.usuarioId} className="flex items-center justify-between text-sm text-white/90">
-                <span>{jugador.nombre}</span>
+                <span>
+                  {jugador.nombre}
+                  <span className="ml-2 text-xs text-white/50">
+                    {etiquetaPosicion(jugador.posicionPrincipal)}
+                    {jugador.posicionSecundaria && ` / ${etiquetaPosicion(jugador.posicionSecundaria)}`}
+                  </span>
+                </span>
                 {onPromover && (
                   <Boton
                     variante="ghost"
