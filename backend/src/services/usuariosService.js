@@ -1,6 +1,12 @@
+const crypto = require('node:crypto');
+const bcrypt = require('bcryptjs');
 const { db } = require('../config/db');
 
-const filaAUsuario = (fila) => (fila ? { ...fila, estaSancionado: Boolean(fila.estaSancionado) } : null);
+const filaAUsuario = (fila) => {
+  if (!fila) return null;
+  const { passwordHash, ...resto } = fila;
+  return { ...resto, estaSancionado: Boolean(fila.estaSancionado) };
+};
 
 function obtenerAdminEmails() {
   return (process.env.ADMIN_EMAILS || '')
@@ -59,4 +65,64 @@ async function sancionar(uid) {
   db.prepare('UPDATE Usuarios SET estaSancionado = 1 WHERE uid = ?').run(uid);
 }
 
-module.exports = { sincronizarUsuario, obtenerUsuario, listarSancionados, perdonarSancion, sancionar };
+async function registrarConPassword({ nombre, email, password }) {
+  const emailNormalizado = String(email).trim().toLowerCase();
+  const existente = db.prepare('SELECT * FROM Usuarios WHERE email = ?').get(emailNormalizado);
+
+  if (existente && existente.passwordHash) {
+    const error = new Error('El email ya está registrado');
+    error.status = 409;
+    throw error;
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  if (existente) {
+    db.prepare('UPDATE Usuarios SET passwordHash = ? WHERE uid = ?').run(passwordHash, existente.uid);
+    return filaAUsuario({ ...existente, passwordHash });
+  }
+
+  const nuevoUsuario = {
+    uid: crypto.randomUUID(),
+    nombre: String(nombre).trim(),
+    email: emailNormalizado,
+    rol: 'jugador',
+    estaSancionado: false,
+    fechaCreacion: new Date().toISOString(),
+  };
+  db.prepare(
+    `INSERT INTO Usuarios (uid, nombre, email, rol, estaSancionado, fechaCreacion, passwordHash)
+     VALUES (@uid, @nombre, @email, @rol, @estaSancionado, @fechaCreacion, @passwordHash)`
+  ).run({ ...nuevoUsuario, estaSancionado: 0, passwordHash });
+  return filaAUsuario({ ...nuevoUsuario, passwordHash });
+}
+
+async function autenticarConPassword({ email, password }) {
+  const emailNormalizado = String(email).trim().toLowerCase();
+  const usuario = db.prepare('SELECT * FROM Usuarios WHERE email = ?').get(emailNormalizado);
+
+  if (!usuario || !usuario.passwordHash) {
+    const error = new Error('Credenciales inválidas');
+    error.status = 401;
+    throw error;
+  }
+
+  const coincide = await bcrypt.compare(password, usuario.passwordHash);
+  if (!coincide) {
+    const error = new Error('Credenciales inválidas');
+    error.status = 401;
+    throw error;
+  }
+
+  return filaAUsuario(usuario);
+}
+
+module.exports = {
+  sincronizarUsuario,
+  obtenerUsuario,
+  listarSancionados,
+  perdonarSancion,
+  sancionar,
+  registrarConPassword,
+  autenticarConPassword,
+};
