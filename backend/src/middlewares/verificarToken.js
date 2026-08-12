@@ -1,4 +1,5 @@
 const { admin } = require('../config/firebase');
+const { verificarTokenPropio } = require('../utils/jwt');
 
 async function verificarToken(req, res, next) {
   const authHeader = req.headers.authorization || '';
@@ -6,6 +7,17 @@ async function verificarToken(req, res, next) {
 
   if (tipo !== 'Bearer' || !token) {
     return res.status(401).json({ error: 'Token no provisto' });
+  }
+
+  const payloadPropio = verificarTokenPropio(token);
+  if (payloadPropio) {
+    req.usuario = {
+      uid: payloadPropio.uid,
+      email: payloadPropio.email,
+      nombre: payloadPropio.nombre,
+      emailVerificado: true,
+    };
+    return next();
   }
 
   try {
