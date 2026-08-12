@@ -17,6 +17,7 @@ export default function Home() {
   const [partidoParaBaja, setPartidoParaBaja] = useState(null);
   const [partidoEnProceso, setPartidoEnProceso] = useState(null);
   const [guardandoPosicionPerfil, setGuardandoPosicionPerfil] = useState(false);
+  const [partidoParaAnotarse, setPartidoParaAnotarse] = useState(null);
 
   const cargarPartidos = useCallback(async () => {
     setCargando(true);
@@ -48,12 +49,13 @@ export default function Home() {
     return jugadores.find((jugador) => jugador.usuarioId === perfil?.uid) || null;
   }
 
-  async function anotarse(partidoId) {
+  async function anotarse(partidoId, posicionPrincipal, posicionSecundaria) {
     setError('');
     setPartidoEnProceso(partidoId);
     try {
-      await api.post(`/partidos/${partidoId}/anotarse`);
+      await api.post(`/partidos/${partidoId}/anotarse`, { posicionPrincipal, posicionSecundaria });
       await cargarPartidos();
+      setPartidoParaAnotarse(null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -132,7 +134,7 @@ export default function Home() {
               inscripcionUsuario={inscripcionDelUsuario(partido.id)}
               estaSancionado={estaSancionado}
               procesando={partidoEnProceso === partido.id}
-              onAnotarse={() => anotarse(partido.id)}
+              onAnotarse={() => setPartidoParaAnotarse(partido.id)}
               onSolicitarBaja={() => solicitarBaja(partido)}
               jugadores={inscripcionesPorPartido[partido.id] || []}
             />
@@ -154,6 +156,18 @@ export default function Home() {
         posicionPrincipalInicial={null}
         posicionSecundariaInicial={null}
         onConfirmar={confirmarPosicionPerfil}
+      />
+
+      <ModalPosicion
+        abierto={Boolean(partidoParaAnotarse)}
+        procesando={partidoEnProceso === partidoParaAnotarse}
+        permitirCancelar
+        posicionPrincipalInicial={perfil?.posicionPrincipal}
+        posicionSecundariaInicial={perfil?.posicionSecundaria}
+        onConfirmar={(posicionPrincipal, posicionSecundaria) =>
+          anotarse(partidoParaAnotarse, posicionPrincipal, posicionSecundaria)
+        }
+        onCancelar={() => setPartidoParaAnotarse(null)}
       />
     </div>
   );
