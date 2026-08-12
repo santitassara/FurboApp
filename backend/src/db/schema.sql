@@ -4,7 +4,8 @@ CREATE TABLE IF NOT EXISTS Usuarios (
   email TEXT NOT NULL,
   rol TEXT NOT NULL CHECK (rol IN ('admin', 'jugador')),
   estaSancionado INTEGER NOT NULL DEFAULT 0,
-  fechaCreacion TEXT NOT NULL
+  fechaCreacion TEXT NOT NULL,
+  passwordHash TEXT
 );
 
 CREATE TABLE IF NOT EXISTS Partidos (
