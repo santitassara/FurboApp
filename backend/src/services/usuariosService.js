@@ -1,6 +1,6 @@
-const { db } = require('../config/firebase');
+const { db } = require('../config/db');
 
-const COLECCION = 'Usuarios';
+const filaAUsuario = (fila) => (fila ? { ...fila, estaSancionado: Boolean(fila.estaSancionado) } : null);
 
 function obtenerAdminEmails() {
   return (process.env.ADMIN_EMAILS || '')
@@ -10,11 +10,10 @@ function obtenerAdminEmails() {
 }
 
 async function sincronizarUsuario({ uid, email, nombre, emailVerificado }) {
-  const ref = db.collection(COLECCION).doc(uid);
-  const snapshot = await ref.get();
   const esAdmin = Boolean(emailVerificado) && obtenerAdminEmails().includes((email || '').toLowerCase());
+  const existente = db.prepare('SELECT * FROM Usuarios WHERE uid = ?').get(uid);
 
-  if (!snapshot.exists) {
+  if (!existente) {
     const nuevoUsuario = {
       uid,
       nombre,
@@ -23,41 +22,41 @@ async function sincronizarUsuario({ uid, email, nombre, emailVerificado }) {
       estaSancionado: false,
       fechaCreacion: new Date().toISOString(),
     };
-    await ref.set(nuevoUsuario);
+    db.prepare(
+      `INSERT INTO Usuarios (uid, nombre, email, rol, estaSancionado, fechaCreacion)
+       VALUES (@uid, @nombre, @email, @rol, @estaSancionado, @fechaCreacion)`
+    ).run({ ...nuevoUsuario, estaSancionado: 0 });
     return nuevoUsuario;
   }
 
-  const usuarioExistente = snapshot.data();
+  const usuarioExistente = filaAUsuario(existente);
   if (esAdmin && usuarioExistente.rol !== 'admin') {
-    await ref.set({ rol: 'admin' }, { merge: true });
+    db.prepare('UPDATE Usuarios SET rol = ? WHERE uid = ?').run('admin', uid);
     usuarioExistente.rol = 'admin';
   }
   return usuarioExistente;
 }
 
 async function obtenerUsuario(uid) {
-  const snapshot = await db.collection(COLECCION).doc(uid).get();
-  return snapshot.exists ? snapshot.data() : null;
+  return filaAUsuario(db.prepare('SELECT * FROM Usuarios WHERE uid = ?').get(uid));
 }
 
 async function listarSancionados() {
-  const snapshot = await db.collection(COLECCION).where('estaSancionado', '==', true).get();
-  return snapshot.docs.map((doc) => doc.data());
+  return db.prepare('SELECT * FROM Usuarios WHERE estaSancionado = 1').all().map(filaAUsuario);
 }
 
 async function perdonarSancion(uid) {
-  const ref = db.collection(COLECCION).doc(uid);
-  const snapshot = await ref.get();
-  if (!snapshot.exists) {
+  const existente = db.prepare('SELECT uid FROM Usuarios WHERE uid = ?').get(uid);
+  if (!existente) {
     const error = new Error('Usuario no encontrado');
     error.status = 404;
     throw error;
   }
-  await ref.set({ estaSancionado: false }, { merge: true });
+  db.prepare('UPDATE Usuarios SET estaSancionado = 0 WHERE uid = ?').run(uid);
 }
 
 async function sancionar(uid) {
-  await db.collection(COLECCION).doc(uid).set({ estaSancionado: true }, { merge: true });
+  db.prepare('UPDATE Usuarios SET estaSancionado = 1 WHERE uid = ?').run(uid);
 }
 
 module.exports = { sincronizarUsuario, obtenerUsuario, listarSancionados, perdonarSancion, sancionar };

@@ -1,6 +1,5 @@
-const { db } = require('../config/firebase');
-
-const COLECCION = 'Partidos';
+const crypto = require('node:crypto');
+const { db } = require('../config/db');
 
 function crearErrorValidacion(mensaje) {
   const error = new Error(mensaje);
@@ -21,24 +20,26 @@ async function crearPartido({ fecha, cupoTitulares, cupoSuplentes, creadoPor }) 
   }
 
   const nuevoPartido = {
+    id: crypto.randomUUID(),
     fecha: fechaPartido.toISOString(),
     estado: 'abierto',
     creadoPor,
     cupoTitulares,
     cupoSuplentes,
   };
-  const ref = await db.collection(COLECCION).add(nuevoPartido);
-  return { id: ref.id, ...nuevoPartido };
+  db.prepare(
+    `INSERT INTO Partidos (id, fecha, estado, creadoPor, cupoTitulares, cupoSuplentes)
+     VALUES (@id, @fecha, @estado, @creadoPor, @cupoTitulares, @cupoSuplentes)`
+  ).run(nuevoPartido);
+  return nuevoPartido;
 }
 
 async function obtenerPartido(partidoId) {
-  const snapshot = await db.collection(COLECCION).doc(partidoId).get();
-  return snapshot.exists ? { id: snapshot.id, ...snapshot.data() } : null;
+  return db.prepare('SELECT * FROM Partidos WHERE id = ?').get(partidoId) || null;
 }
 
 async function listarPartidosAbiertos() {
-  const snapshot = await db.collection(COLECCION).where('estado', '==', 'abierto').get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  return db.prepare("SELECT * FROM Partidos WHERE estado = 'abierto'").all();
 }
 
 module.exports = { crearPartido, obtenerPartido, listarPartidosAbiertos };
