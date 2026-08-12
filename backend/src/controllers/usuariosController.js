@@ -10,4 +10,9 @@ async function perdonar(req, res) {
   res.json({ mensaje: 'Sanción revocada' });
 }
 
-module.exports = { listarSancionados, perdonar };
+async function actualizarMisPosiciones(req, res) {
+  const usuario = await usuariosService.actualizarPosiciones(req.usuario.uid, req.body);
+  res.json(usuario);
+}
+
+module.exports = { listarSancionados, perdonar, actualizarMisPosiciones };
