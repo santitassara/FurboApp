@@ -2,6 +2,9 @@ const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
 const { db } = require('../config/db');
 
+// Dummy hash for timing consistency in autenticarConPassword (prevents email enumeration)
+const dummyPasswordHash = bcrypt.hashSync('dummy', 10);
+
 const filaAUsuario = (fila) => {
   if (!fila) return null;
   const { passwordHash, ...resto } = fila;
@@ -67,48 +70,54 @@ async function sancionar(uid) {
 
 async function registrarConPassword({ nombre, email, password }) {
   const emailNormalizado = String(email).trim().toLowerCase();
-  const existente = db.prepare('SELECT * FROM Usuarios WHERE email = ?').get(emailNormalizado);
 
-  if (existente && existente.passwordHash) {
-    const error = new Error('El email ya está registrado');
-    error.status = 409;
-    throw error;
-  }
-
+  // Hash password BEFORE transaction (async operation)
   const passwordHash = await bcrypt.hash(password, 10);
 
-  if (existente) {
-    db.prepare('UPDATE Usuarios SET passwordHash = ? WHERE uid = ?').run(passwordHash, existente.uid);
-    return filaAUsuario({ ...existente, passwordHash });
-  }
+  // Wrap SELECT-decide-write in atomic transaction to prevent race condition
+  const resultado = db.transaction(() => {
+    const existente = db.prepare('SELECT * FROM Usuarios WHERE email = ?').get(emailNormalizado);
 
-  const nuevoUsuario = {
-    uid: crypto.randomUUID(),
-    nombre: String(nombre).trim(),
-    email: emailNormalizado,
-    rol: 'jugador',
-    estaSancionado: false,
-    fechaCreacion: new Date().toISOString(),
-  };
-  db.prepare(
-    `INSERT INTO Usuarios (uid, nombre, email, rol, estaSancionado, fechaCreacion, passwordHash)
-     VALUES (@uid, @nombre, @email, @rol, @estaSancionado, @fechaCreacion, @passwordHash)`
-  ).run({ ...nuevoUsuario, estaSancionado: 0, passwordHash });
-  return filaAUsuario({ ...nuevoUsuario, passwordHash });
+    if (existente && existente.passwordHash) {
+      const error = new Error('El email ya está registrado');
+      error.status = 409;
+      throw error;
+    }
+
+    if (existente) {
+      db.prepare('UPDATE Usuarios SET passwordHash = ? WHERE uid = ?').run(passwordHash, existente.uid);
+      return { ...existente, passwordHash };
+    }
+
+    const nuevoUsuario = {
+      uid: crypto.randomUUID(),
+      nombre: String(nombre).trim(),
+      email: emailNormalizado,
+      rol: 'jugador',
+      estaSancionado: false,
+      fechaCreacion: new Date().toISOString(),
+    };
+    db.prepare(
+      `INSERT INTO Usuarios (uid, nombre, email, rol, estaSancionado, fechaCreacion, passwordHash)
+       VALUES (@uid, @nombre, @email, @rol, @estaSancionado, @fechaCreacion, @passwordHash)`
+    ).run({ ...nuevoUsuario, estaSancionado: 0, passwordHash });
+    return { ...nuevoUsuario, passwordHash };
+  })();
+
+  return filaAUsuario(resultado);
 }
 
 async function autenticarConPassword({ email, password }) {
   const emailNormalizado = String(email).trim().toLowerCase();
   const usuario = db.prepare('SELECT * FROM Usuarios WHERE email = ?').get(emailNormalizado);
 
-  if (!usuario || !usuario.passwordHash) {
-    const error = new Error('Credenciales inválidas');
-    error.status = 401;
-    throw error;
-  }
+  // Always compare against SOMETHING to avoid timing side-channel (email enumeration)
+  // Use dummy hash if user doesn't exist or has no password
+  const hashToCompare = usuario?.passwordHash || dummyPasswordHash;
+  const coincide = await bcrypt.compare(password, hashToCompare);
 
-  const coincide = await bcrypt.compare(password, usuario.passwordHash);
-  if (!coincide) {
+  // But only accept if user exists, has password, and password actually matches
+  if (!usuario || !usuario.passwordHash || !coincide) {
     const error = new Error('Credenciales inválidas');
     error.status = 401;
     throw error;
