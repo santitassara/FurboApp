@@ -4,7 +4,7 @@ import { auth, googleProvider } from '../config/firebase';
 import api from '../services/api';
 
 const AuthContext = createContext(null);
-const TOKEN_KEY = 'furboapp_token';
+export const TOKEN_KEY = 'furboapp_token';
 
 export function AuthProvider({ children }) {
   const [usuarioFirebase, setUsuarioFirebase] = useState(null);

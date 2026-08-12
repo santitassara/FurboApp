@@ -1,5 +1,9 @@
 const jwt = require('jsonwebtoken');
 
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET no está configurado');
+}
+
 const ALGORITMO = 'HS256';
 
 function firmarToken(usuario) {

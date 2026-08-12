@@ -22,6 +22,7 @@ async function register(req, res) {
   if (!nombre || !String(nombre).trim()) lanzarError(400, 'El nombre es obligatorio');
   if (!validarEmail(email)) lanzarError(400, 'El email no es válido');
   if (!password || String(password).length < 6) lanzarError(400, 'La contraseña debe tener al menos 6 caracteres');
+  if (String(password).length > 72) lanzarError(400, 'La contraseña no puede tener más de 72 caracteres');
 
   const usuario = await usuariosService.registrarConPassword({ nombre, email, password });
   const token = firmarToken(usuario);

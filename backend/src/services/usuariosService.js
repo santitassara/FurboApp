@@ -78,15 +78,14 @@ async function registrarConPassword({ nombre, email, password }) {
   const resultado = db.transaction(() => {
     const existente = db.prepare('SELECT * FROM Usuarios WHERE email = ?').get(emailNormalizado);
 
-    if (existente && existente.passwordHash) {
+    // Registro NUNCA se vincula a una cuenta existente (sea de Google o de un
+    // registro previo por password): si el email ya existe en cualquier forma,
+    // se rechaza. Esto evita que /auth/register sea usado para secuestrar
+    // cuentas ya creadas (incluidas cuentas admin creadas vía Google).
+    if (existente) {
       const error = new Error('El email ya está registrado');
       error.status = 409;
       throw error;
-    }
-
-    if (existente) {
-      db.prepare('UPDATE Usuarios SET passwordHash = ? WHERE uid = ?').run(passwordHash, existente.uid);
-      return { ...existente, passwordHash };
     }
 
     const nuevoUsuario = {
