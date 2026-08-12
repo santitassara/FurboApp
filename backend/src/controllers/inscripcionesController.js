@@ -16,6 +16,11 @@ async function promover(req, res) {
   res.json(inscripcion);
 }
 
+async function sancionarManualmente(req, res) {
+  const inscripcion = await inscripcionesService.sancionarManualmente(req.params.partidoId, req.params.usuarioId);
+  res.json(inscripcion);
+}
+
 async function listarPorPartido(req, res) {
   const inscripciones = await inscripcionesService.listarActivas(req.params.partidoId);
   const conNombre = await Promise.all(
@@ -31,4 +36,4 @@ async function listarPorPartido(req, res) {
   res.json(conNombre);
 }
 
-module.exports = { anotarse, bajarse, promover, listarPorPartido };
+module.exports = { anotarse, bajarse, promover, sancionarManualmente, listarPorPartido };
