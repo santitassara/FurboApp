@@ -4,17 +4,19 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import TarjetaPartido from '../components/TarjetaPartido';
 import ModalConfirmacionSancion from '../components/ModalConfirmacionSancion';
+import ModalPosicion from '../components/ModalPosicion';
 import Boton from '../components/Boton';
 import BadgeSancion from '../components/BadgeSancion';
 
 export default function Home() {
-  const { perfil, estaSancionado, esAdmin, cerrarSesion, refrescarPerfil } = useAuth();
+  const { perfil, estaSancionado, esAdmin, cerrarSesion, refrescarPerfil, actualizarPosicionesPerfil } = useAuth();
   const [partidos, setPartidos] = useState([]);
   const [inscripcionesPorPartido, setInscripcionesPorPartido] = useState({});
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const [partidoParaBaja, setPartidoParaBaja] = useState(null);
   const [partidoEnProceso, setPartidoEnProceso] = useState(null);
+  const [guardandoPosicionPerfil, setGuardandoPosicionPerfil] = useState(false);
 
   const cargarPartidos = useCallback(async () => {
     setCargando(true);
@@ -83,6 +85,18 @@ export default function Home() {
     }
   }
 
+  async function confirmarPosicionPerfil(posicionPrincipal, posicionSecundaria) {
+    setError('');
+    setGuardandoPosicionPerfil(true);
+    try {
+      await actualizarPosicionesPerfil(posicionPrincipal, posicionSecundaria);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGuardandoPosicionPerfil(false);
+    }
+  }
+
   return (
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-4 py-8">
       <header className="flex items-center justify-between">
@@ -131,6 +145,15 @@ export default function Home() {
         procesando={partidoEnProceso === partidoParaBaja}
         onConfirmar={() => confirmarBaja(partidoParaBaja)}
         onCancelar={() => setPartidoParaBaja(null)}
+      />
+
+      <ModalPosicion
+        abierto={Boolean(perfil) && !perfil.posicionPrincipal}
+        procesando={guardandoPosicionPerfil}
+        permitirCancelar={false}
+        posicionPrincipalInicial={null}
+        posicionSecundariaInicial={null}
+        onConfirmar={confirmarPosicionPerfil}
       />
     </div>
   );
