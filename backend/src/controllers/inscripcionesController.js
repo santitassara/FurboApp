@@ -30,6 +30,8 @@ async function listarPorPartido(req, res) {
         usuarioId: inscripcion.usuarioId,
         nombre: usuario?.nombre || 'Jugador',
         tipo: inscripcion.tipo,
+        posicionPrincipal: inscripcion.posicionPrincipal,
+        posicionSecundaria: inscripcion.posicionSecundaria,
       };
     })
   );
