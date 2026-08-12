@@ -1,6 +1,15 @@
+const crypto = require('node:crypto');
+const bcrypt = require('bcryptjs');
 const { db } = require('../config/db');
 
-const filaAUsuario = (fila) => (fila ? { ...fila, estaSancionado: Boolean(fila.estaSancionado) } : null);
+// Dummy hash for timing consistency in autenticarConPassword (prevents email enumeration)
+const dummyPasswordHash = bcrypt.hashSync('dummy', 10);
+
+const filaAUsuario = (fila) => {
+  if (!fila) return null;
+  const { passwordHash, ...resto } = fila;
+  return { ...resto, estaSancionado: Boolean(fila.estaSancionado) };
+};
 
 function obtenerAdminEmails() {
   return (process.env.ADMIN_EMAILS || '')
@@ -59,4 +68,69 @@ async function sancionar(uid) {
   db.prepare('UPDATE Usuarios SET estaSancionado = 1 WHERE uid = ?').run(uid);
 }
 
-module.exports = { sincronizarUsuario, obtenerUsuario, listarSancionados, perdonarSancion, sancionar };
+async function registrarConPassword({ nombre, email, password }) {
+  const emailNormalizado = String(email).trim().toLowerCase();
+
+  // Hash password BEFORE transaction (async operation)
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  // Wrap SELECT-decide-write in atomic transaction to prevent race condition
+  const resultado = db.transaction(() => {
+    const existente = db.prepare('SELECT * FROM Usuarios WHERE email = ?').get(emailNormalizado);
+
+    // Registro NUNCA se vincula a una cuenta existente (sea de Google o de un
+    // registro previo por password): si el email ya existe en cualquier forma,
+    // se rechaza. Esto evita que /auth/register sea usado para secuestrar
+    // cuentas ya creadas (incluidas cuentas admin creadas vía Google).
+    if (existente) {
+      const error = new Error('El email ya está registrado');
+      error.status = 409;
+      throw error;
+    }
+
+    const nuevoUsuario = {
+      uid: crypto.randomUUID(),
+      nombre: String(nombre).trim(),
+      email: emailNormalizado,
+      rol: 'jugador',
+      estaSancionado: false,
+      fechaCreacion: new Date().toISOString(),
+    };
+    db.prepare(
+      `INSERT INTO Usuarios (uid, nombre, email, rol, estaSancionado, fechaCreacion, passwordHash)
+       VALUES (@uid, @nombre, @email, @rol, @estaSancionado, @fechaCreacion, @passwordHash)`
+    ).run({ ...nuevoUsuario, estaSancionado: 0, passwordHash });
+    return { ...nuevoUsuario, passwordHash };
+  })();
+
+  return filaAUsuario(resultado);
+}
+
+async function autenticarConPassword({ email, password }) {
+  const emailNormalizado = String(email).trim().toLowerCase();
+  const usuario = db.prepare('SELECT * FROM Usuarios WHERE email = ?').get(emailNormalizado);
+
+  // Always compare against SOMETHING to avoid timing side-channel (email enumeration)
+  // Use dummy hash if user doesn't exist or has no password
+  const hashToCompare = usuario?.passwordHash || dummyPasswordHash;
+  const coincide = await bcrypt.compare(password, hashToCompare);
+
+  // But only accept if user exists, has password, and password actually matches
+  if (!usuario || !usuario.passwordHash || !coincide) {
+    const error = new Error('Credenciales inválidas');
+    error.status = 401;
+    throw error;
+  }
+
+  return filaAUsuario(usuario);
+}
+
+module.exports = {
+  sincronizarUsuario,
+  obtenerUsuario,
+  listarSancionados,
+  perdonarSancion,
+  sancionar,
+  registrarConPassword,
+  autenticarConPassword,
+};

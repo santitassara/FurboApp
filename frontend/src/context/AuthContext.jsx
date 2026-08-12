@@ -4,6 +4,7 @@ import { auth, googleProvider } from '../config/firebase';
 import api from '../services/api';
 
 const AuthContext = createContext(null);
+export const TOKEN_KEY = 'furboapp_token';
 
 export function AuthProvider({ children }) {
   const [usuarioFirebase, setUsuarioFirebase] = useState(null);
@@ -11,9 +12,25 @@ export function AuthProvider({ children }) {
   const [cargando, setCargando] = useState(true);
   const [errorAuth, setErrorAuth] = useState('');
 
+  async function intentarRestaurarSesionPropia() {
+    const tokenPropio = localStorage.getItem(TOKEN_KEY);
+    if (!tokenPropio) {
+      setPerfil(null);
+      return;
+    }
+    try {
+      const { data } = await api.post('/auth/sync');
+      setPerfil(data);
+      setErrorAuth('');
+    } catch (error) {
+      localStorage.removeItem(TOKEN_KEY);
+      setPerfil(null);
+    }
+  }
+
   useEffect(() => {
     if (!auth) {
-      setCargando(false);
+      intentarRestaurarSesionPropia().finally(() => setCargando(false));
       return;
     }
     const unsubscribe = onAuthStateChanged(auth, async (usuario) => {
@@ -24,8 +41,7 @@ export function AuthProvider({ children }) {
           setPerfil(data);
           setErrorAuth('');
         } else {
-          setPerfil(null);
-          setErrorAuth('');
+          await intentarRestaurarSesionPropia();
         }
       } catch (error) {
         setErrorAuth(error.message || 'No se pudo sincronizar el perfil.');
@@ -37,7 +53,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function refrescarPerfil() {
-    if (!usuarioFirebase) {
+    if (!usuarioFirebase && !localStorage.getItem(TOKEN_KEY)) {
       return;
     }
     try {
@@ -56,8 +72,28 @@ export function AuthProvider({ children }) {
     await signInWithPopup(auth, googleProvider);
   }
 
+  async function iniciarSesionConPassword(email, password) {
+    const { data } = await api.post('/auth/login', { email, password });
+    localStorage.setItem(TOKEN_KEY, data.token);
+    setPerfil(data.usuario);
+    setErrorAuth('');
+  }
+
+  async function registrarse(nombre, email, password) {
+    const { data } = await api.post('/auth/register', { nombre, email, password });
+    localStorage.setItem(TOKEN_KEY, data.token);
+    setPerfil(data.usuario);
+    setErrorAuth('');
+  }
+
   async function cerrarSesion() {
-    await signOut(auth);
+    localStorage.removeItem(TOKEN_KEY);
+    if (auth && usuarioFirebase) {
+      await signOut(auth);
+    } else {
+      setUsuarioFirebase(null);
+      setPerfil(null);
+    }
   }
 
   const valor = {
@@ -66,6 +102,8 @@ export function AuthProvider({ children }) {
     cargando,
     errorAuth,
     iniciarSesion,
+    iniciarSesionConPassword,
+    registrarse,
     cerrarSesion,
     refrescarPerfil,
     esAdmin: perfil?.rol === 'admin',

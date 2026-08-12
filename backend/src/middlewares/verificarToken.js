@@ -1,4 +1,5 @@
 const { admin } = require('../config/firebase');
+const { verificarTokenPropio } = require('../utils/jwt');
 
 async function verificarToken(req, res, next) {
   const authHeader = req.headers.authorization || '';
@@ -6,6 +7,21 @@ async function verificarToken(req, res, next) {
 
   if (tipo !== 'Bearer' || !token) {
     return res.status(401).json({ error: 'Token no provisto' });
+  }
+
+  const payloadPropio = verificarTokenPropio(token);
+  if (payloadPropio) {
+    // Un JWT propio (login por password) no prueba la titularidad del email:
+    // cualquiera puede escribir cualquier email en el formulario de registro.
+    // emailVerificado debe quedar en false para que sincronizarUsuario nunca
+    // promueva a admin a partir de esta vía.
+    req.usuario = {
+      uid: payloadPropio.uid,
+      email: payloadPropio.email,
+      nombre: payloadPropio.nombre,
+      emailVerificado: false,
+    };
+    return next();
   }
 
   try {

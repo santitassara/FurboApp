@@ -18,7 +18,7 @@ FurboApp/
 
 ## 3. Stack Tecnológico
 *   **Frontend**: React.js (recomendado usar Vite), React Router, TailwindCSS (opcional pero recomendado para UI), Axios (peticiones HTTP), Firebase Client SDK (solo para Auth).
-*   **Backend**: Node.js, Express.js, CORS, dotenv.
+*   **Backend**: Node.js, Express.js, CORS, dotenv, `jsonwebtoken` y `bcryptjs` (login propio con email/password).
 *   **Base de Datos**: SQLite (`better-sqlite3`), archivo local gestionado desde el backend (`backend/src/config/db.js`), sin dependencias cloud.
 *   **Auth**: Firebase Authentication (Google Provider), verificado desde el backend mediante **Firebase Admin SDK** (`admin.auth().verifyIdToken()`). Requiere conexión a internet para validar el login con Google; esto es independiente de dónde corre la base de datos.
 
@@ -48,6 +48,7 @@ FurboApp/
 *   `rol` (TEXT: "admin" | "jugador")
 *   `estaSancionado` (INTEGER, 0/1)
 *   `fechaCreacion` (TEXT, ISO 8601)
+*   `passwordHash` (TEXT, nullable — solo presente si el usuario se registró con email/password)
 
 ### Tabla: `Partidos`
 *   `id` (TEXT, PK, generado con `crypto.randomUUID()`)
@@ -73,6 +74,8 @@ Todas las rutas (excepto validaciones públicas si las hubiera) deben estar prot
 
 ### Auth & Usuarios
 *   `POST /api/auth/sync`: Recibe el token. El backend verifica si el usuario existe en Firestore. Si no, lo crea con rol "jugador" y `estaSancionado: false`.
+*   `POST /api/auth/register`: (Público) Crea una cuenta nueva con email/password. Siempre asigna rol "jugador"; responde 409 si el email ya existe (sin importar su origen, no hace "linking" a cuentas existentes).
+*   `POST /api/auth/login`: (Público) Valida email + password contra `passwordHash` y devuelve un JWT propio junto con el usuario.
 *   `GET /api/usuarios/sancionados`: (Solo Admin) Retorna lista de jugadores con `estaSancionado: true`.
 *   `POST /api/usuarios/:uid/perdonar`: (Solo Admin) Pone `estaSancionado: false` al usuario.
 
@@ -102,7 +105,7 @@ Todas las rutas (excepto validaciones públicas si las hubiera) deben estar prot
 ## 8. Guía de Buenas Prácticas e Instrucciones para Agentes de IA
 Al desarrollar el código a partir de este documento, los agentes deben seguir estas directrices:
 1.  **Arquitectura Limpia en Node.js**: Dividir responsabilidades en `/routes`, `/controllers`, `/middlewares` (para el token de Firebase y roles) y `/services` (para la lógica de base de datos).
-2.  **Variables de Entorno**: Nunca hardcodear credenciales. Usar `.env` en backend (`FIREBASE_SERVICE_ACCOUNT`) y `.env` en frontend (`VITE_FIREBASE_API_KEY`, etc.).
+2.  **Variables de Entorno**: Nunca hardcodear credenciales. Usar `.env` en backend (`FIREBASE_SERVICE_ACCOUNT`, `JWT_SECRET` para firmar los tokens del login con password) y `.env` en frontend (`VITE_FIREBASE_API_KEY`, etc.).
 3.  **Manejo de Errores**: Usar bloques `try/catch` en los controladores y devolver códigos HTTP adecuados (401 No Autorizado, 403 Prohibido, 400 Bad Request, 500 Error de Servidor).
 4.  **Validación de Datos**: Validar los cuerpos de las peticiones antes de interactuar con la base de datos (por ejemplo, comprobar que la fecha del partido sea válida).
 5.  **Componentización en React**: Crear componentes reutilizables (Ej: `Botón`, `TarjetaPartido`, `ModalConfirmacionSancion`).

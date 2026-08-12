@@ -20,4 +20,10 @@ db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = OFF');
 db.exec(fs.readFileSync(path.join(__dirname, '../db/schema.sql'), 'utf8'));
 
+const columnasUsuarios = db.prepare('PRAGMA table_info(Usuarios)').all();
+const tienePasswordHash = columnasUsuarios.some((columna) => columna.name === 'passwordHash');
+if (!tienePasswordHash) {
+  db.exec('ALTER TABLE Usuarios ADD COLUMN passwordHash TEXT');
+}
+
 module.exports = { db };

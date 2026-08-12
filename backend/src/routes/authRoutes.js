@@ -5,6 +5,8 @@ const authController = require('../controllers/authController');
 
 const router = express.Router();
 
+router.post('/register', envolverAsync(authController.register));
+router.post('/login', envolverAsync(authController.login));
 router.post('/sync', verificarToken, envolverAsync(authController.sync));
 
 module.exports = router;
