@@ -8,7 +8,7 @@ import RutaAdmin from './components/RutaAdmin';
 import Boton from './components/Boton';
 
 export default function App() {
-  const { usuarioFirebase, cargando, errorAuth, cerrarSesion } = useAuth();
+  const { perfil, cargando, errorAuth, cerrarSesion } = useAuth();
 
   if (cargando) {
     return <div className="flex min-h-screen items-center justify-center text-white/70">Cargando…</div>;
@@ -25,7 +25,7 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/" element={usuarioFirebase ? <Navigate to="/inicio" replace /> : <Login />} />
+      <Route path="/" element={perfil ? <Navigate to="/inicio" replace /> : <Login />} />
       <Route
         path="/inicio"
         element={
