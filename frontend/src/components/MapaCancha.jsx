@@ -92,7 +92,18 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
     const jugadoresActuales = formacion?.jugadores || [];
     setUbicaciones((anterior) => {
       const anteriorPorId = new Map(anterior.map((jugador) => [jugador.usuarioId, jugador]));
-      return jugadoresActuales.map((jugador) => anteriorPorId.get(jugador.usuarioId) || jugador);
+      const fusionados = jugadoresActuales.map((jugador) => anteriorPorId.get(jugador.usuarioId) || jugador);
+
+      const slotsVistos = new Set();
+      return fusionados.map((jugador) => {
+        if (!jugador.equipo) return jugador;
+        const clave = idSlot(jugador.equipo, jugador.linea, jugador.ordenLinea);
+        if (slotsVistos.has(clave)) {
+          return { ...jugador, equipo: null, linea: null, ordenLinea: null };
+        }
+        slotsVistos.add(clave);
+        return jugador;
+      });
     });
   }, [formacion]);
 
@@ -158,7 +169,7 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
   const contenido = (
     <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
       <h4 className="mb-3 text-sm font-bold uppercase tracking-wide text-pasto-500">Formación</h4>
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3 md:flex-row">
         <MitadCancha
           equipo="A"
           lineasEsperadas={formacion.lineasEsperadas.A}

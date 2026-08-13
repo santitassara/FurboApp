@@ -146,7 +146,10 @@ export default function Home() {
       ) : (
         <div className="flex flex-col gap-4">
           {partidos.map((partido) => (
-            <div key={partido.id} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div
+              key={partido.id}
+              className={formacionesPorPartido[partido.id] ? 'grid grid-cols-1 gap-4 md:grid-cols-2' : ''}
+            >
               <TarjetaPartido
                 partido={partido}
                 inscripcionUsuario={inscripcionDelUsuario(partido.id)}
