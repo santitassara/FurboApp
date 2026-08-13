@@ -111,6 +111,9 @@ export default function Home() {
           <Link to="/perfil" className="text-sm font-semibold text-albiceleste hover:underline">
             Mi Perfil
           </Link>
+          <Link to="/jugadores" className="text-sm font-semibold text-albiceleste hover:underline">
+            Jugadores
+          </Link>
           {esAdmin && (
             <Link to="/admin" className="text-sm font-semibold text-albiceleste hover:underline">
               Panel admin
