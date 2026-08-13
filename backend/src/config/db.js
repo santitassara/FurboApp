@@ -34,6 +34,25 @@ if (!tienePosicionSecundariaUsuario) {
   db.exec('ALTER TABLE Usuarios ADD COLUMN posicionSecundaria TEXT');
 }
 
+const columnasPerfilJugador = {
+  nombreCompleto: 'TEXT',
+  fechaNacimiento: 'TEXT',
+  resistencia: 'TEXT',
+  ritmoJuego: 'TEXT',
+  velocidad: 'INTEGER',
+  pegada: 'INTEGER',
+  tocaPase: 'INTEGER',
+  gambeta: 'INTEGER',
+  marcaDefensa: 'INTEGER',
+  fisico: 'INTEGER',
+};
+for (const [columna, tipo] of Object.entries(columnasPerfilJugador)) {
+  const yaExiste = columnasUsuarios.some((c) => c.name === columna);
+  if (!yaExiste) {
+    db.exec(`ALTER TABLE Usuarios ADD COLUMN ${columna} ${tipo}`);
+  }
+}
+
 const columnasInscripciones = db.prepare('PRAGMA table_info(Inscripciones)').all();
 const tienePosicionPrincipalInscripcion = columnasInscripciones.some(
   (columna) => columna.name === 'posicionPrincipal'
