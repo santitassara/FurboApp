@@ -12,6 +12,13 @@ router.post('/', verificarToken, verificarAdmin, envolverAsync(partidosControlle
 router.post('/:partidoId/anotarse', verificarToken, envolverAsync(inscripcionesController.anotarse));
 router.post('/:partidoId/bajarse', verificarToken, envolverAsync(inscripcionesController.bajarse));
 router.get('/:partidoId/inscripciones', verificarToken, envolverAsync(inscripcionesController.listarPorPartido));
+router.get('/:partidoId/formacion', verificarToken, envolverAsync(inscripcionesController.verFormacion));
+router.put(
+  '/:partidoId/formacion',
+  verificarToken,
+  verificarAdmin,
+  envolverAsync(inscripcionesController.guardarFormacion)
+);
 router.post(
   '/:partidoId/promover/:usuarioId',
   verificarToken,

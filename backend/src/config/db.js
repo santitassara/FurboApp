@@ -67,4 +67,16 @@ if (!tienePosicionSecundariaInscripcion) {
   db.exec('ALTER TABLE Inscripciones ADD COLUMN posicionSecundaria TEXT');
 }
 
+const columnasFormacion = {
+  equipo: 'TEXT',
+  linea: 'TEXT',
+  ordenLinea: 'INTEGER',
+};
+for (const [columna, tipo] of Object.entries(columnasFormacion)) {
+  const yaExiste = columnasInscripciones.some((c) => c.name === columna);
+  if (!yaExiste) {
+    db.exec(`ALTER TABLE Inscripciones ADD COLUMN ${columna} ${tipo}`);
+  }
+}
+
 module.exports = { db };

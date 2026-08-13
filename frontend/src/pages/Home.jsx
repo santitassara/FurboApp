@@ -3,6 +3,7 @@ import api from '../services/api';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import TarjetaPartido from '../components/TarjetaPartido';
+import MapaCancha from '../components/MapaCancha';
 import ModalConfirmacionSancion from '../components/ModalConfirmacionSancion';
 import ModalPosicion from '../components/ModalPosicion';
 import Boton from '../components/Boton';
@@ -12,6 +13,7 @@ export default function Home() {
   const { perfil, estaSancionado, esAdmin, cerrarSesion, refrescarPerfil, actualizarPosicionesPerfil } = useAuth();
   const [partidos, setPartidos] = useState([]);
   const [inscripcionesPorPartido, setInscripcionesPorPartido] = useState({});
+  const [formacionesPorPartido, setFormacionesPorPartido] = useState({});
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const [partidoParaBaja, setPartidoParaBaja] = useState(null);
@@ -33,6 +35,16 @@ export default function Home() {
         })
       );
       setInscripcionesPorPartido(Object.fromEntries(entradas));
+
+      const entradasFormacion = await Promise.all(
+        partidosAbiertos
+          .filter((partido) => (partido.ocupados?.titulares || 0) >= partido.cupoTitulares)
+          .map(async (partido) => {
+            const { data } = await api.get(`/partidos/${partido.id}/formacion`);
+            return [partido.id, data];
+          })
+      );
+      setFormacionesPorPartido(Object.fromEntries(entradasFormacion));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -134,16 +146,28 @@ export default function Home() {
       ) : (
         <div className="flex flex-col gap-4">
           {partidos.map((partido) => (
-            <TarjetaPartido
+            <div
               key={partido.id}
-              partido={partido}
-              inscripcionUsuario={inscripcionDelUsuario(partido.id)}
-              estaSancionado={estaSancionado}
-              procesando={partidoEnProceso === partido.id}
-              onAnotarse={() => setPartidoParaAnotarse(partido.id)}
-              onSolicitarBaja={() => solicitarBaja(partido)}
-              jugadores={inscripcionesPorPartido[partido.id] || []}
-            />
+              className={formacionesPorPartido[partido.id] ? 'grid grid-cols-1 gap-4 md:grid-cols-2' : ''}
+            >
+              <TarjetaPartido
+                partido={partido}
+                inscripcionUsuario={inscripcionDelUsuario(partido.id)}
+                estaSancionado={estaSancionado}
+                procesando={partidoEnProceso === partido.id}
+                onAnotarse={() => setPartidoParaAnotarse(partido.id)}
+                onSolicitarBaja={() => solicitarBaja(partido)}
+                jugadores={inscripcionesPorPartido[partido.id] || []}
+              />
+              {formacionesPorPartido[partido.id] && (
+                <MapaCancha
+                  partidoId={partido.id}
+                  formacion={formacionesPorPartido[partido.id]}
+                  esAdmin={esAdmin}
+                  onGuardado={(data) => setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))}
+                />
+              )}
+            </div>
           ))}
         </div>
       )}

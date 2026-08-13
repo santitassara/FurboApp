@@ -38,4 +38,14 @@ async function listarPorPartido(req, res) {
   res.json(conNombre);
 }
 
-module.exports = { anotarse, bajarse, promover, sancionarManualmente, listarPorPartido };
+async function verFormacion(req, res) {
+  const formacion = await inscripcionesService.obtenerFormacion(req.params.partidoId);
+  res.json(formacion);
+}
+
+async function guardarFormacion(req, res) {
+  const formacion = await inscripcionesService.guardarFormacion(req.params.partidoId, req.body.asignaciones);
+  res.json(formacion);
+}
+
+module.exports = { anotarse, bajarse, promover, sancionarManualmente, listarPorPartido, verFormacion, guardarFormacion };
