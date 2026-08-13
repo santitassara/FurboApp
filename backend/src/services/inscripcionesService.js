@@ -172,6 +172,9 @@ async function guardarFormacion(partidoId, asignaciones) {
 
   const idsVistos = new Set();
   for (const asignacion of asignaciones) {
+    if (!asignacion || typeof asignacion !== 'object') {
+      throw crearError('La formación debe incluir a todos los titulares, sin repetidos', 400);
+    }
     const { usuarioId, equipo, linea, ordenLinea } = asignacion;
     if (!idsTitulares.has(usuarioId) || idsVistos.has(usuarioId)) {
       throw crearError('La formación debe incluir a todos los titulares, sin repetidos', 400);
