@@ -91,6 +91,11 @@ export function AuthProvider({ children }) {
     setPerfil(data);
   }
 
+  async function actualizarMiPerfil(datos) {
+    const { data } = await api.patch('/usuarios/me/perfil', datos);
+    setPerfil(data);
+  }
+
   async function cerrarSesion() {
     localStorage.removeItem(TOKEN_KEY);
     if (auth && usuarioFirebase) {
@@ -112,6 +117,7 @@ export function AuthProvider({ children }) {
     cerrarSesion,
     refrescarPerfil,
     actualizarPosicionesPerfil,
+    actualizarMiPerfil,
     esAdmin: perfil?.rol === 'admin',
     estaSancionado: Boolean(perfil?.estaSancionado),
   };
