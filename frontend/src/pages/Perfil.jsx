@@ -31,12 +31,21 @@ export default function Perfil() {
     marcaDefensa: perfil?.marcaDefensa ?? 50,
     fisico: perfil?.fisico ?? 50,
   });
+  const [tocado, setTocado] = useState({
+    velocidad: false,
+    pegada: false,
+    tocaPase: false,
+    gambeta: false,
+    marcaDefensa: false,
+    fisico: false,
+  });
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
   const [guardado, setGuardado] = useState(false);
 
   const posicionesIguales =
     datos.posicionPrincipal && datos.posicionSecundaria && datos.posicionPrincipal === datos.posicionSecundaria;
+  const posicionesSinElegir = !datos.posicionPrincipal || !datos.posicionSecundaria;
   const puedeGuardar = datos.posicionPrincipal && datos.posicionSecundaria && !posicionesIguales && !guardando;
 
   function actualizarCampo(campo, valor) {
@@ -44,20 +53,25 @@ export default function Perfil() {
     setGuardado(false);
   }
 
+  function actualizarHabilidad(campo, valor) {
+    actualizarCampo(campo, valor);
+    setTocado((anterior) => ({ ...anterior, [campo]: true }));
+  }
+
   async function guardar(evento) {
     evento.preventDefault();
     setError('');
     setGuardando(true);
     try {
-      await actualizarMiPerfil({
-        ...datos,
-        velocidad: Number(datos.velocidad),
-        pegada: Number(datos.pegada),
-        tocaPase: Number(datos.tocaPase),
-        gambeta: Number(datos.gambeta),
-        marcaDefensa: Number(datos.marcaDefensa),
-        fisico: Number(datos.fisico),
-      });
+      const payload = { ...datos };
+      for (const { campo } of HABILIDADES) {
+        if (tocado[campo] || perfil?.[campo] != null) {
+          payload[campo] = Number(datos[campo]);
+        } else {
+          delete payload[campo];
+        }
+      }
+      await actualizarMiPerfil(payload);
       setGuardado(true);
     } catch (err) {
       setError(err.message);
@@ -136,6 +150,9 @@ export default function Perfil() {
         {posicionesIguales && (
           <p className="text-sm text-sancion">La secundaria tiene que ser distinta de la principal.</p>
         )}
+        {posicionesSinElegir && (
+          <p className="text-sm text-sancion">Elegí posición principal y secundaria para poder guardar.</p>
+        )}
 
         <div className="flex flex-col gap-1">
           <label className="text-xs uppercase text-white/50">Resistencia</label>
@@ -186,7 +203,7 @@ export default function Perfil() {
                 min="0"
                 max="100"
                 value={datos[campo]}
-                onChange={(evento) => actualizarCampo(campo, evento.target.value)}
+                onChange={(evento) => actualizarHabilidad(campo, evento.target.value)}
                 className="w-full"
               />
             </div>

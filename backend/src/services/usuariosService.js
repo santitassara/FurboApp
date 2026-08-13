@@ -24,6 +24,7 @@ function esHabilidadValida(valor) {
 
 function esFechaNacimientoValida(valor) {
   if (valor === null) return true;
+  if (typeof valor !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) return false;
   const fecha = new Date(valor);
   return !Number.isNaN(fecha.getTime()) && fecha.getTime() <= Date.now();
 }
