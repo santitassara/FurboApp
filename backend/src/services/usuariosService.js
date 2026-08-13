@@ -2,6 +2,8 @@ const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
 const { db } = require('../config/db');
 const { sonPosicionesValidas } = require('../constants/posiciones');
+const { esResistenciaValida } = require('../constants/resistencia');
+const { esRitmoJuegoValido } = require('../constants/ritmoJuego');
 
 // Dummy hash for timing consistency in autenticarConPassword (prevents email enumeration)
 const dummyPasswordHash = bcrypt.hashSync('dummy', 10);
@@ -11,6 +13,33 @@ const filaAUsuario = (fila) => {
   const { passwordHash, ...resto } = fila;
   return { ...resto, estaSancionado: Boolean(fila.estaSancionado) };
 };
+
+function normalizarVacio(valor) {
+  return valor === '' || valor === undefined ? null : valor;
+}
+
+function esHabilidadValida(valor) {
+  return valor === null || (Number.isInteger(valor) && valor >= 0 && valor <= 100);
+}
+
+function esFechaNacimientoValida(valor) {
+  if (valor === null) return true;
+  if (typeof valor !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) return false;
+  const fecha = new Date(valor);
+  return !Number.isNaN(fecha.getTime()) && fecha.getTime() <= Date.now();
+}
+
+function calcularEdad(fechaNacimiento) {
+  if (!fechaNacimiento) return null;
+  const nacimiento = new Date(fechaNacimiento);
+  const hoy = new Date();
+  let edad = hoy.getUTCFullYear() - nacimiento.getUTCFullYear();
+  const noLlegoElCumpleanios =
+    hoy.getUTCMonth() < nacimiento.getUTCMonth() ||
+    (hoy.getUTCMonth() === nacimiento.getUTCMonth() && hoy.getUTCDate() < nacimiento.getUTCDate());
+  if (noLlegoElCumpleanios) edad -= 1;
+  return edad;
+}
 
 function obtenerAdminEmails() {
   return (process.env.ADMIN_EMAILS || '')
@@ -83,6 +112,102 @@ async function actualizarPosiciones(uid, { posicionPrincipal, posicionSecundaria
   return obtenerUsuario(uid);
 }
 
+async function actualizarPerfil(uid, datos = {}) {
+  const nombreCompleto = normalizarVacio(datos.nombreCompleto);
+  const fechaNacimiento = normalizarVacio(datos.fechaNacimiento);
+  const { posicionPrincipal, posicionSecundaria } = datos;
+  const resistencia = normalizarVacio(datos.resistencia);
+  const ritmoJuego = normalizarVacio(datos.ritmoJuego);
+  const habilidades = {
+    velocidad: normalizarVacio(datos.velocidad),
+    pegada: normalizarVacio(datos.pegada),
+    tocaPase: normalizarVacio(datos.tocaPase),
+    gambeta: normalizarVacio(datos.gambeta),
+    marcaDefensa: normalizarVacio(datos.marcaDefensa),
+    fisico: normalizarVacio(datos.fisico),
+  };
+
+  if (!sonPosicionesValidas(posicionPrincipal, posicionSecundaria)) {
+    const error = new Error('Posiciones inválidas');
+    error.status = 400;
+    throw error;
+  }
+  if (!esResistenciaValida(resistencia)) {
+    const error = new Error('Resistencia inválida');
+    error.status = 400;
+    throw error;
+  }
+  if (!esRitmoJuegoValido(ritmoJuego)) {
+    const error = new Error('Ritmo de juego inválido');
+    error.status = 400;
+    throw error;
+  }
+  for (const [campo, valor] of Object.entries(habilidades)) {
+    if (!esHabilidadValida(valor)) {
+      const error = new Error(`La habilidad "${campo}" debe ser un número entero entre 0 y 100`);
+      error.status = 400;
+      throw error;
+    }
+  }
+  if (!esFechaNacimientoValida(fechaNacimiento)) {
+    const error = new Error('Fecha de nacimiento inválida');
+    error.status = 400;
+    throw error;
+  }
+
+  db.prepare(
+    `UPDATE Usuarios SET
+      nombreCompleto = @nombreCompleto,
+      fechaNacimiento = @fechaNacimiento,
+      posicionPrincipal = @posicionPrincipal,
+      posicionSecundaria = @posicionSecundaria,
+      resistencia = @resistencia,
+      ritmoJuego = @ritmoJuego,
+      velocidad = @velocidad,
+      pegada = @pegada,
+      tocaPase = @tocaPase,
+      gambeta = @gambeta,
+      marcaDefensa = @marcaDefensa,
+      fisico = @fisico
+     WHERE uid = @uid`
+  ).run({
+    uid,
+    nombreCompleto,
+    fechaNacimiento,
+    posicionPrincipal,
+    posicionSecundaria,
+    resistencia,
+    ritmoJuego,
+    ...habilidades,
+  });
+  return obtenerUsuario(uid);
+}
+
+async function obtenerPerfilPublico(uid) {
+  const fila = db.prepare('SELECT * FROM Usuarios WHERE uid = ?').get(uid);
+  if (!fila) {
+    const error = new Error('Usuario no encontrado');
+    error.status = 404;
+    throw error;
+  }
+  return {
+    uid: fila.uid,
+    nombre: fila.nombre,
+    nombreCompleto: fila.nombreCompleto,
+    edad: calcularEdad(fila.fechaNacimiento),
+    posicionPrincipal: fila.posicionPrincipal,
+    posicionSecundaria: fila.posicionSecundaria,
+    resistencia: fila.resistencia,
+    ritmoJuego: fila.ritmoJuego,
+    velocidad: fila.velocidad,
+    pegada: fila.pegada,
+    tocaPase: fila.tocaPase,
+    gambeta: fila.gambeta,
+    marcaDefensa: fila.marcaDefensa,
+    fisico: fila.fisico,
+  };
+}
+
 async function registrarConPassword({ nombre, email, password }) {
   const emailNormalizado = String(email).trim().toLowerCase();
 
@@ -147,6 +272,8 @@ module.exports = {
   perdonarSancion,
   sancionar,
   actualizarPosiciones,
+  actualizarPerfil,
+  obtenerPerfilPublico,
   registrarConPassword,
   autenticarConPassword,
 };

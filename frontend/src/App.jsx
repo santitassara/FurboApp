@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Home from './pages/Home';
+import Perfil from './pages/Perfil';
+import PerfilJugador from './pages/PerfilJugador';
 import AdminPanel from './pages/AdminPanel';
 import RutaPrivada from './components/RutaPrivada';
 import RutaAdmin from './components/RutaAdmin';
@@ -31,6 +33,22 @@ export default function App() {
         element={
           <RutaPrivada>
             <Home />
+          </RutaPrivada>
+        }
+      />
+      <Route
+        path="/perfil"
+        element={
+          <RutaPrivada>
+            <Perfil />
+          </RutaPrivada>
+        }
+      />
+      <Route
+        path="/jugadores/:uid"
+        element={
+          <RutaPrivada>
+            <PerfilJugador />
           </RutaPrivada>
         }
       />

@@ -7,7 +7,17 @@ CREATE TABLE IF NOT EXISTS Usuarios (
   fechaCreacion TEXT NOT NULL,
   passwordHash TEXT,
   posicionPrincipal TEXT,
-  posicionSecundaria TEXT
+  posicionSecundaria TEXT,
+  nombreCompleto TEXT,
+  fechaNacimiento TEXT,
+  resistencia TEXT,
+  ritmoJuego TEXT,
+  velocidad INTEGER,
+  pegada INTEGER,
+  tocaPase INTEGER,
+  gambeta INTEGER,
+  marcaDefensa INTEGER,
+  fisico INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS Partidos (

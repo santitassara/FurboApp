@@ -15,4 +15,20 @@ async function actualizarMisPosiciones(req, res) {
   res.json(usuario);
 }
 
-module.exports = { listarSancionados, perdonar, actualizarMisPosiciones };
+async function actualizarMiPerfil(req, res) {
+  const usuario = await usuariosService.actualizarPerfil(req.usuario.uid, req.body);
+  res.json(usuario);
+}
+
+async function obtenerPerfilDeJugador(req, res) {
+  const perfil = await usuariosService.obtenerPerfilPublico(req.params.uid);
+  res.json(perfil);
+}
+
+module.exports = {
+  listarSancionados,
+  perdonar,
+  actualizarMisPosiciones,
+  actualizarMiPerfil,
+  obtenerPerfilDeJugador,
+};

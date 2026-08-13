@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Boton from './Boton';
 import { etiquetaPosicion } from '../constants/posiciones';
 
@@ -16,7 +17,9 @@ export default function ListaJugadores({ jugadores, onPromover, onSancionar, des
             {titulares.map((jugador) => (
               <li key={jugador.usuarioId} className="flex items-center justify-between text-sm text-white/90">
                 <span>
-                  {jugador.nombre}
+                  <Link to={`/jugadores/${jugador.usuarioId}`} className="hover:underline">
+                    {jugador.nombre}
+                  </Link>
                   <span className="ml-2 text-xs text-white/50">
                     {etiquetaPosicion(jugador.posicionPrincipal)}
                     {jugador.posicionSecundaria && ` / ${etiquetaPosicion(jugador.posicionSecundaria)}`}
@@ -46,7 +49,9 @@ export default function ListaJugadores({ jugadores, onPromover, onSancionar, des
             {suplentes.map((jugador) => (
               <li key={jugador.usuarioId} className="flex items-center justify-between text-sm text-white/90">
                 <span>
-                  {jugador.nombre}
+                  <Link to={`/jugadores/${jugador.usuarioId}`} className="hover:underline">
+                    {jugador.nombre}
+                  </Link>
                   <span className="ml-2 text-xs text-white/50">
                     {etiquetaPosicion(jugador.posicionPrincipal)}
                     {jugador.posicionSecundaria && ` / ${etiquetaPosicion(jugador.posicionSecundaria)}`}
