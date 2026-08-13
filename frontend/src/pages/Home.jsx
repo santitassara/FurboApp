@@ -108,6 +108,9 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-3">
           <BadgeSancion sancionado={estaSancionado} />
+          <Link to="/perfil" className="text-sm font-semibold text-albiceleste hover:underline">
+            Mi Perfil
+          </Link>
           {esAdmin && (
             <Link to="/admin" className="text-sm font-semibold text-albiceleste hover:underline">
               Panel admin
