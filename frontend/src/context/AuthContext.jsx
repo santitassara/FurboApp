@@ -86,6 +86,11 @@ export function AuthProvider({ children }) {
     setErrorAuth('');
   }
 
+  async function actualizarPosicionesPerfil(posicionPrincipal, posicionSecundaria) {
+    const { data } = await api.patch('/usuarios/me/posiciones', { posicionPrincipal, posicionSecundaria });
+    setPerfil(data);
+  }
+
   async function cerrarSesion() {
     localStorage.removeItem(TOKEN_KEY);
     if (auth && usuarioFirebase) {
@@ -106,6 +111,7 @@ export function AuthProvider({ children }) {
     registrarse,
     cerrarSesion,
     refrescarPerfil,
+    actualizarPosicionesPerfil,
     esAdmin: perfil?.rol === 'admin',
     estaSancionado: Boolean(perfil?.estaSancionado),
   };

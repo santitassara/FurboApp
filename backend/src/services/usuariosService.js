@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
 const { db } = require('../config/db');
+const { sonPosicionesValidas } = require('../constants/posiciones');
 
 // Dummy hash for timing consistency in autenticarConPassword (prevents email enumeration)
 const dummyPasswordHash = bcrypt.hashSync('dummy', 10);
@@ -68,6 +69,20 @@ async function sancionar(uid) {
   db.prepare('UPDATE Usuarios SET estaSancionado = 1 WHERE uid = ?').run(uid);
 }
 
+async function actualizarPosiciones(uid, { posicionPrincipal, posicionSecundaria } = {}) {
+  if (!sonPosicionesValidas(posicionPrincipal, posicionSecundaria)) {
+    const error = new Error('Posiciones inválidas');
+    error.status = 400;
+    throw error;
+  }
+  db.prepare('UPDATE Usuarios SET posicionPrincipal = ?, posicionSecundaria = ? WHERE uid = ?').run(
+    posicionPrincipal,
+    posicionSecundaria,
+    uid
+  );
+  return obtenerUsuario(uid);
+}
+
 async function registrarConPassword({ nombre, email, password }) {
   const emailNormalizado = String(email).trim().toLowerCase();
 
@@ -131,6 +146,7 @@ module.exports = {
   listarSancionados,
   perdonarSancion,
   sancionar,
+  actualizarPosiciones,
   registrarConPassword,
   autenticarConPassword,
 };

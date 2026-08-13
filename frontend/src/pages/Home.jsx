@@ -4,17 +4,20 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import TarjetaPartido from '../components/TarjetaPartido';
 import ModalConfirmacionSancion from '../components/ModalConfirmacionSancion';
+import ModalPosicion from '../components/ModalPosicion';
 import Boton from '../components/Boton';
 import BadgeSancion from '../components/BadgeSancion';
 
 export default function Home() {
-  const { perfil, estaSancionado, esAdmin, cerrarSesion, refrescarPerfil } = useAuth();
+  const { perfil, estaSancionado, esAdmin, cerrarSesion, refrescarPerfil, actualizarPosicionesPerfil } = useAuth();
   const [partidos, setPartidos] = useState([]);
   const [inscripcionesPorPartido, setInscripcionesPorPartido] = useState({});
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const [partidoParaBaja, setPartidoParaBaja] = useState(null);
   const [partidoEnProceso, setPartidoEnProceso] = useState(null);
+  const [guardandoPosicionPerfil, setGuardandoPosicionPerfil] = useState(false);
+  const [partidoParaAnotarse, setPartidoParaAnotarse] = useState(null);
 
   const cargarPartidos = useCallback(async () => {
     setCargando(true);
@@ -46,12 +49,13 @@ export default function Home() {
     return jugadores.find((jugador) => jugador.usuarioId === perfil?.uid) || null;
   }
 
-  async function anotarse(partidoId) {
+  async function anotarse(partidoId, posicionPrincipal, posicionSecundaria) {
     setError('');
     setPartidoEnProceso(partidoId);
     try {
-      await api.post(`/partidos/${partidoId}/anotarse`);
+      await api.post(`/partidos/${partidoId}/anotarse`, { posicionPrincipal, posicionSecundaria });
       await cargarPartidos();
+      setPartidoParaAnotarse(null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -80,6 +84,18 @@ export default function Home() {
       setPartidoParaBaja(partido.id);
     } else {
       confirmarBaja(partido.id);
+    }
+  }
+
+  async function confirmarPosicionPerfil(posicionPrincipal, posicionSecundaria) {
+    setError('');
+    setGuardandoPosicionPerfil(true);
+    try {
+      await actualizarPosicionesPerfil(posicionPrincipal, posicionSecundaria);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGuardandoPosicionPerfil(false);
     }
   }
 
@@ -118,7 +134,7 @@ export default function Home() {
               inscripcionUsuario={inscripcionDelUsuario(partido.id)}
               estaSancionado={estaSancionado}
               procesando={partidoEnProceso === partido.id}
-              onAnotarse={() => anotarse(partido.id)}
+              onAnotarse={() => setPartidoParaAnotarse(partido.id)}
               onSolicitarBaja={() => solicitarBaja(partido)}
               jugadores={inscripcionesPorPartido[partido.id] || []}
             />
@@ -131,6 +147,29 @@ export default function Home() {
         procesando={partidoEnProceso === partidoParaBaja}
         onConfirmar={() => confirmarBaja(partidoParaBaja)}
         onCancelar={() => setPartidoParaBaja(null)}
+      />
+
+      <ModalPosicion
+        abierto={Boolean(perfil) && !perfil.posicionPrincipal}
+        procesando={guardandoPosicionPerfil}
+        permitirCancelar={false}
+        posicionPrincipalInicial={null}
+        posicionSecundariaInicial={null}
+        error={error}
+        onConfirmar={confirmarPosicionPerfil}
+      />
+
+      <ModalPosicion
+        abierto={Boolean(partidoParaAnotarse)}
+        procesando={partidoEnProceso === partidoParaAnotarse}
+        permitirCancelar
+        posicionPrincipalInicial={perfil?.posicionPrincipal}
+        posicionSecundariaInicial={perfil?.posicionSecundaria}
+        error={error}
+        onConfirmar={(posicionPrincipal, posicionSecundaria) =>
+          anotarse(partidoParaAnotarse, posicionPrincipal, posicionSecundaria)
+        }
+        onCancelar={() => setPartidoParaAnotarse(null)}
       />
     </div>
   );

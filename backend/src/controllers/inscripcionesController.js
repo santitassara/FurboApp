@@ -2,7 +2,7 @@ const inscripcionesService = require('../services/inscripcionesService');
 const usuariosService = require('../services/usuariosService');
 
 async function anotarse(req, res) {
-  const inscripcion = await inscripcionesService.anotarse(req.params.partidoId, req.usuario.uid);
+  const inscripcion = await inscripcionesService.anotarse(req.params.partidoId, req.usuario.uid, req.body);
   res.status(201).json(inscripcion);
 }
 
@@ -30,6 +30,8 @@ async function listarPorPartido(req, res) {
         usuarioId: inscripcion.usuarioId,
         nombre: usuario?.nombre || 'Jugador',
         tipo: inscripcion.tipo,
+        posicionPrincipal: inscripcion.posicionPrincipal,
+        posicionSecundaria: inscripcion.posicionSecundaria,
       };
     })
   );
