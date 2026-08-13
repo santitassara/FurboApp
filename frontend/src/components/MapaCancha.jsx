@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
 import api from '../services/api';
 import Boton from './Boton';
@@ -87,6 +87,14 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
   const [ubicaciones, setUbicaciones] = useState(jugadoresIniciales);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const jugadoresActuales = formacion?.jugadores || [];
+    setUbicaciones((anterior) => {
+      const anteriorPorId = new Map(anterior.map((jugador) => [jugador.usuarioId, jugador]));
+      return jugadoresActuales.map((jugador) => anteriorPorId.get(jugador.usuarioId) || jugador);
+    });
+  }, [formacion]);
 
   if (!formacion || !formacion.habilitado) {
     return (
