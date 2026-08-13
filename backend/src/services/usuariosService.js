@@ -32,10 +32,10 @@ function calcularEdad(fechaNacimiento) {
   if (!fechaNacimiento) return null;
   const nacimiento = new Date(fechaNacimiento);
   const hoy = new Date();
-  let edad = hoy.getFullYear() - nacimiento.getFullYear();
+  let edad = hoy.getUTCFullYear() - nacimiento.getUTCFullYear();
   const noLlegoElCumpleanios =
-    hoy.getMonth() < nacimiento.getMonth() ||
-    (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() < nacimiento.getDate());
+    hoy.getUTCMonth() < nacimiento.getUTCMonth() ||
+    (hoy.getUTCMonth() === nacimiento.getUTCMonth() && hoy.getUTCDate() < nacimiento.getUTCDate());
   if (noLlegoElCumpleanios) edad -= 1;
   return edad;
 }
