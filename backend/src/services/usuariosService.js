@@ -208,6 +208,26 @@ async function obtenerPerfilPublico(uid) {
   };
 }
 
+const CAMPOS_HABILIDAD = ['velocidad', 'pegada', 'tocaPase', 'gambeta', 'marcaDefensa', 'fisico'];
+
+function calcularPromedioHabilidades(fila) {
+  const valores = CAMPOS_HABILIDAD.map((campo) => fila[campo]).filter((valor) => valor != null);
+  if (valores.length === 0) return null;
+  return valores.reduce((suma, valor) => suma + valor, 0) / valores.length;
+}
+
+async function listarUsuarios() {
+  return db
+    .prepare('SELECT * FROM Usuarios ORDER BY nombre COLLATE NOCASE ASC')
+    .all()
+    .map((fila) => ({
+      uid: fila.uid,
+      nombre: fila.nombre,
+      edad: calcularEdad(fila.fechaNacimiento),
+      promedioHabilidades: calcularPromedioHabilidades(fila),
+    }));
+}
+
 async function registrarConPassword({ nombre, email, password }) {
   const emailNormalizado = String(email).trim().toLowerCase();
 
@@ -274,6 +294,7 @@ module.exports = {
   actualizarPosiciones,
   actualizarPerfil,
   obtenerPerfilPublico,
+  listarUsuarios,
   registrarConPassword,
   autenticarConPassword,
 };

@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Home from './pages/Home';
 import Perfil from './pages/Perfil';
 import PerfilJugador from './pages/PerfilJugador';
+import Jugadores from './pages/Jugadores';
 import AdminPanel from './pages/AdminPanel';
 import RutaPrivada from './components/RutaPrivada';
 import RutaAdmin from './components/RutaAdmin';
@@ -41,6 +42,14 @@ export default function App() {
         element={
           <RutaPrivada>
             <Perfil />
+          </RutaPrivada>
+        }
+      />
+      <Route
+        path="/jugadores"
+        element={
+          <RutaPrivada>
+            <Jugadores />
           </RutaPrivada>
         }
       />

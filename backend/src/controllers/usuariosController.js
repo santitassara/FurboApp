@@ -25,10 +25,16 @@ async function obtenerPerfilDeJugador(req, res) {
   res.json(perfil);
 }
 
+async function listarUsuarios(req, res) {
+  const usuarios = await usuariosService.listarUsuarios();
+  res.json(usuarios);
+}
+
 module.exports = {
   listarSancionados,
   perdonar,
   actualizarMisPosiciones,
   actualizarMiPerfil,
   obtenerPerfilDeJugador,
+  listarUsuarios,
 };
