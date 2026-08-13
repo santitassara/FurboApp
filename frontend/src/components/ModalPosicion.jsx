@@ -8,6 +8,7 @@ export default function ModalPosicion({
   permitirCancelar,
   posicionPrincipalInicial,
   posicionSecundariaInicial,
+  error,
   onConfirmar,
   onCancelar,
 }) {
@@ -41,11 +42,11 @@ export default function ModalPosicion({
             onChange={(evento) => setPosicionPrincipal(evento.target.value)}
             className="rounded-lg bg-white/10 px-4 py-2 text-white"
           >
-            <option value="" disabled>
+            <option value="" disabled className="bg-cancha-800 text-white">
               Elegí una posición
             </option>
             {POSICIONES.map((posicion) => (
-              <option key={posicion.valor} value={posicion.valor}>
+              <option key={posicion.valor} value={posicion.valor} className="bg-cancha-800 text-white">
                 {posicion.etiqueta}
               </option>
             ))}
@@ -59,11 +60,11 @@ export default function ModalPosicion({
             onChange={(evento) => setPosicionSecundaria(evento.target.value)}
             className="rounded-lg bg-white/10 px-4 py-2 text-white"
           >
-            <option value="" disabled>
+            <option value="" disabled className="bg-cancha-800 text-white">
               Elegí una posición
             </option>
             {POSICIONES.map((posicion) => (
-              <option key={posicion.valor} value={posicion.valor}>
+              <option key={posicion.valor} value={posicion.valor} className="bg-cancha-800 text-white">
                 {posicion.etiqueta}
               </option>
             ))}
@@ -73,6 +74,8 @@ export default function ModalPosicion({
         {posicionesIguales && (
           <p className="mb-2 text-sm text-sancion">La secundaria tiene que ser distinta de la principal.</p>
         )}
+
+        {error && <p className="mb-2 text-sm text-sancion">{error}</p>}
 
         <div className="mt-4 flex justify-center gap-3">
           {permitirCancelar && (

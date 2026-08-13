@@ -155,6 +155,7 @@ export default function Home() {
         permitirCancelar={false}
         posicionPrincipalInicial={null}
         posicionSecundariaInicial={null}
+        error={error}
         onConfirmar={confirmarPosicionPerfil}
       />
 
@@ -164,6 +165,7 @@ export default function Home() {
         permitirCancelar
         posicionPrincipalInicial={perfil?.posicionPrincipal}
         posicionSecundariaInicial={perfil?.posicionSecundaria}
+        error={error}
         onConfirmar={(posicionPrincipal, posicionSecundaria) =>
           anotarse(partidoParaAnotarse, posicionPrincipal, posicionSecundaria)
         }
