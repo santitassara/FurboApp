@@ -38,7 +38,10 @@ CREATE TABLE IF NOT EXISTS Inscripciones (
   orden INTEGER NOT NULL,
   fechaInscripcion TEXT NOT NULL,
   posicionPrincipal TEXT,
-  posicionSecundaria TEXT
+  posicionSecundaria TEXT,
+  equipo TEXT,
+  linea TEXT,
+  ordenLinea INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS idx_inscripciones_partido_estado
