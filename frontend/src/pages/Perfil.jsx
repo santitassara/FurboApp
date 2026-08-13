@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Boton from '../components/Boton';
+import TarjetaJugadorFIFA from '../components/TarjetaJugadorFIFA';
 import { POSICIONES } from '../constants/posiciones';
 import { RESISTENCIA } from '../constants/resistencia';
 import { RITMO_JUEGO } from '../constants/ritmoJuego';
@@ -81,15 +81,19 @@ export default function Perfil() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-4 py-8">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-pasto-500">Mi Perfil</h1>
-        <Link to="/inicio" className="text-sm font-semibold text-albiceleste hover:underline">
-          Volver
-        </Link>
-      </header>
+    <div className="mx-auto flex max-w-4xl flex-col gap-6">
+      <h1 className="font-display text-4xl leading-none text-white">Mi Perfil</h1>
 
-      <form onSubmit={guardar} className="flex flex-col gap-5">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
+        <div className="flex justify-center lg:sticky lg:top-10 lg:h-fit lg:justify-start">
+          <TarjetaJugadorFIFA
+            nombre={datos.nombreCompleto || perfil?.nombre}
+            posicion={datos.posicionPrincipal}
+            habilidades={datos}
+          />
+        </div>
+
+        <form onSubmit={guardar} className="flex flex-col gap-5 rounded-2xl border border-white/10 bg-cancha-800/60 p-6">
         <div className="flex flex-col gap-1">
           <label className="text-xs uppercase text-white/50">Nombre completo</label>
           <input
@@ -216,7 +220,8 @@ export default function Perfil() {
         <Boton type="submit" disabled={!puedeGuardar}>
           {guardando ? 'Guardando…' : 'Guardar perfil'}
         </Boton>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

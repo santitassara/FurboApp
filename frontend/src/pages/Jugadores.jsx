@@ -64,12 +64,9 @@ export default function Jugadores() {
   }, [usuarios, busqueda, orden]);
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-4 py-8">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-pasto-500">Jugadores</h1>
-        <Link to="/inicio" className="text-sm font-semibold text-albiceleste hover:underline">
-          Volver
-        </Link>
+    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+      <header>
+        <h1 className="font-display text-4xl leading-none text-white">Jugadores</h1>
       </header>
 
       <div className="flex flex-col gap-3 sm:flex-row">

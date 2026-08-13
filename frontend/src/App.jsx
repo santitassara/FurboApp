@@ -8,6 +8,7 @@ import Jugadores from './pages/Jugadores';
 import AdminPanel from './pages/AdminPanel';
 import RutaPrivada from './components/RutaPrivada';
 import RutaAdmin from './components/RutaAdmin';
+import Layout from './components/Layout';
 import Boton from './components/Boton';
 
 export default function App() {
@@ -33,7 +34,9 @@ export default function App() {
         path="/inicio"
         element={
           <RutaPrivada>
-            <Home />
+            <Layout>
+              <Home />
+            </Layout>
           </RutaPrivada>
         }
       />
@@ -41,7 +44,9 @@ export default function App() {
         path="/perfil"
         element={
           <RutaPrivada>
-            <Perfil />
+            <Layout>
+              <Perfil />
+            </Layout>
           </RutaPrivada>
         }
       />
@@ -49,7 +54,9 @@ export default function App() {
         path="/jugadores"
         element={
           <RutaPrivada>
-            <Jugadores />
+            <Layout>
+              <Jugadores />
+            </Layout>
           </RutaPrivada>
         }
       />
@@ -57,7 +64,9 @@ export default function App() {
         path="/jugadores/:uid"
         element={
           <RutaPrivada>
-            <PerfilJugador />
+            <Layout>
+              <PerfilJugador />
+            </Layout>
           </RutaPrivada>
         }
       />
@@ -65,7 +74,9 @@ export default function App() {
         path="/admin"
         element={
           <RutaAdmin>
-            <AdminPanel />
+            <Layout>
+              <AdminPanel />
+            </Layout>
           </RutaAdmin>
         }
       />
