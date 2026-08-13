@@ -156,7 +156,14 @@ export default function Home() {
                 onSolicitarBaja={() => solicitarBaja(partido)}
                 jugadores={inscripcionesPorPartido[partido.id] || []}
               />
-              {formacionesPorPartido[partido.id] && <MapaCancha formacion={formacionesPorPartido[partido.id]} />}
+              {formacionesPorPartido[partido.id] && (
+                <MapaCancha
+                  partidoId={partido.id}
+                  formacion={formacionesPorPartido[partido.id]}
+                  esAdmin={esAdmin}
+                  onGuardado={(data) => setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))}
+                />
+              )}
             </div>
           ))}
         </div>
