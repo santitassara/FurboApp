@@ -15,15 +15,13 @@ function claveUbicacion(equipo, linea, ordenLinea) {
   return `${equipo}-${linea}-${ordenLinea}`;
 }
 
+const CUPO_LINEA = { arquero: 1, defensa: 4, medio: 4, delantero: 4 };
+
 function obtenerIniciales(nombre) {
   const palabras = (nombre || '').trim().split(/\s+/).filter(Boolean);
   if (palabras.length === 0) return '';
   if (palabras.length === 1) return palabras[0].slice(0, 2).toUpperCase();
   return (palabras[0][0] + palabras[palabras.length - 1][0]).toUpperCase();
-}
-
-function idColumna(equipo, linea) {
-  return `${equipo}-${linea}`;
 }
 
 function Jugador({ usuarioId, nombre, linea, draggable }) {
@@ -55,22 +53,40 @@ function Jugador({ usuarioId, nombre, linea, draggable }) {
   );
 }
 
-function Columna({ equipo, linea, jugadores, draggable }) {
-  const { setNodeRef, isOver } = useDroppable({ id: idColumna(equipo, linea), disabled: !draggable });
+function Asiento({ equipo, linea, ordenLinea, jugador, draggable }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: claveUbicacion(equipo, linea, ordenLinea),
+    disabled: !draggable,
+  });
 
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-3 self-stretch rounded-lg border border-dashed border-white/20 py-3 ${
-        isOver ? 'bg-pasto-600/20' : ''
-      }`}
+      className={`flex min-h-14 w-14 items-center justify-center rounded-lg ${
+        jugador ? '' : 'border border-dashed border-white/20'
+      } ${isOver ? 'bg-pasto-600/20' : ''}`}
     >
-      {jugadores.map((jugador) => (
-        <Jugador
-          key={jugador.usuarioId}
-          usuarioId={jugador.usuarioId}
-          nombre={jugador.nombre}
+      {jugador && (
+        <Jugador usuarioId={jugador.usuarioId} nombre={jugador.nombre} linea={linea} draggable={draggable} />
+      )}
+    </div>
+  );
+}
+
+function Columna({ equipo, linea, jugadores, draggable }) {
+  const jugadorPorOrden = new Map(jugadores.map((jugador) => [jugador.ordenLinea, jugador]));
+  const cupo = draggable ? Math.max(CUPO_LINEA[linea], jugadores.length) : jugadores.length;
+  const asientos = Array.from({ length: cupo }, (_, ordenLinea) => jugadorPorOrden.get(ordenLinea) || null);
+
+  return (
+    <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-3 self-stretch py-3">
+      {asientos.map((jugador, ordenLinea) => (
+        <Asiento
+          key={ordenLinea}
+          equipo={equipo}
           linea={linea}
+          ordenLinea={ordenLinea}
+          jugador={jugador}
           draggable={draggable}
         />
       ))}
@@ -87,10 +103,10 @@ function MitadCancha({ equipo, ubicaciones, draggable }) {
   return (
     <div className="flex min-w-0 flex-1 items-stretch gap-1 px-2 py-4">
       {LINEAS_POR_EQUIPO[equipo].map((linea) => {
-        const jugadoresLinea = ubicaciones
-          .filter((u) => u.equipo === equipo && u.linea === linea)
-          .sort((a, b) => a.ordenLinea - b.ordenLinea);
-        return <Columna key={linea} equipo={equipo} linea={linea} jugadores={jugadoresLinea} draggable={draggable} />;
+        const jugadoresLinea = ubicaciones.filter((u) => u.equipo === equipo && u.linea === linea);
+        return (
+          <Columna key={linea} equipo={equipo} linea={linea} jugadores={jugadoresLinea} draggable={draggable} />
+        );
       })}
     </div>
   );
@@ -134,19 +150,25 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
   function manejarDragEnd(evento) {
     const { active, over } = evento;
     if (!over) return;
-    const [equipo, linea] = over.id.split('-');
+    const [equipo, linea, ordenLineaTexto] = over.id.split('-');
+    const ordenLinea = Number(ordenLineaTexto);
     const activoId = active.id;
 
     setUbicaciones((anterior) => {
       const activo = anterior.find((jugador) => jugador.usuarioId === activoId);
       if (!activo) return anterior;
-      if (activo.equipo === equipo && activo.linea === linea) return anterior;
+      if (activo.equipo === equipo && activo.linea === linea && activo.ordenLinea === ordenLinea) return anterior;
 
-      const ordenLinea = anterior.filter((jugador) => jugador.equipo === equipo && jugador.linea === linea).length;
-
-      return anterior.map((jugador) =>
-        jugador.usuarioId === activoId ? { ...jugador, equipo, linea, ordenLinea } : jugador
+      const ocupante = anterior.find(
+        (jugador) => jugador.equipo === equipo && jugador.linea === linea && jugador.ordenLinea === ordenLinea
       );
+      const posicionAnterior = { equipo: activo.equipo, linea: activo.linea, ordenLinea: activo.ordenLinea };
+
+      return anterior.map((jugador) => {
+        if (jugador.usuarioId === activoId) return { ...jugador, equipo, linea, ordenLinea };
+        if (ocupante && jugador.usuarioId === ocupante.usuarioId) return { ...jugador, ...posicionAnterior };
+        return jugador;
+      });
     });
   }
 
