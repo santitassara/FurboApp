@@ -297,4 +297,5 @@ module.exports = {
   listarUsuarios,
   registrarConPassword,
   autenticarConPassword,
+  calcularPromedioHabilidades,
 };

@@ -1,5 +1,12 @@
 const LINEAS = ['arquero', 'defensa', 'medio', 'delantero'];
 
+const POSICION_A_LINEA = {
+  arquero: 'arquero',
+  defensor: 'defensa',
+  mediocampista: 'medio',
+  delantero: 'delantero',
+};
+
 function generarLineas(cantidadJugadores) {
   if (cantidadJugadores <= 0) return { arquero: 0, defensa: 0, medio: 0, delantero: 0 };
   if (cantidadJugadores === 1) return { arquero: 1, defensa: 0, medio: 0, delantero: 0 };
@@ -22,4 +29,4 @@ function splitEquipos(cupoTitulares) {
   };
 }
 
-module.exports = { LINEAS, generarLineas, splitEquipos };
+module.exports = { LINEAS, POSICION_A_LINEA, generarLineas, splitEquipos };
