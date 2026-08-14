@@ -3,7 +3,7 @@ const { db } = require('../config/db');
 const usuariosService = require('./usuariosService');
 const partidosService = require('./partidosService');
 const { sonPosicionesValidas } = require('../constants/posiciones');
-const { LINEAS, generarLineas, splitEquipos } = require('../utils/formacion');
+const { LINEAS, POSICION_A_LINEA, generarLineas, splitEquipos } = require('../utils/formacion');
 
 function crearError(mensaje, status) {
   const error = new Error(mensaje);
@@ -155,6 +155,109 @@ async function obtenerFormacion(partidoId) {
   return { habilitado, cupoPorEquipo, lineasEsperadas, jugadores };
 }
 
+function crearBalanceador(cupoPorEquipo) {
+  const estado = {
+    A: { restante: cupoPorEquipo.A, total: 0 },
+    B: { restante: cupoPorEquipo.B, total: 0 },
+  };
+
+  function equiposConCupo() {
+    return ['A', 'B'].filter((equipo) => estado[equipo].restante > 0);
+  }
+
+  function equipoMenorCarga() {
+    const disponibles = equiposConCupo();
+    if (disponibles.length === 0) return null;
+    return disponibles.reduce((mejor, equipo) => (estado[equipo].total < estado[mejor].total ? equipo : mejor));
+  }
+
+  function registrar(equipo, habilidad) {
+    estado[equipo].restante -= 1;
+    estado[equipo].total += habilidad;
+  }
+
+  return { equiposConCupo, equipoMenorCarga, registrar };
+}
+
+async function generarFormacionAutomatica(partidoId) {
+  const partido = await partidosService.obtenerPartido(partidoId);
+  if (!partido) throw crearError('Partido no encontrado', 404);
+
+  const ocupados = await contarOcupados(partidoId);
+  if (ocupados.titulares < partido.cupoTitulares) {
+    throw crearError('El cupo de titulares no está completo', 400);
+  }
+
+  const titulares = await listarTitularesActivos(partidoId);
+  const jugadores = await Promise.all(
+    titulares.map(async (inscripcion) => {
+      const usuario = await usuariosService.obtenerUsuario(inscripcion.usuarioId);
+      const habilidad = (usuario && usuariosService.calcularPromedioHabilidades(usuario)) ?? 50;
+      return {
+        usuarioId: inscripcion.usuarioId,
+        nombre: usuario?.nombre || 'Jugador',
+        posicionPrincipal: inscripcion.posicionPrincipal,
+        linea: POSICION_A_LINEA[inscripcion.posicionPrincipal] || 'medio',
+        habilidad,
+      };
+    })
+  );
+
+  const cupoPorEquipo = splitEquipos(partido.cupoTitulares);
+  const balanceador = crearBalanceador(cupoPorEquipo);
+  const asignados = [];
+
+  function asignar(jugador, equipo) {
+    balanceador.registrar(equipo, jugador.habilidad);
+    asignados.push({ ...jugador, equipo });
+  }
+
+  const porLinea = { arquero: [], defensa: [], medio: [], delantero: [] };
+  for (const jugador of jugadores) porLinea[jugador.linea].push(jugador);
+  for (const linea of LINEAS) porLinea[linea].sort((a, b) => b.habilidad - a.habilidad);
+
+  const pool = [...porLinea.medio];
+  for (const linea of ['arquero', 'defensa', 'delantero']) {
+    const bucket = porLinea[linea];
+    const disponibles = balanceador.equiposConCupo();
+    if (bucket.length >= 2 && disponibles.length === 2) {
+      const [mejor, segundoMejor] = bucket;
+      const primerEquipo = balanceador.equipoMenorCarga();
+      const segundoEquipo = primerEquipo === 'A' ? 'B' : 'A';
+      asignar(mejor, primerEquipo);
+      asignar(segundoMejor, segundoEquipo);
+      pool.push(...bucket.slice(2));
+    } else {
+      pool.push(...bucket);
+    }
+  }
+
+  pool.sort((a, b) => b.habilidad - a.habilidad);
+  for (const jugador of pool) {
+    const equipo = balanceador.equipoMenorCarga();
+    asignar(jugador, equipo);
+  }
+
+  const contadorLinea = {};
+  const jugadoresFinales = asignados.map((jugador) => {
+    const clave = `${jugador.equipo}-${jugador.linea}`;
+    const ordenLinea = contadorLinea[clave] || 0;
+    contadorLinea[clave] = ordenLinea + 1;
+    return {
+      usuarioId: jugador.usuarioId,
+      nombre: jugador.nombre,
+      posicionPrincipal: jugador.posicionPrincipal,
+      equipo: jugador.equipo,
+      linea: jugador.linea,
+      ordenLinea,
+    };
+  });
+
+  const lineasEsperadas = { A: generarLineas(cupoPorEquipo.A), B: generarLineas(cupoPorEquipo.B) };
+
+  return { habilitado: true, cupoPorEquipo, lineasEsperadas, jugadores: jugadoresFinales };
+}
+
 async function guardarFormacion(partidoId, asignaciones) {
   const partido = await partidosService.obtenerPartido(partidoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
@@ -234,4 +337,5 @@ module.exports = {
   eliminarPorPartido,
   obtenerFormacion,
   guardarFormacion,
+  generarFormacionAutomatica,
 };

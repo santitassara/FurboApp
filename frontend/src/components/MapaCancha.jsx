@@ -116,6 +116,7 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
   const jugadoresIniciales = useMemo(() => formacion?.jugadores || [], [formacion]);
   const [ubicaciones, setUbicaciones] = useState(jugadoresIniciales);
   const [guardando, setGuardando] = useState(false);
+  const [generando, setGenerando] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -172,6 +173,19 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
     });
   }
 
+  async function generarAutomaticamente() {
+    setError('');
+    setGenerando(true);
+    try {
+      const { data } = await api.post(`/partidos/${partidoId}/formacion/auto`);
+      setUbicaciones(data.jugadores);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGenerando(false);
+    }
+  }
+
   async function guardar() {
     setError('');
     setGuardando(true);
@@ -220,7 +234,15 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
       {esAdmin && (
         <>
           {error && <p className="mt-3 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
-          <Boton variante="primario" className="mt-4 w-full" onClick={guardar} disabled={guardando}>
+          <Boton
+            variante="ghost"
+            className="mt-4 w-full"
+            onClick={generarAutomaticamente}
+            disabled={generando || guardando}
+          >
+            {generando ? 'Generando…' : 'Generar equipos automáticos'}
+          </Boton>
+          <Boton variante="primario" className="mt-2 w-full" onClick={guardar} disabled={guardando}>
             {guardando ? 'Guardando…' : 'Guardar formación'}
           </Boton>
         </>

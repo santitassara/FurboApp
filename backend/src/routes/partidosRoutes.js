@@ -21,6 +21,12 @@ router.put(
   envolverAsync(inscripcionesController.guardarFormacion)
 );
 router.post(
+  '/:partidoId/formacion/auto',
+  verificarToken,
+  verificarAdmin,
+  envolverAsync(inscripcionesController.generarFormacionAutomatica)
+);
+router.post(
   '/:partidoId/promover/:usuarioId',
   verificarToken,
   verificarAdmin,

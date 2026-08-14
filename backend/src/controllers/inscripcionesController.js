@@ -48,4 +48,18 @@ async function guardarFormacion(req, res) {
   res.json(formacion);
 }
 
-module.exports = { anotarse, bajarse, promover, sancionarManualmente, listarPorPartido, verFormacion, guardarFormacion };
+async function generarFormacionAutomatica(req, res) {
+  const formacion = await inscripcionesService.generarFormacionAutomatica(req.params.partidoId);
+  res.json(formacion);
+}
+
+module.exports = {
+  anotarse,
+  bajarse,
+  promover,
+  sancionarManualmente,
+  listarPorPartido,
+  verFormacion,
+  guardarFormacion,
+  generarFormacionAutomatica,
+};
