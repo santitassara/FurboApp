@@ -1,18 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import api from '../services/api';
 import { etiquetaPosicion } from '../constants/posiciones';
 import { etiquetaResistencia } from '../constants/resistencia';
 import { etiquetaRitmoJuego } from '../constants/ritmoJuego';
-
-const HABILIDADES = [
-  { campo: 'velocidad', etiqueta: 'Velocidad' },
-  { campo: 'pegada', etiqueta: 'Pegada' },
-  { campo: 'tocaPase', etiqueta: 'Toque/Pase' },
-  { campo: 'gambeta', etiqueta: 'Gambeta' },
-  { campo: 'marcaDefensa', etiqueta: 'Marca/Defensa' },
-  { campo: 'fisico', etiqueta: 'Físico' },
-];
+import TarjetaJugadorFIFA from '../components/TarjetaJugadorFIFA';
 
 export default function PerfilJugador() {
   const { uid } = useParams();
@@ -40,44 +32,47 @@ export default function PerfilJugador() {
     };
   }, [uid]);
 
+  const tiles = perfil
+    ? [
+        { etiqueta: 'Edad', valor: perfil.edad != null ? `${perfil.edad} años` : 'Sin dato' },
+        {
+          etiqueta: 'Posición',
+          valor: [etiquetaPosicion(perfil.posicionPrincipal), etiquetaPosicion(perfil.posicionSecundaria)]
+            .filter((p) => p !== 'Sin posición')
+            .join(' / ') || 'Sin dato',
+        },
+        { etiqueta: 'Resistencia', valor: etiquetaResistencia(perfil.resistencia) },
+        { etiqueta: 'Ritmo de juego', valor: etiquetaRitmoJuego(perfil.ritmoJuego) },
+      ]
+    : [];
+
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-4 py-8">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-pasto-500">Perfil del jugador</h1>
-        <Link to="/inicio" className="text-sm font-semibold text-albiceleste hover:underline">
-          Volver
-        </Link>
-      </header>
+    <div className="mx-auto flex max-w-4xl flex-col gap-6">
+      <h1 className="font-display text-4xl leading-none text-white">Perfil del jugador</h1>
 
       {cargando && <p className="text-white/60">Cargando…</p>}
       {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
 
       {perfil && (
-        <div className="flex flex-col gap-4">
-          <div>
-            <p className="text-lg font-bold text-white">{perfil.nombreCompleto || perfil.nombre}</p>
-            <p className="text-sm text-white/60">
-              {perfil.edad != null ? `${perfil.edad} años` : 'Edad no informada'}
-            </p>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
+          <div className="flex justify-center lg:justify-start">
+            <TarjetaJugadorFIFA
+              nombre={perfil.nombreCompleto || perfil.nombre}
+              posicion={perfil.posicionPrincipal}
+              habilidades={perfil}
+            />
           </div>
 
-          <div className="text-sm text-white/80">
-            <p>
-              Posición: {etiquetaPosicion(perfil.posicionPrincipal)}
-              {perfil.posicionSecundaria && ` / ${etiquetaPosicion(perfil.posicionSecundaria)}`}
-            </p>
-            <p>Resistencia: {etiquetaResistencia(perfil.resistencia)}</p>
-            <p>Ritmo de juego: {etiquetaRitmoJuego(perfil.ritmoJuego)}</p>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <h2 className="text-sm font-bold uppercase tracking-wide text-pasto-500">Habilidades</h2>
-            {HABILIDADES.map(({ campo, etiqueta }) => (
-              <div key={campo} className="flex items-center justify-between text-sm text-white/80">
-                <span>{etiqueta}</span>
-                <span>{perfil[campo] ?? 'Sin dato'}</span>
-              </div>
-            ))}
+          <div className="rounded-2xl border border-white/10 bg-cancha-800/60 p-6">
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-pasto-500">Resumen</h2>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {tiles.map((tile) => (
+                <div key={tile.etiqueta} className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
+                  <p className="text-[11px] uppercase tracking-wide text-white/50">{tile.etiqueta}</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{tile.valor}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

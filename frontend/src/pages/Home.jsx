@@ -1,16 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '../services/api';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import TarjetaPartido from '../components/TarjetaPartido';
 import MapaCancha from '../components/MapaCancha';
 import ModalConfirmacionSancion from '../components/ModalConfirmacionSancion';
 import ModalPosicion from '../components/ModalPosicion';
-import Boton from '../components/Boton';
-import BadgeSancion from '../components/BadgeSancion';
 
 export default function Home() {
-  const { perfil, estaSancionado, esAdmin, cerrarSesion, refrescarPerfil, actualizarPosicionesPerfil } = useAuth();
+  const { perfil, estaSancionado, esAdmin, refrescarPerfil, actualizarPosicionesPerfil } = useAuth();
   const [partidos, setPartidos] = useState([]);
   const [inscripcionesPorPartido, setInscripcionesPorPartido] = useState({});
   const [formacionesPorPartido, setFormacionesPorPartido] = useState({});
@@ -112,29 +109,10 @@ export default function Home() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-4 py-8">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold text-pasto-500">FurboApp</h1>
-          <p className="text-sm text-white/60">Hola, {perfil?.nombre}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <BadgeSancion sancionado={estaSancionado} />
-          <Link to="/perfil" className="text-sm font-semibold text-albiceleste hover:underline">
-            Mi Perfil
-          </Link>
-          <Link to="/jugadores" className="text-sm font-semibold text-albiceleste hover:underline">
-            Jugadores
-          </Link>
-          {esAdmin && (
-            <Link to="/admin" className="text-sm font-semibold text-albiceleste hover:underline">
-              Panel admin
-            </Link>
-          )}
-          <Boton variante="ghost" onClick={cerrarSesion}>
-            Salir
-          </Boton>
-        </div>
+    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+      <header>
+        <h1 className="font-display text-4xl leading-none text-white">Próximos partidos</h1>
+        <p className="mt-1 text-sm text-white/60">Hola, {perfil?.nombre}</p>
       </header>
 
       {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
