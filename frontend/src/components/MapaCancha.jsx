@@ -62,7 +62,7 @@ function Asiento({ equipo, linea, ordenLinea, jugador, draggable }) {
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-h-14 w-14 items-center justify-center rounded-lg ${
+      className={`flex min-h-7 w-7 items-center justify-center rounded-lg sm:min-h-14 sm:w-14 ${
         jugador ? '' : 'border border-dashed border-white/20'
       } ${isOver ? 'bg-pasto-600/20' : ''}`}
     >
@@ -79,7 +79,7 @@ function Columna({ equipo, linea, jugadores, draggable }) {
   const asientos = Array.from({ length: cupo }, (_, ordenLinea) => jugadorPorOrden.get(ordenLinea) || null);
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-3 self-stretch py-3">
+    <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1 self-stretch py-3 sm:gap-3">
       {asientos.map((jugador, ordenLinea) => (
         <Asiento
           key={ordenLinea}
