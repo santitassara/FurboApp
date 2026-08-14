@@ -15,11 +15,18 @@ function claveUbicacion(equipo, linea, ordenLinea) {
   return `${equipo}-${linea}-${ordenLinea}`;
 }
 
+function obtenerIniciales(nombre) {
+  const palabras = (nombre || '').trim().split(/\s+/).filter(Boolean);
+  if (palabras.length === 0) return '';
+  if (palabras.length === 1) return palabras[0].slice(0, 2).toUpperCase();
+  return (palabras[0][0] + palabras[palabras.length - 1][0]).toUpperCase();
+}
+
 function idColumna(equipo, linea) {
   return `${equipo}-${linea}`;
 }
 
-function Jugador({ usuarioId, nombre, linea, numero, draggable }) {
+function Jugador({ usuarioId, nombre, linea, draggable }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: usuarioId,
     disabled: !draggable,
@@ -31,13 +38,15 @@ function Jugador({ usuarioId, nombre, linea, numero, draggable }) {
       ref={setNodeRef}
       style={estilo}
       {...(draggable ? { ...listeners, ...attributes } : {})}
-      title={nombre}
-      className={`flex flex-col items-center gap-0.5 ${draggable ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${
+      className={`group relative flex flex-col items-center gap-0.5 ${draggable ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${
         isDragging ? 'opacity-50' : ''
       }`}
     >
+      <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-black px-2 py-1 text-xs font-semibold text-white opacity-0 shadow transition-opacity duration-150 group-hover:opacity-100">
+        {nombre}
+      </span>
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/30 bg-cancha-700 text-sm font-bold text-white shadow">
-        {numero}
+        {obtenerIniciales(nombre)}
       </div>
       <div className="whitespace-nowrap rounded bg-cancha-800 px-1.5 py-0.5 text-center text-[9px] font-semibold uppercase text-white/80 shadow">
         {linea ? ETIQUETAS_LINEA[linea] : ''}
@@ -56,13 +65,12 @@ function Columna({ equipo, linea, jugadores, draggable }) {
         isOver ? 'bg-pasto-600/20' : ''
       }`}
     >
-      {jugadores.map((jugador, indice) => (
+      {jugadores.map((jugador) => (
         <Jugador
           key={jugador.usuarioId}
           usuarioId={jugador.usuarioId}
           nombre={jugador.nombre}
           linea={linea}
-          numero={indice + 1}
           draggable={draggable}
         />
       ))}
