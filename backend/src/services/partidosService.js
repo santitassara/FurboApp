@@ -7,6 +7,12 @@ function crearErrorValidacion(mensaje) {
   return error;
 }
 
+function crearError(mensaje, status) {
+  const error = new Error(mensaje);
+  error.status = status;
+  return error;
+}
+
 async function crearPartido({ fecha, cupoTitulares, cupoSuplentes, creadoPor }) {
   const fechaPartido = new Date(fecha);
   if (Number.isNaN(fechaPartido.getTime()) || fechaPartido <= new Date()) {
@@ -42,4 +48,19 @@ async function listarPartidosAbiertos() {
   return db.prepare("SELECT * FROM Partidos WHERE estado = 'abierto'").all();
 }
 
-module.exports = { crearPartido, obtenerPartido, listarPartidosAbiertos };
+async function eliminarPartido(partidoId, uid) {
+  const partido = await obtenerPartido(partidoId);
+  if (!partido) throw crearError('Partido no encontrado', 404);
+  if (partido.creadoPor !== uid) {
+    throw crearError('Solo el admin que creó el partido puede eliminarlo', 403);
+  }
+
+  const inscripcionesService = require('./inscripcionesService');
+  const eliminar = db.transaction(() => {
+    inscripcionesService.eliminarPorPartido(partidoId);
+    db.prepare('DELETE FROM Partidos WHERE id = ?').run(partidoId);
+  });
+  eliminar();
+}
+
+module.exports = { crearPartido, obtenerPartido, listarPartidosAbiertos, eliminarPartido };

@@ -23,4 +23,10 @@ async function crear(req, res) {
   res.status(201).json(partido);
 }
 
-module.exports = { listar, crear };
+async function eliminar(req, res) {
+  const { partidoId } = req.params;
+  await partidosService.eliminarPartido(partidoId, req.usuario.uid);
+  res.status(204).send();
+}
+
+module.exports = { listar, crear, eliminar };

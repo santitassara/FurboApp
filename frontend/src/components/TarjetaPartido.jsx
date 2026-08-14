@@ -20,6 +20,7 @@ export default function TarjetaPartido({
   onAnotarse,
   onSolicitarBaja,
   jugadores,
+  formacion,
 }) {
   const ocupados = partido.ocupados || { titulares: 0, suplentes: 0 };
   const partidoCompleto = ocupados.titulares >= partido.cupoTitulares && ocupados.suplentes >= partido.cupoSuplentes;
@@ -42,7 +43,7 @@ export default function TarjetaPartido({
 
       {jugadores && (
         <div className="mb-4">
-          <ListaJugadores jugadores={jugadores} />
+          <ListaJugadores jugadores={jugadores} formacion={formacion} />
         </div>
       )}
 

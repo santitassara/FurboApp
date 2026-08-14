@@ -109,7 +109,7 @@ export default function Home() {
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+    <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <header>
         <h1 className="font-display text-4xl leading-none text-white">Próximos partidos</h1>
         <p className="mt-1 text-sm text-white/60">Hola, {perfil?.nombre}</p>
@@ -128,15 +128,6 @@ export default function Home() {
               key={partido.id}
               className={formacionesPorPartido[partido.id] ? 'grid grid-cols-1 gap-4 md:grid-cols-2' : ''}
             >
-              <TarjetaPartido
-                partido={partido}
-                inscripcionUsuario={inscripcionDelUsuario(partido.id)}
-                estaSancionado={estaSancionado}
-                procesando={partidoEnProceso === partido.id}
-                onAnotarse={() => setPartidoParaAnotarse(partido.id)}
-                onSolicitarBaja={() => solicitarBaja(partido)}
-                jugadores={inscripcionesPorPartido[partido.id] || []}
-              />
               {formacionesPorPartido[partido.id] && (
                 <MapaCancha
                   partidoId={partido.id}
@@ -145,6 +136,16 @@ export default function Home() {
                   onGuardado={(data) => setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))}
                 />
               )}
+              <TarjetaPartido
+                partido={partido}
+                inscripcionUsuario={inscripcionDelUsuario(partido.id)}
+                estaSancionado={estaSancionado}
+                procesando={partidoEnProceso === partido.id}
+                onAnotarse={() => setPartidoParaAnotarse(partido.id)}
+                onSolicitarBaja={() => solicitarBaja(partido)}
+                jugadores={inscripcionesPorPartido[partido.id] || []}
+                formacion={formacionesPorPartido[partido.id]}
+              />
             </div>
           ))}
         </div>

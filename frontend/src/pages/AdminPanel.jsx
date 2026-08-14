@@ -91,6 +91,22 @@ export default function AdminPanel() {
     }
   }
 
+  async function eliminarPartido(partidoId) {
+    if (!window.confirm('¿Eliminar este partido? Esta acción no se puede deshacer.')) return;
+    setError('');
+    setMensaje('');
+    setAccionEnCurso(true);
+    try {
+      await api.delete(`/partidos/${partidoId}`);
+      setMensaje('Partido eliminado con éxito.');
+      await cargarTodo();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAccionEnCurso(false);
+    }
+  }
+
   async function sancionar(partidoId, usuarioId) {
     setError('');
     setMensaje('');
@@ -184,7 +200,17 @@ export default function AdminPanel() {
         ) : (
           partidos.map((partido) => (
             <div key={partido.id} className="rounded-xl border border-white/10 bg-cancha-800 p-5">
-              <h3 className="mb-3 font-bold text-white">{new Date(partido.fecha).toLocaleString('es-AR')}</h3>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="font-bold text-white">{new Date(partido.fecha).toLocaleString('es-AR')}</h3>
+                <Boton
+                  variante="ghost"
+                  className="px-3 py-1 text-xs text-sancion"
+                  onClick={() => eliminarPartido(partido.id)}
+                  disabled={accionEnCurso}
+                >
+                  Eliminar
+                </Boton>
+              </div>
               <ListaJugadores
                 jugadores={inscripcionesPorPartido[partido.id] || []}
                 onPromover={(usuarioId) => promover(partido.id, usuarioId)}

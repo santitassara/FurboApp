@@ -2,74 +2,170 @@ import { Link } from 'react-router-dom';
 import Boton from './Boton';
 import { etiquetaPosicion } from '../constants/posiciones';
 
-export default function ListaJugadores({ jugadores, onPromover, onSancionar, deshabilitado }) {
+const ABREVIATURA_POSICION = {
+  arquero: 'POR',
+  defensor: 'DEF',
+  mediocampista: 'MED',
+  delantero: 'ATA',
+};
+
+function hashTexto(texto) {
+  let hash = 0;
+  for (let i = 0; i < texto.length; i += 1) {
+    hash = (hash * 31 + texto.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+
+function estadisticasFalsas(usuarioId) {
+  const hash = hashTexto(usuarioId);
+  const pj = 5 + (hash % 30);
+  const goles = (hash >> 3) % 16;
+  const asistencias = (hash >> 6) % 11;
+  const valoracion = (6 + ((hash >> 9) % 25) / 10).toFixed(1);
+  return { pj, goles, asistencias, valoracion };
+}
+
+function colorValoracion(valoracion) {
+  const numero = Number(valoracion);
+  if (numero >= 7.5) return 'bg-pasto-600/30 text-pasto-500';
+  if (numero >= 7) return 'bg-tarjeta/20 text-tarjeta';
+  return 'bg-white/10 text-white/70';
+}
+
+function FilaJugador({ jugador, accion, onAccion, deshabilitado }) {
+  const inicial = jugador.nombre?.trim()?.[0]?.toUpperCase() || '?';
+  const { pj, goles, asistencias, valoracion } = estadisticasFalsas(jugador.usuarioId);
+
+  return (
+    <li className="flex items-center gap-3 rounded-lg px-2 py-2 odd:bg-white/[0.03]">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cancha-700 text-xs font-bold text-white/90">
+        {inicial}
+      </div>
+      <div className="min-w-0 flex-1">
+        <Link to={`/jugadores/${jugador.usuarioId}`} className="block truncate text-sm font-medium text-white hover:underline">
+          {jugador.nombre}
+        </Link>
+        <span className="text-[11px] text-white/50">
+          {etiquetaPosicion(jugador.posicionPrincipal)}
+          {jugador.posicionSecundaria && ` / ${etiquetaPosicion(jugador.posicionSecundaria)}`}
+        </span>
+      </div>
+      <span className="w-8 shrink-0 text-center text-[10px] font-bold uppercase text-white/60">
+        {ABREVIATURA_POSICION[jugador.posicionPrincipal] || '-'}
+      </span>
+      <span className="w-6 shrink-0 text-center text-xs text-white/70">{pj}</span>
+      <span className="w-6 shrink-0 text-center text-xs text-white/70">{goles}</span>
+      <span className="w-6 shrink-0 text-center text-xs text-white/70">{asistencias}</span>
+      <span className={`w-10 shrink-0 rounded px-1.5 py-0.5 text-center text-xs font-bold ${colorValoracion(valoracion)}`}>
+        {valoracion}
+      </span>
+      {accion && (
+        <Boton
+          variante={accion === 'sancionar' ? 'peligro' : 'ghost'}
+          className="shrink-0 px-2 py-1 text-xs"
+          onClick={() => onAccion(jugador.usuarioId)}
+          disabled={deshabilitado}
+        >
+          {accion === 'sancionar' ? 'Sancionar' : 'Promover'}
+        </Boton>
+      )}
+    </li>
+  );
+}
+
+function EncabezadoTabla({ mostrarAccion }) {
+  return (
+    <div className="flex items-center gap-3 px-2 pb-1 text-[10px] font-bold uppercase tracking-wide text-white/40">
+      <span className="w-8 shrink-0" />
+      <span className="min-w-0 flex-1">Jugador</span>
+      <span className="w-8 shrink-0 text-center">Pos</span>
+      <span className="w-6 shrink-0 text-center">PJ</span>
+      <span className="w-6 shrink-0 text-center">G</span>
+      <span className="w-6 shrink-0 text-center">A</span>
+      <span className="w-10 shrink-0 text-center">Val</span>
+      {mostrarAccion && <span className="w-16 shrink-0" />}
+    </div>
+  );
+}
+
+function agruparTitulares(titulares, formacion) {
+  if (!formacion) {
+    return [{ clave: 'titulares', titulo: 'Titulares', color: 'text-pasto-500', jugadores: titulares }];
+  }
+
+  const equipoPorUsuario = new Map((formacion.jugadores || []).map((jugador) => [jugador.usuarioId, jugador.equipo]));
+  const equipoA = titulares.filter((jugador) => equipoPorUsuario.get(jugador.usuarioId) === 'A');
+  const equipoB = titulares.filter((jugador) => equipoPorUsuario.get(jugador.usuarioId) === 'B');
+  const sinUbicar = titulares.filter((jugador) => !equipoPorUsuario.get(jugador.usuarioId));
+
+  const grupos = [
+    { clave: 'equipoA', titulo: 'Equipo 1', color: 'text-pasto-500', jugadores: equipoA },
+    { clave: 'equipoB', titulo: 'Equipo 2', color: 'text-tarjeta', jugadores: equipoB },
+  ];
+  if (sinUbicar.length > 0) {
+    grupos.push({ clave: 'sinUbicar', titulo: 'Sin ubicar', color: 'text-white/50', jugadores: sinUbicar });
+  }
+  return grupos;
+}
+
+export default function ListaJugadores({ jugadores, formacion, onPromover, onSancionar, deshabilitado }) {
   const titulares = jugadores.filter((jugador) => jugador.tipo === 'titular');
   const suplentes = jugadores.filter((jugador) => jugador.tipo === 'suplente');
+  const gruposTitulares = agruparTitulares(titulares, formacion);
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h4 className="mb-2 text-sm font-bold uppercase tracking-wide text-pasto-500">Titulares</h4>
-        {titulares.length === 0 ? (
-          <p className="text-sm text-white/50">Todavía no hay titulares.</p>
-        ) : (
-          <ul className="flex flex-col gap-1">
-            {titulares.map((jugador) => (
-              <li key={jugador.usuarioId} className="flex items-center justify-between text-sm text-white/90">
-                <span>
-                  <Link to={`/jugadores/${jugador.usuarioId}`} className="hover:underline">
-                    {jugador.nombre}
-                  </Link>
-                  <span className="ml-2 text-xs text-white/50">
-                    {etiquetaPosicion(jugador.posicionPrincipal)}
-                    {jugador.posicionSecundaria && ` / ${etiquetaPosicion(jugador.posicionSecundaria)}`}
-                  </span>
-                </span>
-                {onSancionar && (
-                  <Boton
-                    variante="peligro"
-                    className="px-3 py-1 text-xs"
-                    onClick={() => onSancionar(jugador.usuarioId)}
-                    disabled={deshabilitado}
-                  >
-                    Sancionar
-                  </Boton>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
+      <div className="rounded-lg bg-cancha-700 px-3 py-2">
+        <h4 className="text-xs font-bold uppercase tracking-wide text-white">
+          Listado de jugadores ({jugadores.length})
+        </h4>
       </div>
+
+      {titulares.length === 0 ? (
+        <p className="px-2 text-sm text-white/50">Todavía no hay titulares.</p>
+      ) : (
+        gruposTitulares.map(
+          (grupo) =>
+            grupo.jugadores.length > 0 && (
+              <div key={grupo.clave}>
+                <h5 className={`mb-1 px-2 text-xs font-bold uppercase tracking-wide ${grupo.color}`}>{grupo.titulo}</h5>
+                <EncabezadoTabla mostrarAccion={Boolean(onSancionar)} />
+                <ul className="flex flex-col">
+                  {grupo.jugadores.map((jugador) => (
+                    <FilaJugador
+                      key={jugador.usuarioId}
+                      jugador={jugador}
+                      accion={onSancionar ? 'sancionar' : null}
+                      onAccion={onSancionar}
+                      deshabilitado={deshabilitado}
+                    />
+                  ))}
+                </ul>
+              </div>
+            )
+        )
+      )}
+
       <div>
-        <h4 className="mb-2 text-sm font-bold uppercase tracking-wide text-albiceleste">Suplentes</h4>
+        <h5 className="mb-1 px-2 text-xs font-bold uppercase tracking-wide text-albiceleste">Suplentes</h5>
         {suplentes.length === 0 ? (
-          <p className="text-sm text-white/50">No hay suplentes anotados.</p>
+          <p className="px-2 text-sm text-white/50">No hay suplentes anotados.</p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {suplentes.map((jugador) => (
-              <li key={jugador.usuarioId} className="flex items-center justify-between text-sm text-white/90">
-                <span>
-                  <Link to={`/jugadores/${jugador.usuarioId}`} className="hover:underline">
-                    {jugador.nombre}
-                  </Link>
-                  <span className="ml-2 text-xs text-white/50">
-                    {etiquetaPosicion(jugador.posicionPrincipal)}
-                    {jugador.posicionSecundaria && ` / ${etiquetaPosicion(jugador.posicionSecundaria)}`}
-                  </span>
-                </span>
-                {onPromover && (
-                  <Boton
-                    variante="ghost"
-                    className="px-3 py-1 text-xs"
-                    onClick={() => onPromover(jugador.usuarioId)}
-                    disabled={deshabilitado}
-                  >
-                    Promover
-                  </Boton>
-                )}
-              </li>
-            ))}
-          </ul>
+          <>
+            <EncabezadoTabla mostrarAccion={Boolean(onPromover)} />
+            <ul className="flex flex-col">
+              {suplentes.map((jugador) => (
+                <FilaJugador
+                  key={jugador.usuarioId}
+                  jugador={jugador}
+                  accion={onPromover ? 'promover' : null}
+                  onAccion={onPromover}
+                  deshabilitado={deshabilitado}
+                />
+              ))}
+            </ul>
+          </>
         )}
       </div>
     </div>

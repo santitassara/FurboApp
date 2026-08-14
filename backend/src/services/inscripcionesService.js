@@ -124,6 +124,10 @@ async function listarActivas(partidoId) {
   return db.prepare(`SELECT * FROM Inscripciones WHERE partidoId = ? AND estado = 'anotado'`).all(partidoId);
 }
 
+function eliminarPorPartido(partidoId) {
+  db.prepare('DELETE FROM Inscripciones WHERE partidoId = ?').run(partidoId);
+}
+
 async function obtenerFormacion(partidoId) {
   const partido = await partidosService.obtenerPartido(partidoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
@@ -192,7 +196,6 @@ async function guardarFormacion(partidoId, asignaciones) {
   }
 
   const cupoPorEquipo = splitEquipos(partido.cupoTitulares);
-  const lineasEsperadas = { A: generarLineas(cupoPorEquipo.A), B: generarLineas(cupoPorEquipo.B) };
 
   for (const equipo of ['A', 'B']) {
     const asignacionesDelEquipo = asignaciones.filter((a) => a.equipo === equipo);
@@ -200,16 +203,11 @@ async function guardarFormacion(partidoId, asignaciones) {
       throw crearError(`El equipo ${equipo} debe tener exactamente ${cupoPorEquipo[equipo]} jugadores`, 400);
     }
     for (const linea of LINEAS) {
-      const deLaLinea = asignacionesDelEquipo.filter((a) => a.linea === linea);
-      const esperado = lineasEsperadas[equipo][linea];
-      if (deLaLinea.length !== esperado) {
-        throw crearError(
-          `El equipo ${equipo} debe tener exactamente ${esperado} jugador(es) en la línea "${linea}"`,
-          400
-        );
-      }
-      const ordenes = deLaLinea.map((a) => a.ordenLinea).sort((x, y) => x - y);
-      const ordenesEsperados = Array.from({ length: esperado }, (_, i) => i);
+      const ordenes = asignacionesDelEquipo
+        .filter((a) => a.linea === linea)
+        .map((a) => a.ordenLinea)
+        .sort((x, y) => x - y);
+      const ordenesEsperados = Array.from({ length: ordenes.length }, (_, i) => i);
       if (JSON.stringify(ordenes) !== JSON.stringify(ordenesEsperados)) {
         throw crearError(`ordenLinea inválido para el equipo ${equipo}, línea "${linea}"`, 400);
       }
@@ -237,6 +235,7 @@ module.exports = {
   contarOcupados,
   obtenerInscripcionActiva,
   listarActivas,
+  eliminarPorPartido,
   obtenerFormacion,
   guardarFormacion,
 };

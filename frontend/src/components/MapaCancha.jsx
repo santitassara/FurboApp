@@ -5,17 +5,21 @@ import Boton from './Boton';
 import { LINEAS } from '../utils/formacion';
 
 const ETIQUETAS_LINEA = {
-  arquero: 'Arquero',
-  defensa: 'Defensa',
-  medio: 'Medio',
-  delantero: 'Delantero',
+  arquero: 'POR',
+  defensa: 'DEF',
+  medio: 'MED',
+  delantero: 'ATA',
 };
 
-function idSlot(equipo, linea, ordenLinea) {
+function claveUbicacion(equipo, linea, ordenLinea) {
   return `${equipo}-${linea}-${ordenLinea}`;
 }
 
-function Jugador({ usuarioId, nombre, draggable }) {
+function idColumna(equipo, linea) {
+  return `${equipo}-${linea}`;
+}
+
+function Jugador({ usuarioId, nombre, linea, numero, draggable }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: usuarioId,
     disabled: !draggable,
@@ -27,56 +31,58 @@ function Jugador({ usuarioId, nombre, draggable }) {
       ref={setNodeRef}
       style={estilo}
       {...(draggable ? { ...listeners, ...attributes } : {})}
-      className={`flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-cancha-700 p-1 text-center text-[11px] text-white/90 ${
-        draggable ? 'cursor-grab touch-none active:cursor-grabbing' : ''
-      } ${isDragging ? 'opacity-50' : ''}`}
+      title={nombre}
+      className={`flex flex-col items-center gap-0.5 ${draggable ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${
+        isDragging ? 'opacity-50' : ''
+      }`}
     >
-      {nombre}
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/30 bg-cancha-700 text-sm font-bold text-white shadow">
+        {numero}
+      </div>
+      <div className="whitespace-nowrap rounded bg-cancha-800 px-1.5 py-0.5 text-center text-[9px] font-semibold uppercase text-white/80 shadow">
+        {linea ? ETIQUETAS_LINEA[linea] : ''}
+      </div>
     </div>
   );
 }
 
-function Slot({ equipo, linea, ordenLinea, jugador, draggable }) {
-  const { setNodeRef, isOver } = useDroppable({ id: idSlot(equipo, linea, ordenLinea), disabled: !draggable });
+function Columna({ equipo, linea, jugadores, draggable }) {
+  const { setNodeRef, isOver } = useDroppable({ id: idColumna(equipo, linea), disabled: !draggable });
 
   return (
     <div
       ref={setNodeRef}
-      className={`flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-white/20 ${
-        isOver ? 'bg-pasto-600/30' : ''
+      className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-3 self-stretch rounded-lg border border-dashed border-white/20 py-3 ${
+        isOver ? 'bg-pasto-600/20' : ''
       }`}
     >
-      {jugador ? <Jugador usuarioId={jugador.usuarioId} nombre={jugador.nombre} draggable={draggable} /> : null}
+      {jugadores.map((jugador, indice) => (
+        <Jugador
+          key={jugador.usuarioId}
+          usuarioId={jugador.usuarioId}
+          nombre={jugador.nombre}
+          linea={linea}
+          numero={indice + 1}
+          draggable={draggable}
+        />
+      ))}
     </div>
   );
 }
 
-function MitadCancha({ equipo, lineasEsperadas, ubicaciones, draggable }) {
+const LINEAS_POR_EQUIPO = {
+  A: LINEAS,
+  B: [...LINEAS].reverse(),
+};
+
+function MitadCancha({ equipo, ubicaciones, draggable }) {
   return (
-    <div className="flex flex-1 flex-col gap-3 rounded-lg bg-pasto-600/10 p-3">
-      <h5 className="text-center text-xs font-bold uppercase tracking-wide text-white/70">Equipo {equipo}</h5>
-      {LINEAS.map((linea) => {
-        const cantidad = lineasEsperadas[linea];
-        if (cantidad === 0) return null;
-        return (
-          <div key={linea} className="flex flex-col gap-1">
-            <p className="text-[10px] uppercase text-white/40">{ETIQUETAS_LINEA[linea]}</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {Array.from({ length: cantidad }, (_, ordenLinea) => (
-                <Slot
-                  key={ordenLinea}
-                  equipo={equipo}
-                  linea={linea}
-                  ordenLinea={ordenLinea}
-                  jugador={ubicaciones.find(
-                    (u) => u.equipo === equipo && u.linea === linea && u.ordenLinea === ordenLinea
-                  )}
-                  draggable={draggable}
-                />
-              ))}
-            </div>
-          </div>
-        );
+    <div className="flex min-w-0 flex-1 items-stretch gap-1 px-2 py-4">
+      {LINEAS_POR_EQUIPO[equipo].map((linea) => {
+        const jugadoresLinea = ubicaciones
+          .filter((u) => u.equipo === equipo && u.linea === linea)
+          .sort((a, b) => a.ordenLinea - b.ordenLinea);
+        return <Columna key={linea} equipo={equipo} linea={linea} jugadores={jugadoresLinea} draggable={draggable} />;
       })}
     </div>
   );
@@ -94,14 +100,14 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
       const anteriorPorId = new Map(anterior.map((jugador) => [jugador.usuarioId, jugador]));
       const fusionados = jugadoresActuales.map((jugador) => anteriorPorId.get(jugador.usuarioId) || jugador);
 
-      const slotsVistos = new Set();
+      const ubicacionesVistas = new Set();
       return fusionados.map((jugador) => {
         if (!jugador.equipo) return jugador;
-        const clave = idSlot(jugador.equipo, jugador.linea, jugador.ordenLinea);
-        if (slotsVistos.has(clave)) {
+        const clave = claveUbicacion(jugador.equipo, jugador.linea, jugador.ordenLinea);
+        if (ubicacionesVistas.has(clave)) {
           return { ...jugador, equipo: null, linea: null, ordenLinea: null };
         }
-        slotsVistos.add(clave);
+        ubicacionesVistas.add(clave);
         return jugador;
       });
     });
@@ -120,27 +126,19 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
   function manejarDragEnd(evento) {
     const { active, over } = evento;
     if (!over) return;
-    const [equipo, linea, ordenTexto] = over.id.split('-');
-    const ordenLinea = Number(ordenTexto);
+    const [equipo, linea] = over.id.split('-');
     const activoId = active.id;
 
     setUbicaciones((anterior) => {
       const activo = anterior.find((jugador) => jugador.usuarioId === activoId);
       if (!activo) return anterior;
-      const ubicacionAnteriorActivo = { equipo: activo.equipo, linea: activo.linea, ordenLinea: activo.ordenLinea };
-      const ocupante = anterior.find(
-        (jugador) =>
-          jugador.equipo === equipo &&
-          jugador.linea === linea &&
-          jugador.ordenLinea === ordenLinea &&
-          jugador.usuarioId !== activoId
-      );
+      if (activo.equipo === equipo && activo.linea === linea) return anterior;
 
-      return anterior.map((jugador) => {
-        if (jugador.usuarioId === activoId) return { ...jugador, equipo, linea, ordenLinea };
-        if (ocupante && jugador.usuarioId === ocupante.usuarioId) return { ...jugador, ...ubicacionAnteriorActivo };
-        return jugador;
-      });
+      const ordenLinea = anterior.filter((jugador) => jugador.equipo === equipo && jugador.linea === linea).length;
+
+      return anterior.map((jugador) =>
+        jugador.usuarioId === activoId ? { ...jugador, equipo, linea, ordenLinea } : jugador
+      );
     });
   }
 
@@ -169,19 +167,13 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
   const contenido = (
     <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
       <h4 className="mb-3 text-sm font-bold uppercase tracking-wide text-pasto-500">Formación</h4>
-      <div className="flex flex-col gap-3 md:flex-row">
-        <MitadCancha
-          equipo="A"
-          lineasEsperadas={formacion.lineasEsperadas.A}
-          ubicaciones={ubicaciones}
-          draggable={esAdmin}
-        />
-        <MitadCancha
-          equipo="B"
-          lineasEsperadas={formacion.lineasEsperadas.B}
-          ubicaciones={ubicaciones}
-          draggable={esAdmin}
-        />
+      <div
+        className="flex aspect-[1.83] w-full overflow-hidden rounded-lg border border-white/10 bg-cover bg-center shadow-inner"
+        style={{ backgroundImage: "url('/layout-cancha-futbol.jpeg')" }}
+      >
+        <MitadCancha equipo="A" ubicaciones={ubicaciones} draggable={esAdmin} />
+        <div className="w-px bg-white/20" />
+        <MitadCancha equipo="B" ubicaciones={ubicaciones} draggable={esAdmin} />
       </div>
 
       {esAdmin && sinUbicar.length > 0 && (
