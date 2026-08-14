@@ -175,6 +175,7 @@ async function guardarFormacion(partidoId, asignaciones) {
   }
 
   const idsVistos = new Set();
+  const asientosVistos = new Set();
   for (const asignacion of asignaciones) {
     if (!asignacion || typeof asignacion !== 'object') {
       throw crearError('La formación debe incluir a todos los titulares, sin repetidos', 400);
@@ -193,6 +194,11 @@ async function guardarFormacion(partidoId, asignaciones) {
     if (!Number.isInteger(ordenLinea) || ordenLinea < 0) {
       throw crearError('ordenLinea debe ser un entero mayor o igual a 0', 400);
     }
+    const asiento = `${equipo}-${linea}-${ordenLinea}`;
+    if (asientosVistos.has(asiento)) {
+      throw crearError(`Hay dos jugadores en la misma posición del equipo ${equipo}`, 400);
+    }
+    asientosVistos.add(asiento);
   }
 
   const cupoPorEquipo = splitEquipos(partido.cupoTitulares);
@@ -201,16 +207,6 @@ async function guardarFormacion(partidoId, asignaciones) {
     const asignacionesDelEquipo = asignaciones.filter((a) => a.equipo === equipo);
     if (asignacionesDelEquipo.length !== cupoPorEquipo[equipo]) {
       throw crearError(`El equipo ${equipo} debe tener exactamente ${cupoPorEquipo[equipo]} jugadores`, 400);
-    }
-    for (const linea of LINEAS) {
-      const ordenes = asignacionesDelEquipo
-        .filter((a) => a.linea === linea)
-        .map((a) => a.ordenLinea)
-        .sort((x, y) => x - y);
-      const ordenesEsperados = Array.from({ length: ordenes.length }, (_, i) => i);
-      if (JSON.stringify(ordenes) !== JSON.stringify(ordenesEsperados)) {
-        throw crearError(`ordenLinea inválido para el equipo ${equipo}, línea "${linea}"`, 400);
-      }
     }
   }
 
