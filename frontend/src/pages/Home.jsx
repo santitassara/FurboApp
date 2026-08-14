@@ -109,7 +109,7 @@ export default function Home() {
   }
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6">
+    <div className="mx-auto flex flex-col gap-6">
       <header>
         <h1 className="font-display text-4xl leading-none text-white">Próximos partidos</h1>
         <p className="mt-1 text-sm text-white/60">Hola, {perfil?.nombre}</p>
