@@ -155,6 +155,15 @@ async function obtenerFormacion(partidoId) {
   return { habilitado, cupoPorEquipo, lineasEsperadas, jugadores };
 }
 
+function mezclar(lista) {
+  const copia = [...lista];
+  for (let i = copia.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia;
+}
+
 function crearBalanceador(cupoPorEquipo) {
   const estado = {
     A: { restante: cupoPorEquipo.A, total: 0 },
@@ -176,7 +185,15 @@ function crearBalanceador(cupoPorEquipo) {
     estado[equipo].total += habilidad;
   }
 
-  return { equiposConCupo, equipoMenorCarga, registrar };
+  function equipoAleatorioSesgado(sesgo = 0.7) {
+    const disponibles = equiposConCupo();
+    if (disponibles.length <= 1) return disponibles[0] || null;
+    const menor = equipoMenorCarga();
+    const mayor = disponibles.find((equipo) => equipo !== menor);
+    return Math.random() < sesgo ? menor : mayor;
+  }
+
+  return { equiposConCupo, equipoMenorCarga, equipoAleatorioSesgado, registrar };
 }
 
 async function generarFormacionAutomatica(partidoId) {
@@ -222,7 +239,7 @@ async function generarFormacionAutomatica(partidoId) {
     const disponibles = balanceador.equiposConCupo();
     if (bucket.length >= 2 && disponibles.length === 2) {
       const [mejor, segundoMejor] = bucket;
-      const primerEquipo = balanceador.equipoMenorCarga();
+      const primerEquipo = balanceador.equipoAleatorioSesgado();
       const segundoEquipo = primerEquipo === 'A' ? 'B' : 'A';
       asignar(mejor, primerEquipo);
       asignar(segundoMejor, segundoEquipo);
@@ -232,8 +249,8 @@ async function generarFormacionAutomatica(partidoId) {
     }
   }
 
-  pool.sort((a, b) => b.habilidad - a.habilidad);
-  for (const jugador of pool) {
+  const poolMezclado = mezclar(pool);
+  for (const jugador of poolMezclado) {
     const equipo = balanceador.equipoMenorCarga();
     asignar(jugador, equipo);
   }
