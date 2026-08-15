@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Boton from '../components/Boton';
 import TarjetaJugadorFIFA from '../components/TarjetaJugadorFIFA';
 import { POSICIONES } from '../constants/posiciones';
 import { RESISTENCIA } from '../constants/resistencia';
 import { RITMO_JUEGO } from '../constants/ritmoJuego';
+import { SERVER_URL } from '../services/api';
 
 const HABILIDADES = [
   { campo: 'velocidad', etiqueta: 'Velocidad' },
@@ -16,7 +17,10 @@ const HABILIDADES = [
 ];
 
 export default function Perfil() {
-  const { perfil, actualizarMiPerfil } = useAuth();
+  const { perfil, actualizarMiPerfil, subirFotoPerfil } = useAuth();
+  const inputFotoRef = useRef(null);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [errorFoto, setErrorFoto] = useState('');
   const [datos, setDatos] = useState({
     nombreCompleto: perfil?.nombreCompleto || '',
     fechaNacimiento: perfil?.fechaNacimiento ? perfil.fechaNacimiento.slice(0, 10) : '',
@@ -58,6 +62,21 @@ export default function Perfil() {
     setTocado((anterior) => ({ ...anterior, [campo]: true }));
   }
 
+  async function manejarSeleccionFoto(evento) {
+    const archivo = evento.target.files?.[0];
+    evento.target.value = '';
+    if (!archivo) return;
+    setErrorFoto('');
+    setSubiendoFoto(true);
+    try {
+      await subirFotoPerfil(archivo);
+    } catch (err) {
+      setErrorFoto(err.message);
+    } finally {
+      setSubiendoFoto(false);
+    }
+  }
+
   async function guardar(evento) {
     evento.preventDefault();
     setError('');
@@ -84,13 +103,25 @@ export default function Perfil() {
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <h1 className="font-display text-4xl leading-none text-white">Mi Perfil</h1>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
-        <div className="flex justify-center lg:sticky lg:top-10 lg:h-fit lg:justify-start">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_1fr]">
+        <div className="flex flex-col items-center gap-3 lg:sticky lg:top-10 lg:h-fit lg:items-start">
           <TarjetaJugadorFIFA
             nombre={datos.nombreCompleto || perfil?.nombre}
             posicion={datos.posicionPrincipal}
             habilidades={datos}
+            fotoUrl={perfil?.fotoUrl ? `${SERVER_URL}${perfil.fotoUrl}` : null}
           />
+          <input
+            ref={inputFotoRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={manejarSeleccionFoto}
+          />
+          <Boton type="button" onClick={() => inputFotoRef.current?.click()} disabled={subiendoFoto}>
+            {subiendoFoto ? 'Subiendo…' : 'Subir foto'}
+          </Boton>
+          {errorFoto && <p className="text-sm text-sancion">{errorFoto}</p>}
         </div>
 
         <form onSubmit={guardar} className="flex flex-col gap-5 rounded-2xl border border-white/10 bg-cancha-800/60 p-6">

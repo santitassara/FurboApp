@@ -14,6 +14,14 @@ const ATRIBUTOS = [
   { campo: 'fisico', etiqueta: 'FIS' },
 ];
 
+const ANCHO = 300;
+const ALTO = 420;
+
+// Marco de la carta (PNG con centro transparente). Poné el archivo en frontend/public/tarjeta-marco.png
+const MARCO_CARTA = '/tarjeta-marco.png';
+
+const MASCARA_FOTO = 'linear-gradient(to bottom, black 65%, transparent 100%)';
+
 function calcularRating(habilidades) {
   const valores = ATRIBUTOS.map(({ campo }) => habilidades[campo]).filter(
     (valor) => valor !== null && valor !== undefined
@@ -32,40 +40,75 @@ function iniciales(nombre) {
     .join('');
 }
 
-export default function TarjetaJugadorFIFA({ nombre, posicion, habilidades = {} }) {
+export default function TarjetaJugadorFIFA({ nombre, posicion, habilidades = {}, fotoUrl }) {
   const rating = calcularRating(habilidades);
 
   return (
-    <div className="relative w-full max-w-[260px] overflow-hidden rounded-2xl border-2 border-tarjeta bg-gradient-to-br from-cancha-700 via-cancha-800 to-cancha-900 p-5 shadow-[0_0_50px_-12px_rgba(234,179,8,0.35)]">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-tarjeta/10 via-transparent to-transparent"
-      />
-
-      <div className="relative flex items-start justify-between">
-        <div className="leading-none">
-          <p className="font-display text-6xl text-tarjeta">{rating ?? '–'}</p>
-          <p className="mt-1 text-xs font-bold uppercase tracking-widest text-white/70">
+    <div
+      className="relative mx-auto transition-transform duration-300 hover:scale-105"
+      style={{
+        width: ANCHO,
+        height: ALTO,
+        backgroundImage: `url('${MARCO_CARTA}')`,
+        backgroundSize: 'contain',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      <div className="relative h-full w-full text-[#e9d290]">
+        <div className="absolute left-[15%] top-[18%] z-20 flex flex-col items-center drop-shadow-md">
+          <p className="font-display text-5xl font-bold leading-none tracking-tighter">{rating ?? '–'}</p>
+          <p className="mt-3 font-display text-xl font-bold uppercase tracking-widest">
             {ABREVIATURA_POSICION[posicion] || '—'}
           </p>
         </div>
-      </div>
 
-      <div className="relative mx-auto -mt-4 flex h-24 w-24 items-center justify-center rounded-full border border-white/15 bg-cancha-900 font-display text-3xl text-white">
-        {iniciales(nombre)}
-      </div>
+        <div className="absolute right-[10%] top-[12%] z-10 flex h-[45%] w-[65%] justify-center">
+          {fotoUrl ? (
+            <img
+              src={fotoUrl}
+              alt={nombre || 'Jugador'}
+              className="h-full object-cover object-bottom"
+              style={{ maskImage: MASCARA_FOTO, WebkitMaskImage: MASCARA_FOTO }}
+            />
+          ) : (
+            <div
+              className="flex h-full w-full items-center justify-center font-display text-7xl font-bold text-black/20"
+              style={{ maskImage: MASCARA_FOTO, WebkitMaskImage: MASCARA_FOTO }}
+            >
+              {iniciales(nombre)}
+            </div>
+          )}
+        </div>
 
-      <p className="relative mt-3 truncate border-t border-white/10 pt-3 text-center font-display text-2xl uppercase tracking-wide text-white">
-        {nombre || 'Sin nombre'}
-      </p>
+        <div className="absolute top-[55%] z-20 flex w-full flex-col items-center">
+          <p className="max-w-[85%] overflow-hidden truncate px-4 text-center font-display font-bold uppercase tracking-widest drop-shadow-md">
+            {nombre || 'Sin nombre'}
+          </p>
+          <div className="mt-1 h-[2px] w-[65%] bg-[#e9d290]/40" />
+        </div>
 
-      <div className="relative mt-4 grid grid-cols-3 gap-y-3 border-t border-white/10 pt-4">
-        {ATRIBUTOS.map(({ campo, etiqueta }) => (
-          <div key={campo} className="text-center">
-            <p className="font-display text-2xl text-white">{habilidades[campo] ?? '–'}</p>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-tarjeta">{etiqueta}</p>
+        <div className="absolute bottom-[16%] z-20 w-full px-[15%]">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+            <div className="flex flex-col gap-1 border-r border-[#e9d290]/30 pr-2">
+              {ATRIBUTOS.slice(0, 3).map(({ campo, etiqueta }) => (
+                <div key={campo} className="flex items-center justify-between font-display text-lg drop-shadow-sm">
+                  <span className="w-1/2 pr-2 text-right font-bold">{habilidades[campo] ?? '–'}</span>
+                  <span className="w-1/2 text-left font-normal">{etiqueta}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-1 pl-2">
+              {ATRIBUTOS.slice(3, 6).map(({ campo, etiqueta }) => (
+                <div key={campo} className="flex items-center justify-between font-display text-lg drop-shadow-sm">
+                  <span className="w-1/2 pr-2 text-right font-bold">{habilidades[campo] ?? '–'}</span>
+                  <span className="w-1/2 text-left font-normal">{etiqueta}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );
