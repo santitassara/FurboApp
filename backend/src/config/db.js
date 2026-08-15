@@ -45,6 +45,7 @@ const columnasPerfilJugador = {
   gambeta: 'INTEGER',
   marcaDefensa: 'INTEGER',
   fisico: 'INTEGER',
+  fotoUrl: 'TEXT',
 };
 for (const [columna, tipo] of Object.entries(columnasPerfilJugador)) {
   const yaExiste = columnasUsuarios.some((c) => c.name === columna);

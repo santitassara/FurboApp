@@ -20,6 +20,14 @@ async function actualizarMiPerfil(req, res) {
   res.json(usuario);
 }
 
+async function subirMiFoto(req, res) {
+  if (!req.file) {
+    return res.status(400).json({ error: 'Falta el archivo de la foto' });
+  }
+  const usuario = await usuariosService.guardarFoto(req.usuario.uid, req.file);
+  res.json(usuario);
+}
+
 async function obtenerPerfilDeJugador(req, res) {
   const perfil = await usuariosService.obtenerPerfilPublico(req.params.uid);
   res.json(perfil);
@@ -35,6 +43,7 @@ module.exports = {
   perdonar,
   actualizarMisPosiciones,
   actualizarMiPerfil,
+  subirMiFoto,
   obtenerPerfilDeJugador,
   listarUsuarios,
 };

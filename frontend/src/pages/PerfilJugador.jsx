@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import api from '../services/api';
+import api, { SERVER_URL } from '../services/api';
 import { etiquetaPosicion } from '../constants/posiciones';
 import { etiquetaResistencia } from '../constants/resistencia';
 import { etiquetaRitmoJuego } from '../constants/ritmoJuego';
@@ -54,12 +54,13 @@ export default function PerfilJugador() {
       {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
 
       {perfil && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_1fr]">
           <div className="flex justify-center lg:justify-start">
             <TarjetaJugadorFIFA
               nombre={perfil.nombreCompleto || perfil.nombre}
               posicion={perfil.posicionPrincipal}
               habilidades={perfil}
+              fotoUrl={perfil.fotoUrl ? `${SERVER_URL}${perfil.fotoUrl}` : null}
             />
           </div>
 

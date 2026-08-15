@@ -96,6 +96,13 @@ export function AuthProvider({ children }) {
     setPerfil(data);
   }
 
+  async function subirFotoPerfil(archivo) {
+    const formData = new FormData();
+    formData.append('foto', archivo);
+    const { data } = await api.post('/usuarios/me/foto', formData);
+    setPerfil(data);
+  }
+
   async function cerrarSesion() {
     localStorage.removeItem(TOKEN_KEY);
     if (auth && usuarioFirebase) {
@@ -118,6 +125,7 @@ export function AuthProvider({ children }) {
     refrescarPerfil,
     actualizarPosicionesPerfil,
     actualizarMiPerfil,
+    subirFotoPerfil,
     esAdmin: perfil?.rol === 'admin',
     estaSancionado: Boolean(perfil?.estaSancionado),
   };

@@ -1,9 +1,14 @@
 const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
 const bcrypt = require('bcryptjs');
 const { db } = require('../config/db');
 const { sonPosicionesValidas } = require('../constants/posiciones');
 const { esResistenciaValida } = require('../constants/resistencia');
 const { esRitmoJuegoValido } = require('../constants/ritmoJuego');
+const { TIPOS_PERMITIDOS } = require('../middlewares/subirFoto');
+
+const DIRECTORIO_FOTOS = path.join(__dirname, '../../uploads/perfiles');
 
 // Dummy hash for timing consistency in autenticarConPassword (prevents email enumeration)
 const dummyPasswordHash = bcrypt.hashSync('dummy', 10);
@@ -205,7 +210,30 @@ async function obtenerPerfilPublico(uid) {
     gambeta: fila.gambeta,
     marcaDefensa: fila.marcaDefensa,
     fisico: fila.fisico,
+    fotoUrl: fila.fotoUrl,
   };
+}
+
+async function guardarFoto(uid, archivo) {
+  const extension = TIPOS_PERMITIDOS[archivo.mimetype];
+  if (!extension) {
+    const error = new Error('Formato de imagen no soportado. Usá JPG, PNG o WEBP.');
+    error.status = 400;
+    throw error;
+  }
+
+  fs.mkdirSync(DIRECTORIO_FOTOS, { recursive: true });
+  for (const ext of new Set(Object.values(TIPOS_PERMITIDOS))) {
+    const rutaPrevia = path.join(DIRECTORIO_FOTOS, `${uid}.${ext}`);
+    if (fs.existsSync(rutaPrevia)) fs.unlinkSync(rutaPrevia);
+  }
+
+  const nombreArchivo = `${uid}.${extension}`;
+  fs.writeFileSync(path.join(DIRECTORIO_FOTOS, nombreArchivo), archivo.buffer);
+
+  const fotoUrl = `/uploads/perfiles/${nombreArchivo}?v=${Date.now()}`;
+  db.prepare('UPDATE Usuarios SET fotoUrl = ? WHERE uid = ?').run(fotoUrl, uid);
+  return obtenerUsuario(uid);
 }
 
 const CAMPOS_HABILIDAD = ['velocidad', 'pegada', 'tocaPase', 'gambeta', 'marcaDefensa', 'fisico'];
@@ -294,6 +322,7 @@ module.exports = {
   actualizarPosiciones,
   actualizarPerfil,
   obtenerPerfilPublico,
+  guardarFoto,
   listarUsuarios,
   registrarConPassword,
   autenticarConPassword,
