@@ -1,16 +1,7 @@
 import BarraCupos from './BarraCupos';
 import Boton from './Boton';
 import ListaJugadores from './ListaJugadores';
-
-function formatearFecha(fechaISO) {
-  return new Date(fechaISO).toLocaleString('es-AR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+import { formatearFechaPartido } from '../utils/fecha';
 
 export default function TarjetaPartido({
   partido,
@@ -28,7 +19,7 @@ export default function TarjetaPartido({
   return (
     <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-bold capitalize text-white">{formatearFecha(partido.fecha)}</h3>
+        <h3 className="text-lg font-bold capitalize text-white">{formatearFechaPartido(partido.fecha)}</h3>
         {inscripcionUsuario && (
           <span className="rounded-full bg-pasto-600/20 px-3 py-1 text-xs font-bold uppercase text-pasto-500">
             {inscripcionUsuario.tipo === 'titular' ? 'Sos titular' : 'Sos suplente'}
