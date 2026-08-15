@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
 import Boton from '../components/Boton';
 import ListaJugadores from '../components/ListaJugadores';
@@ -135,6 +135,11 @@ export default function AdminPanel() {
     }
   }
 
+  const elegibles = useMemo(
+    () => (formacionesPorPartido[partidoParaResultado?.id]?.jugadores || []).filter((j) => j.equipo),
+    [formacionesPorPartido, partidoParaResultado?.id]
+  );
+
   async function guardarResultado(payload) {
     setError('');
     setMensaje('');
@@ -225,7 +230,7 @@ export default function AdminPanel() {
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-bold text-white">Partidos</h2>
         {partidos.length === 0 ? (
-          <p className="text-sm text-white/50">No hay partidos abiertos.</p>
+          <p className="text-sm text-white/50">No hay partidos para mostrar.</p>
         ) : (
           partidos.map((partido) => (
             <div key={partido.id} className="rounded-xl border border-white/10 bg-cancha-800 p-5">
@@ -235,14 +240,17 @@ export default function AdminPanel() {
                   <span className="ml-2 text-xs font-normal uppercase text-white/40">{partido.estado}</span>
                 </h3>
                 <div className="flex gap-2">
-                  {partido.estado === 'cerrado' && (
+                  {(partido.estado === 'cerrado' || partido.estado === 'jugado') && (
                     <Boton
                       variante="primario"
                       className="px-3 py-1 text-xs"
-                      onClick={() => setPartidoParaResultado(partido)}
+                      onClick={() => {
+                        setError('');
+                        setPartidoParaResultado(partido);
+                      }}
                       disabled={accionEnCurso}
                     >
-                      Cargar resultado
+                      {partido.estado === 'jugado' ? 'Editar resultado' : 'Cargar resultado'}
                     </Boton>
                   )}
                   {partido.estado === 'abierto' && (
@@ -291,7 +299,7 @@ export default function AdminPanel() {
       <ModalCargarResultado
         abierto={Boolean(partidoParaResultado)}
         partido={partidoParaResultado}
-        elegibles={(formacionesPorPartido[partidoParaResultado?.id]?.jugadores || []).filter((j) => j.equipo)}
+        elegibles={elegibles}
         procesando={accionEnCurso}
         error={error}
         onConfirmar={guardarResultado}

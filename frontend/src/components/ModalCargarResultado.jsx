@@ -79,6 +79,13 @@ export default function ModalCargarResultado({
           Cargar resultado — {formatearFechaPartido(partido.fecha)}
         </h2>
 
+        {elegibles.length === 0 && (
+          <p className="mb-6 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">
+            Este partido no tiene formación guardada, así que no hay jugadores elegibles. Guardá la formación desde
+            el inicio antes de cargar el resultado.
+          </p>
+        )}
+
         <section className="mb-6">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-sm font-bold uppercase text-white/70">Goles</h3>

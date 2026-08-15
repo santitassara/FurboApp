@@ -37,7 +37,10 @@ export default function Home() {
 
       const entradasFormacion = await Promise.all(
         partidosAbiertos
-          .filter((partido) => (partido.ocupados?.titulares || 0) >= partido.cupoTitulares)
+          .filter(
+            (partido) =>
+              partido.estado !== 'jugado' && (partido.ocupados?.titulares || 0) >= partido.cupoTitulares
+          )
           .map(async (partido) => {
             const { data } = await api.get(`/partidos/${partido.id}/formacion`);
             return [partido.id, data];
@@ -132,7 +135,7 @@ export default function Home() {
       {cargando ? (
         <p className="text-white/60">Cargando partidos…</p>
       ) : partidos.length === 0 ? (
-        <p className="text-white/60">No hay partidos abiertos por ahora.</p>
+        <p className="text-white/60">No hay partidos para mostrar por ahora.</p>
       ) : (
         <div className="flex flex-col gap-4">
           {partidos.map((partido) => (
