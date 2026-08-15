@@ -44,8 +44,12 @@ async function obtenerPartido(partidoId) {
   return db.prepare('SELECT * FROM Partidos WHERE id = ?').get(partidoId) || null;
 }
 
-async function listarPartidosAbiertos() {
-  return db.prepare("SELECT * FROM Partidos WHERE estado = 'abierto'").all();
+function listarPartidosVisibles() {
+  const abiertos = db.prepare("SELECT * FROM Partidos WHERE estado = 'abierto'").all();
+  const ultimoNoAbierto = db
+    .prepare("SELECT * FROM Partidos WHERE estado IN ('cerrado','jugado') ORDER BY fecha DESC LIMIT 1")
+    .get();
+  return ultimoNoAbierto ? [...abiertos, ultimoNoAbierto] : abiertos;
 }
 
 async function eliminarPartido(partidoId, uid) {
@@ -69,4 +73,4 @@ function cerrarPartidosVencidos() {
   );
 }
 
-module.exports = { crearPartido, obtenerPartido, listarPartidosAbiertos, eliminarPartido, cerrarPartidosVencidos };
+module.exports = { crearPartido, obtenerPartido, listarPartidosVisibles, eliminarPartido, cerrarPartidosVencidos };

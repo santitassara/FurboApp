@@ -2,7 +2,7 @@ const partidosService = require('../services/partidosService');
 const inscripcionesService = require('../services/inscripcionesService');
 
 async function listar(req, res) {
-  const partidos = await partidosService.listarPartidosAbiertos();
+  const partidos = await partidosService.listarPartidosVisibles();
   const partidosConCupos = await Promise.all(
     partidos.map(async (partido) => ({
       ...partido,
