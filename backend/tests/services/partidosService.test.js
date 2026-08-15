@@ -103,3 +103,51 @@ describe('partidosService.listarPartidosAbiertos', () => {
     expect(partidos).toEqual([abierto]);
   });
 });
+
+describe('partidosService.cerrarPartidosVencidos', () => {
+  it('cierra los partidos abiertos cuya fecha ya pasó', async () => {
+    const vencido = await partidosService.crearPartido({
+      fecha: '2099-01-01T20:00:00.000Z',
+      cupoTitulares: 10,
+      cupoSuplentes: 5,
+      creadoPor: 'admin-1',
+    });
+    mockDb.prepare("UPDATE Partidos SET fecha = '2020-01-01T00:00:00.000Z' WHERE id = ?").run(vencido.id);
+
+    partidosService.cerrarPartidosVencidos();
+
+    const actualizado = await partidosService.obtenerPartido(vencido.id);
+    expect(actualizado.estado).toBe('cerrado');
+  });
+
+  it('no toca partidos abiertos con fecha futura', async () => {
+    const futuro = await partidosService.crearPartido({
+      fecha: '2099-01-01T20:00:00.000Z',
+      cupoTitulares: 10,
+      cupoSuplentes: 5,
+      creadoPor: 'admin-1',
+    });
+
+    partidosService.cerrarPartidosVencidos();
+
+    const actual = await partidosService.obtenerPartido(futuro.id);
+    expect(actual.estado).toBe('abierto');
+  });
+
+  it('no toca partidos ya cerrados o jugados', async () => {
+    const vencido = await partidosService.crearPartido({
+      fecha: '2099-01-01T20:00:00.000Z',
+      cupoTitulares: 10,
+      cupoSuplentes: 5,
+      creadoPor: 'admin-1',
+    });
+    mockDb
+      .prepare("UPDATE Partidos SET fecha = '2020-01-01T00:00:00.000Z', estado = 'jugado' WHERE id = ?")
+      .run(vencido.id);
+
+    partidosService.cerrarPartidosVencidos();
+
+    const actual = await partidosService.obtenerPartido(vencido.id);
+    expect(actual.estado).toBe('jugado');
+  });
+});

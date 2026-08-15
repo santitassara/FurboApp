@@ -63,4 +63,10 @@ async function eliminarPartido(partidoId, uid) {
   eliminar();
 }
 
-module.exports = { crearPartido, obtenerPartido, listarPartidosAbiertos, eliminarPartido };
+function cerrarPartidosVencidos() {
+  db.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE estado = 'abierto' AND fecha <= ?").run(
+    new Date().toISOString()
+  );
+}
+
+module.exports = { crearPartido, obtenerPartido, listarPartidosAbiertos, eliminarPartido, cerrarPartidosVencidos };
