@@ -46,3 +46,37 @@ CREATE TABLE IF NOT EXISTS Inscripciones (
 
 CREATE INDEX IF NOT EXISTS idx_inscripciones_partido_estado
   ON Inscripciones (partidoId, estado);
+
+CREATE TABLE IF NOT EXISTS Resultados (
+  id TEXT PRIMARY KEY,
+  partidoId TEXT NOT NULL UNIQUE REFERENCES Partidos(id),
+  jugadorDestacadoId TEXT REFERENCES Usuarios(uid),
+  fechaCarga TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS Goles (
+  id TEXT PRIMARY KEY,
+  partidoId TEXT NOT NULL REFERENCES Partidos(id),
+  usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
+  asistenciaUsuarioId TEXT REFERENCES Usuarios(uid),
+  equipo TEXT NOT NULL CHECK (equipo IN ('A', 'B')),
+  minuto INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS RendimientosJugador (
+  id TEXT PRIMARY KEY,
+  partidoId TEXT NOT NULL REFERENCES Partidos(id),
+  usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
+  puntaje INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS SancionesPartido (
+  id TEXT PRIMARY KEY,
+  partidoId TEXT NOT NULL REFERENCES Partidos(id),
+  usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
+  motivo TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_goles_partido ON Goles (partidoId);
+CREATE INDEX IF NOT EXISTS idx_rendimientos_partido ON RendimientosJugador (partidoId);
+CREATE INDEX IF NOT EXISTS idx_sanciones_partido_partido ON SancionesPartido (partidoId);
