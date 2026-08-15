@@ -59,8 +59,10 @@ async function eliminarPartido(partidoId, uid) {
     throw crearError('Solo el admin que creó el partido puede eliminarlo', 403);
   }
 
+  const resultadosService = require('./resultadosService');
   const inscripcionesService = require('./inscripcionesService');
   const eliminar = db.transaction(() => {
+    resultadosService.eliminarPorPartido(partidoId);
     inscripcionesService.eliminarPorPartido(partidoId);
     db.prepare('DELETE FROM Partidos WHERE id = ?').run(partidoId);
   });

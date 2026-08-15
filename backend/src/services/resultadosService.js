@@ -158,4 +158,11 @@ async function obtenerResultado(partidoId) {
   return { marcador, goles, rendimientos, sanciones, jugadorDestacado, fechaCarga: resultado.fechaCarga };
 }
 
-module.exports = { obtenerElegibles, guardarResultado, obtenerResultado };
+function eliminarPorPartido(partidoId) {
+  db.prepare('DELETE FROM Goles WHERE partidoId = ?').run(partidoId);
+  db.prepare('DELETE FROM RendimientosJugador WHERE partidoId = ?').run(partidoId);
+  db.prepare('DELETE FROM SancionesPartido WHERE partidoId = ?').run(partidoId);
+  db.prepare('DELETE FROM Resultados WHERE partidoId = ?').run(partidoId);
+}
+
+module.exports = { obtenerElegibles, guardarResultado, obtenerResultado, eliminarPorPartido };
