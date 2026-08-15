@@ -35,7 +35,17 @@ export default function ModalCargarResultado({
   if (!abierto) return null;
 
   function actualizarGol(indice, campo, valor) {
-    setGoles((anterior) => anterior.map((gol, i) => (i === indice ? { ...gol, [campo]: valor } : gol)));
+    setGoles((anterior) => anterior.map((gol, i) => {
+      if (i === indice) {
+        const actualizado = { ...gol, [campo]: valor };
+        // Si se cambió usuarioId y asistenciaUsuarioId es igual al nuevo usuarioId, limpiar asistencia
+        if (campo === 'usuarioId' && actualizado.asistenciaUsuarioId === valor) {
+          actualizado.asistenciaUsuarioId = '';
+        }
+        return actualizado;
+      }
+      return gol;
+    }));
   }
 
   function actualizarSancion(indice, campo, valor) {
