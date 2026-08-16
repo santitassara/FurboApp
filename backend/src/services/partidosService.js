@@ -32,6 +32,7 @@ async function crearPartido({ fecha, cupoTitulares, cupoSuplentes, creadoPor }) 
     creadoPor,
     cupoTitulares,
     cupoSuplentes,
+    recordatorioEnviado: 0,
   };
   db.prepare(
     `INSERT INTO Partidos (id, fecha, estado, creadoPor, cupoTitulares, cupoSuplentes)

@@ -22,4 +22,11 @@ describe('config/db', () => {
     const columnas = db.prepare('PRAGMA table_info(RendimientosJugador)').all().map((c) => c.name);
     expect(columnas).toEqual(expect.arrayContaining(['jugadorId', 'votanteId']));
   });
+
+  it('crea la columna recordatorioEnviado en Partidos con default 0', () => {
+    const columnas = db.prepare('PRAGMA table_info(Partidos)').all();
+    const columna = columnas.find((c) => c.name === 'recordatorioEnviado');
+    expect(columna).toBeDefined();
+    expect(columna.notnull).toBe(1);
+  });
 });
