@@ -98,4 +98,10 @@ db.exec(
 );
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_votos_mvp_unico ON VotosMvp (partidoId, votanteId)');
 
+const columnasPartidos = db.prepare('PRAGMA table_info(Partidos)').all();
+const tieneRecordatorioEnviado = columnasPartidos.some((columna) => columna.name === 'recordatorioEnviado');
+if (!tieneRecordatorioEnviado) {
+  db.exec('ALTER TABLE Partidos ADD COLUMN recordatorioEnviado INTEGER NOT NULL DEFAULT 0');
+}
+
 module.exports = { db };

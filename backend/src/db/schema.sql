@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS Partidos (
   estado TEXT NOT NULL CHECK (estado IN ('abierto', 'cerrado', 'jugado')),
   creadoPor TEXT NOT NULL REFERENCES Usuarios(uid),
   cupoTitulares INTEGER NOT NULL,
-  cupoSuplentes INTEGER NOT NULL
+  cupoSuplentes INTEGER NOT NULL,
+  recordatorioEnviado INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS Inscripciones (
