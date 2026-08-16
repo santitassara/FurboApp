@@ -5,6 +5,7 @@ const envolverAsync = require('../utils/envolverAsync');
 const partidosController = require('../controllers/partidosController');
 const inscripcionesController = require('../controllers/inscripcionesController');
 const resultadosController = require('../controllers/resultadosController');
+const votosController = require('../controllers/votosController');
 
 const router = express.Router();
 
@@ -49,5 +50,8 @@ router.put(
   verificarAdmin,
   envolverAsync(resultadosController.guardar)
 );
+
+router.get('/:partidoId/votos/mios', verificarToken, envolverAsync(votosController.obtenerMios));
+router.post('/:partidoId/votos', verificarToken, envolverAsync(votosController.guardar));
 
 module.exports = router;
