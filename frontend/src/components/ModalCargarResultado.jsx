@@ -20,17 +20,13 @@ export default function ModalCargarResultado({
   onCancelar,
 }) {
   const [goles, setGoles] = useState([]);
-  const [rendimientos, setRendimientos] = useState({});
   const [sanciones, setSanciones] = useState([]);
-  const [jugadorDestacadoId, setJugadorDestacadoId] = useState('');
 
   useEffect(() => {
     if (!abierto) return;
     setGoles([]);
     setSanciones([]);
-    setJugadorDestacadoId('');
-    setRendimientos(Object.fromEntries(elegibles.map((jugador) => [jugador.usuarioId, 5])));
-  }, [abierto, elegibles]);
+  }, [abierto]);
 
   if (!abierto) return null;
 
@@ -62,12 +58,7 @@ export default function ModalCargarResultado({
           minuto: Number(gol.minuto),
           asistenciaUsuarioId: gol.asistenciaUsuarioId || null,
         })),
-      rendimientos: Object.entries(rendimientos).map(([usuarioId, puntaje]) => ({
-        usuarioId,
-        puntaje: Number(puntaje),
-      })),
       sanciones: sanciones.filter((sancion) => sancion.usuarioId && sancion.motivo.trim()),
-      jugadorDestacadoId: jugadorDestacadoId || null,
     };
     onConfirmar(payload);
   }
@@ -149,27 +140,6 @@ export default function ModalCargarResultado({
         </section>
 
         <section className="mb-6">
-          <h3 className="mb-2 text-sm font-bold uppercase text-white/70">Rendimiento (1-10)</h3>
-          {elegibles.map((jugador) => (
-            <div key={jugador.usuarioId} className="mb-1 flex items-center justify-between gap-2">
-              <span className="text-sm text-white/90">
-                {jugador.nombre} ({jugador.equipo})
-              </span>
-              <input
-                type="number"
-                min="1"
-                max="10"
-                value={rendimientos[jugador.usuarioId] ?? 5}
-                onChange={(e) =>
-                  setRendimientos((anterior) => ({ ...anterior, [jugador.usuarioId]: e.target.value }))
-                }
-                className="w-16 rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white"
-              />
-            </div>
-          ))}
-        </section>
-
-        <section className="mb-6">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-sm font-bold uppercase text-white/70">Sanciones en cancha</h3>
             <Boton
@@ -210,22 +180,6 @@ export default function ModalCargarResultado({
               </Boton>
             </div>
           ))}
-        </section>
-
-        <section className="mb-6">
-          <h3 className="mb-2 text-sm font-bold uppercase text-white/70">Jugador destacado</h3>
-          <select
-            value={jugadorDestacadoId}
-            onChange={(e) => setJugadorDestacadoId(e.target.value)}
-            className="w-full rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white"
-          >
-            <option value="">Sin destacado</option>
-            {elegibles.map((j) => (
-              <option key={j.usuarioId} value={j.usuarioId}>
-                {j.nombre} ({j.equipo})
-              </option>
-            ))}
-          </select>
         </section>
 
         {error && <p className="mb-4 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}

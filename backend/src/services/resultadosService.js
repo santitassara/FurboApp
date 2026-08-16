@@ -31,9 +31,7 @@ async function guardarResultado(partidoId, payload = {}) {
   const elegiblesSet = new Set(elegibles);
 
   const goles = Array.isArray(payload.goles) ? payload.goles : [];
-  const rendimientos = Array.isArray(payload.rendimientos) ? payload.rendimientos : [];
   const sanciones = Array.isArray(payload.sanciones) ? payload.sanciones : [];
-  const jugadorDestacadoId = payload.jugadorDestacadoId || null;
 
   for (const gol of goles) {
     if (!elegiblesSet.has(gol.usuarioId)) throw crearError('Jugador no elegible para el resultado', 400);
@@ -50,25 +48,15 @@ async function guardarResultado(partidoId, payload = {}) {
       }
     }
   }
-  for (const rendimiento of rendimientos) {
-    if (!elegiblesSet.has(rendimiento.usuarioId)) throw crearError('Jugador no elegible para el resultado', 400);
-    if (!Number.isInteger(rendimiento.puntaje) || rendimiento.puntaje < 1 || rendimiento.puntaje > 10) {
-      throw crearError('puntaje debe ser un entero entre 1 y 10', 400);
-    }
-  }
   for (const sancion of sanciones) {
     if (!elegiblesSet.has(sancion.usuarioId)) throw crearError('Jugador no elegible para el resultado', 400);
     if (!sancion.motivo || typeof sancion.motivo !== 'string') {
       throw crearError('motivo es requerido', 400);
     }
   }
-  if (jugadorDestacadoId && !elegiblesSet.has(jugadorDestacadoId)) {
-    throw crearError('Jugador no elegible para el resultado', 400);
-  }
 
   const guardar = db.transaction(() => {
     db.prepare('DELETE FROM Goles WHERE partidoId = ?').run(partidoId);
-    db.prepare('DELETE FROM RendimientosJugador WHERE partidoId = ?').run(partidoId);
     db.prepare('DELETE FROM SancionesPartido WHERE partidoId = ?').run(partidoId);
     db.prepare('DELETE FROM Resultados WHERE partidoId = ?').run(partidoId);
 
@@ -85,12 +73,6 @@ async function guardarResultado(partidoId, payload = {}) {
         minuto: gol.minuto,
       });
     }
-    for (const rendimiento of rendimientos) {
-      db.prepare(
-        `INSERT INTO RendimientosJugador (id, partidoId, usuarioId, puntaje)
-         VALUES (@id, @partidoId, @usuarioId, @puntaje)`
-      ).run({ id: crypto.randomUUID(), partidoId, usuarioId: rendimiento.usuarioId, puntaje: rendimiento.puntaje });
-    }
     for (const sancion of sanciones) {
       db.prepare(
         `INSERT INTO SancionesPartido (id, partidoId, usuarioId, motivo)
@@ -99,8 +81,8 @@ async function guardarResultado(partidoId, payload = {}) {
     }
     db.prepare(
       `INSERT INTO Resultados (id, partidoId, jugadorDestacadoId, fechaCarga)
-       VALUES (@id, @partidoId, @jugadorDestacadoId, @fechaCarga)`
-    ).run({ id: crypto.randomUUID(), partidoId, jugadorDestacadoId, fechaCarga: new Date().toISOString() });
+       VALUES (@id, @partidoId, NULL, @fechaCarga)`
+    ).run({ id: crypto.randomUUID(), partidoId, fechaCarga: new Date().toISOString() });
     db.prepare("UPDATE Partidos SET estado = 'jugado' WHERE id = ?").run(partidoId);
   });
   guardar();
@@ -133,11 +115,26 @@ async function obtenerResultado(partidoId) {
   const marcador = { A: 0, B: 0 };
   for (const gol of filasGoles) marcador[gol.equipo] += 1;
 
-  const filasRendimientos = db.prepare('SELECT * FROM RendimientosJugador WHERE partidoId = ?').all(partidoId);
+  const elegibles = await obtenerElegibles(partidoId);
+  const promediosPorJugador = new Map(
+    db
+      .prepare(
+        `SELECT jugadorId, AVG(puntaje) as promedio, COUNT(*) as votos
+         FROM RendimientosJugador WHERE partidoId = ? GROUP BY jugadorId`
+      )
+      .all(partidoId)
+      .map((fila) => [fila.jugadorId, fila])
+  );
   const rendimientos = await Promise.all(
-    filasRendimientos.map(async (fila) => {
-      const usuario = await usuariosService.obtenerUsuario(fila.usuarioId);
-      return { usuarioId: fila.usuarioId, nombre: usuario?.nombre || 'Jugador', puntaje: fila.puntaje };
+    elegibles.map(async (jugadorId) => {
+      const usuario = await usuariosService.obtenerUsuario(jugadorId);
+      const fila = promediosPorJugador.get(jugadorId);
+      return {
+        usuarioId: jugadorId,
+        nombre: usuario?.nombre || 'Jugador',
+        promedio: fila ? Math.round(fila.promedio * 10) / 10 : null,
+        votos: fila ? fila.votos : 0,
+      };
     })
   );
 
@@ -149,11 +146,25 @@ async function obtenerResultado(partidoId) {
     })
   );
 
-  let jugadorDestacado = null;
-  if (resultado.jugadorDestacadoId) {
-    const usuario = await usuariosService.obtenerUsuario(resultado.jugadorDestacadoId);
-    jugadorDestacado = { usuarioId: resultado.jugadorDestacadoId, nombre: usuario?.nombre || 'Jugador' };
-  }
+  const votosMvp = db
+    .prepare(
+      `SELECT jugadorId, COUNT(*) as votos FROM VotosMvp WHERE partidoId = ? GROUP BY jugadorId ORDER BY votos DESC`
+    )
+    .all(partidoId);
+  const maxVotosMvp = votosMvp.length > 0 ? votosMvp[0].votos : 0;
+  const jugadoresDestacados = await Promise.all(
+    votosMvp
+      .filter((fila) => fila.votos === maxVotosMvp)
+      .map(async (fila) => {
+        const usuario = await usuariosService.obtenerUsuario(fila.jugadorId);
+        return { usuarioId: fila.jugadorId, nombre: usuario?.nombre || 'Jugador' };
+      })
+  );
+  const jugadorDestacado = {
+    jugadores: jugadoresDestacados,
+    votos: maxVotosMvp,
+    totalElegibles: elegibles.length,
+  };
 
   return { marcador, goles, rendimientos, sanciones, jugadorDestacado, fechaCarga: resultado.fechaCarga };
 }
@@ -161,6 +172,7 @@ async function obtenerResultado(partidoId) {
 function eliminarPorPartido(partidoId) {
   db.prepare('DELETE FROM Goles WHERE partidoId = ?').run(partidoId);
   db.prepare('DELETE FROM RendimientosJugador WHERE partidoId = ?').run(partidoId);
+  db.prepare('DELETE FROM VotosMvp WHERE partidoId = ?').run(partidoId);
   db.prepare('DELETE FROM SancionesPartido WHERE partidoId = ?').run(partidoId);
   db.prepare('DELETE FROM Resultados WHERE partidoId = ?').run(partidoId);
 }

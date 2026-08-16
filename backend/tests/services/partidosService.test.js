@@ -17,6 +17,7 @@ function insertarUsuarioAdmin() {
 beforeEach(() => {
   mockDb.exec('DELETE FROM Goles');
   mockDb.exec('DELETE FROM RendimientosJugador');
+  mockDb.exec('DELETE FROM VotosMvp');
   mockDb.exec('DELETE FROM SancionesPartido');
   mockDb.exec('DELETE FROM Resultados');
   mockDb.exec('DELETE FROM Inscripciones');
@@ -206,16 +207,28 @@ describe('partidosService.eliminarPartido', () => {
     const resultadosService = require('../../src/services/resultadosService');
     await resultadosService.guardarResultado(partido.id, {
       goles: [{ usuarioId: 'admin-1', equipo: 'A', minuto: 5 }],
-      rendimientos: [{ usuarioId: 'admin-1', puntaje: 7 }],
       sanciones: [{ usuarioId: 'admin-1', motivo: 'Tarjeta amarilla' }],
-      jugadorDestacadoId: 'admin-1',
     });
+    mockDb
+      .prepare(
+        `INSERT INTO RendimientosJugador (id, partidoId, jugadorId, votanteId, puntaje)
+         VALUES (@id, @partidoId, @jugadorId, @votanteId, @puntaje)`
+      )
+      .run({ id: 'rend-1', partidoId: partido.id, jugadorId: 'admin-1', votanteId: 'admin-1', puntaje: 7 });
+    mockDb
+      .prepare(
+        `INSERT INTO VotosMvp (id, partidoId, votanteId, jugadorId) VALUES (@id, @partidoId, @votanteId, @jugadorId)`
+      )
+      .run({ id: 'mvp-1', partidoId: partido.id, votanteId: 'admin-1', jugadorId: 'admin-1' });
 
     await partidosService.eliminarPartido(partido.id, 'admin-1');
 
     expect(mockDb.prepare('SELECT COUNT(*) AS n FROM Goles WHERE partidoId = ?').get(partido.id).n).toBe(0);
     expect(
       mockDb.prepare('SELECT COUNT(*) AS n FROM RendimientosJugador WHERE partidoId = ?').get(partido.id).n
+    ).toBe(0);
+    expect(
+      mockDb.prepare('SELECT COUNT(*) AS n FROM VotosMvp WHERE partidoId = ?').get(partido.id).n
     ).toBe(0);
     expect(
       mockDb.prepare('SELECT COUNT(*) AS n FROM SancionesPartido WHERE partidoId = ?').get(partido.id).n
