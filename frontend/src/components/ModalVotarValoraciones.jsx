@@ -18,7 +18,7 @@ export default function ModalVotarValoraciones({
   useEffect(() => {
     if (!abierto) return;
     const previos = Object.fromEntries((votosPropios.valoraciones || []).map((v) => [v.jugadorId, v.puntaje]));
-    setPuntajes(Object.fromEntries(elegibles.map((j) => [j.usuarioId, previos[j.usuarioId] ?? 5])));
+    setPuntajes(Object.fromEntries(elegibles.map((j) => [j.usuarioId, previos[j.usuarioId] ?? ''])));
     setMvpId(votosPropios.mvpId || '');
   }, [abierto, elegibles, votosPropios]);
 
@@ -26,10 +26,12 @@ export default function ModalVotarValoraciones({
 
   function confirmar() {
     const payload = {
-      valoraciones: Object.entries(puntajes).map(([jugadorId, puntaje]) => ({
-        jugadorId,
-        puntaje: Number(puntaje),
-      })),
+      valoraciones: Object.entries(puntajes)
+        .filter(([, puntaje]) => puntaje !== '' && puntaje !== null && puntaje !== undefined)
+        .map(([jugadorId, puntaje]) => ({
+          jugadorId,
+          puntaje: Number(puntaje),
+        })),
       mvpId: mvpId || null,
     };
     onConfirmar(payload);
@@ -53,9 +55,10 @@ export default function ModalVotarValoraciones({
                 type="number"
                 min="1"
                 max="10"
-                value={puntajes[jugador.usuarioId] ?? 5}
+                placeholder="Sin calificar"
+                value={puntajes[jugador.usuarioId] ?? ''}
                 onChange={(e) => setPuntajes((anterior) => ({ ...anterior, [jugador.usuarioId]: e.target.value }))}
-                className="w-16 rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white"
+                className="w-28 rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white placeholder:text-white/40"
               />
             </div>
           ))}
