@@ -1,15 +1,24 @@
 import { useState } from 'react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { formatearFechaPartido } from '../utils/fecha';
 import ResultadoPartido from './ResultadoPartido';
+import ModalVotarValoraciones from './ModalVotarValoraciones';
 
 export default function ItemHistorialPartido({ partido }) {
+  const { perfil } = useAuth();
   const [expandido, setExpandido] = useState(false);
   const [resultado, setResultado] = useState(null);
+  const [elegibles, setElegibles] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
+  const [votoAbierto, setVotoAbierto] = useState(false);
+  const [votosPropios, setVotosPropios] = useState({ valoraciones: [], mvpId: null });
+  const [votando, setVotando] = useState(false);
+  const [errorVoto, setErrorVoto] = useState('');
 
   const cantidadJugadores = (partido.ocupados?.titulares || 0) + (partido.ocupados?.suplentes || 0);
+  const soyElegible = elegibles.some((j) => j.usuarioId === perfil?.uid);
 
   async function alternar() {
     const nuevoExpandido = !expandido;
@@ -18,13 +27,43 @@ export default function ItemHistorialPartido({ partido }) {
       setCargando(true);
       setError('');
       try {
-        const { data } = await api.get(`/partidos/${partido.id}/resultado`);
-        setResultado(data);
+        const [{ data: datosResultado }, { data: datosFormacion }] = await Promise.all([
+          api.get(`/partidos/${partido.id}/resultado`),
+          api.get(`/partidos/${partido.id}/formacion`),
+        ]);
+        setResultado(datosResultado);
+        setElegibles((datosFormacion.jugadores || []).filter((j) => j.equipo));
       } catch (err) {
         setError(err.message);
       } finally {
         setCargando(false);
       }
+    }
+  }
+
+  async function abrirVotacion() {
+    setErrorVoto('');
+    try {
+      const { data } = await api.get(`/partidos/${partido.id}/votos/mios`);
+      setVotosPropios(data);
+      setVotoAbierto(true);
+    } catch (err) {
+      setErrorVoto(err.message);
+    }
+  }
+
+  async function confirmarVoto(payload) {
+    setVotando(true);
+    setErrorVoto('');
+    try {
+      await api.post(`/partidos/${partido.id}/votos`, payload);
+      setVotoAbierto(false);
+      const { data } = await api.get(`/partidos/${partido.id}/resultado`);
+      setResultado(data);
+    } catch (err) {
+      setErrorVoto(err.message);
+    } finally {
+      setVotando(false);
     }
   }
 
@@ -59,10 +98,36 @@ export default function ItemHistorialPartido({ partido }) {
           ) : error ? (
             <p className="text-sm text-sancion">{error}</p>
           ) : (
-            <ResultadoPartido partido={partido} resultado={resultado} />
+            <>
+              <ResultadoPartido partido={partido} resultado={resultado} />
+              {soyElegible && (
+                <button
+                  type="button"
+                  onClick={abrirVotacion}
+                  className="mt-3 w-full rounded-lg bg-pasto-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-pasto-500"
+                >
+                  Calificar jugadores
+                </button>
+              )}
+              {errorVoto && !votoAbierto && <p className="mt-2 text-sm text-sancion">{errorVoto}</p>}
+            </>
           )}
         </div>
       )}
+
+      <ModalVotarValoraciones
+        abierto={votoAbierto}
+        partido={partido}
+        elegibles={elegibles.filter((j) => j.usuarioId !== perfil?.uid)}
+        votosPropios={votosPropios}
+        procesando={votando}
+        error={errorVoto}
+        onConfirmar={confirmarVoto}
+        onCancelar={() => {
+          setVotoAbierto(false);
+          setErrorVoto('');
+        }}
+      />
     </div>
   );
 }
