@@ -39,6 +39,7 @@ function insertarInscripcion({ id, partidoId, usuarioId, tipo = 'titular', equip
 beforeEach(() => {
   mockDb.exec('DELETE FROM Goles');
   mockDb.exec('DELETE FROM RendimientosJugador');
+  mockDb.exec('DELETE FROM VotosMvp');
   mockDb.exec('DELETE FROM SancionesPartido');
   mockDb.exec('DELETE FROM Resultados');
   mockDb.exec('DELETE FROM Inscripciones');
@@ -104,17 +105,6 @@ describe('resultadosService.guardarResultado', () => {
     ).rejects.toMatchObject({ status: 400 });
   });
 
-  it('rechaza un puntaje de rendimiento fuera de rango', async () => {
-    const partido = await crearPartidoConElegibles();
-    mockDb.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE id = ?").run(partido.id);
-
-    await expect(
-      resultadosService.guardarResultado(partido.id, {
-        rendimientos: [{ usuarioId: 'u1', puntaje: 11 }],
-      })
-    ).rejects.toMatchObject({ status: 400 });
-  });
-
   it('rechaza si el autor y la asistencia son el mismo jugador', async () => {
     const partido = await crearPartidoConElegibles();
     mockDb.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE id = ?").run(partido.id);
@@ -135,22 +125,20 @@ describe('resultadosService.guardarResultado', () => {
         { usuarioId: 'u1', equipo: 'A', minuto: 10, asistenciaUsuarioId: 'u2' },
         { usuarioId: 'u2', equipo: 'B', minuto: 20 },
       ],
-      rendimientos: [
-        { usuarioId: 'u1', puntaje: 8 },
-        { usuarioId: 'u2', puntaje: 6 },
-      ],
       sanciones: [{ usuarioId: 'u2', motivo: 'Tarjeta roja' }],
-      jugadorDestacadoId: 'u1',
     });
 
     expect(resultado.marcador).toEqual({ A: 1, B: 1 });
     expect(resultado.goles).toHaveLength(2);
     expect(resultado.goles[0]).toMatchObject({ usuarioId: 'u1', minuto: 10, asistenciaNombre: 'Jugador Dos' });
-    expect(resultado.rendimientos).toEqual(
-      expect.arrayContaining([{ usuarioId: 'u1', nombre: 'Jugador Uno', puntaje: 8 }])
-    );
     expect(resultado.sanciones).toEqual([{ usuarioId: 'u2', nombre: 'Jugador Dos', motivo: 'Tarjeta roja' }]);
-    expect(resultado.jugadorDestacado).toEqual({ usuarioId: 'u1', nombre: 'Jugador Uno' });
+    expect(resultado.rendimientos).toEqual(
+      expect.arrayContaining([
+        { usuarioId: 'u1', nombre: 'Jugador Uno', promedio: null, votos: 0 },
+        { usuarioId: 'u2', nombre: 'Jugador Dos', promedio: null, votos: 0 },
+      ])
+    );
+    expect(resultado.jugadorDestacado).toEqual({ jugadores: [], votos: 0, totalElegibles: 2 });
 
     const partidoActualizado = await partidosService.obtenerPartido(partido.id);
     expect(partidoActualizado.estado).toBe('jugado');
@@ -179,5 +167,70 @@ describe('resultadosService.obtenerResultado', () => {
     const resultado = await resultadosService.obtenerResultado(partido.id);
 
     expect(resultado).toBeNull();
+  });
+});
+
+describe('resultadosService.obtenerResultado — rendimientos y mvp votados', () => {
+  function insertarVoto({ partidoId, jugadorId, votanteId, puntaje }) {
+    mockDb
+      .prepare(
+        `INSERT INTO RendimientosJugador (id, partidoId, jugadorId, votanteId, puntaje)
+         VALUES (@id, @partidoId, @jugadorId, @votanteId, @puntaje)`
+      )
+      .run({ id: `${jugadorId}-${votanteId}`, partidoId, jugadorId, votanteId, puntaje });
+  }
+
+  function insertarVotoMvp({ partidoId, votanteId, jugadorId }) {
+    mockDb
+      .prepare(
+        `INSERT INTO VotosMvp (id, partidoId, votanteId, jugadorId) VALUES (@id, @partidoId, @votanteId, @jugadorId)`
+      )
+      .run({ id: `${votanteId}-mvp`, partidoId, votanteId, jugadorId });
+  }
+
+  it('promedia los votos recibidos y marca sin votos a quien no recibió ninguno', async () => {
+    const partido = await crearPartidoConElegibles();
+    mockDb.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE id = ?").run(partido.id);
+    await resultadosService.guardarResultado(partido.id, {});
+    insertarVoto({ partidoId: partido.id, jugadorId: 'u1', votanteId: 'u2', puntaje: 8 });
+    insertarVoto({ partidoId: partido.id, jugadorId: 'u1', votanteId: 'admin-1', puntaje: 6 });
+
+    const resultado = await resultadosService.obtenerResultado(partido.id);
+
+    expect(resultado.rendimientos).toEqual(
+      expect.arrayContaining([
+        { usuarioId: 'u1', nombre: 'Jugador Uno', promedio: 7, votos: 2 },
+        { usuarioId: 'u2', nombre: 'Jugador Dos', promedio: null, votos: 0 },
+      ])
+    );
+  });
+
+  it('muestra empatados como destacados cuando hay igual cantidad de votos mvp', async () => {
+    const partido = await crearPartidoConElegibles();
+    mockDb.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE id = ?").run(partido.id);
+    await resultadosService.guardarResultado(partido.id, {});
+    insertarVotoMvp({ partidoId: partido.id, votanteId: 'u1', jugadorId: 'u2' });
+    insertarVotoMvp({ partidoId: partido.id, votanteId: 'admin-1', jugadorId: 'u1' });
+
+    const resultado = await resultadosService.obtenerResultado(partido.id);
+
+    expect(resultado.jugadorDestacado.votos).toBe(1);
+    expect(resultado.jugadorDestacado.totalElegibles).toBe(2);
+    expect(resultado.jugadorDestacado.jugadores).toEqual(
+      expect.arrayContaining([
+        { usuarioId: 'u1', nombre: 'Jugador Uno' },
+        { usuarioId: 'u2', nombre: 'Jugador Dos' },
+      ])
+    );
+  });
+
+  it('sin votos mvp devuelve lista vacía', async () => {
+    const partido = await crearPartidoConElegibles();
+    mockDb.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE id = ?").run(partido.id);
+    await resultadosService.guardarResultado(partido.id, {});
+
+    const resultado = await resultadosService.obtenerResultado(partido.id);
+
+    expect(resultado.jugadorDestacado).toEqual({ jugadores: [], votos: 0, totalElegibles: 2 });
   });
 });
