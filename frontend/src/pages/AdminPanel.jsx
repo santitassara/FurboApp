@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
 import Boton from '../components/Boton';
 import ListaJugadores from '../components/ListaJugadores';
 import ModalConfirmacionSancionAdmin from '../components/ModalConfirmacionSancionAdmin';
+import ModalCargarResultado from '../components/ModalCargarResultado';
 
 const FORMULARIO_INICIAL = { fecha: '', cupoTitulares: 10, cupoSuplentes: 5 };
 
@@ -15,6 +16,8 @@ export default function AdminPanel() {
   const [mensaje, setMensaje] = useState('');
   const [accionEnCurso, setAccionEnCurso] = useState(false);
   const [jugadorASancionar, setJugadorASancionar] = useState(null);
+  const [formacionesPorPartido, setFormacionesPorPartido] = useState({});
+  const [partidoParaResultado, setPartidoParaResultado] = useState(null);
 
   const cargarTodo = useCallback(async () => {
     setError('');
@@ -33,6 +36,16 @@ export default function AdminPanel() {
         })
       );
       setInscripcionesPorPartido(Object.fromEntries(entradas));
+
+      const entradasFormacion = await Promise.all(
+        partidosAbiertos
+          .filter((partido) => partido.estado !== 'abierto')
+          .map(async (partido) => {
+            const { data } = await api.get(`/partidos/${partido.id}/formacion`);
+            return [partido.id, data];
+          })
+      );
+      setFormacionesPorPartido(Object.fromEntries(entradasFormacion));
     } catch (err) {
       setError(err.message);
     }
@@ -122,6 +135,27 @@ export default function AdminPanel() {
     }
   }
 
+  const elegibles = useMemo(
+    () => (formacionesPorPartido[partidoParaResultado?.id]?.jugadores || []).filter((j) => j.equipo),
+    [formacionesPorPartido, partidoParaResultado?.id]
+  );
+
+  async function guardarResultado(payload) {
+    setError('');
+    setMensaje('');
+    setAccionEnCurso(true);
+    try {
+      await api.put(`/partidos/${partidoParaResultado.id}/resultado`, payload);
+      setMensaje('Resultado cargado con éxito.');
+      setPartidoParaResultado(null);
+      await cargarTodo();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAccionEnCurso(false);
+    }
+  }
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-8">
       <h1 className="font-display text-4xl leading-none text-white">Panel de admin</h1>
@@ -194,31 +228,55 @@ export default function AdminPanel() {
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-bold text-white">Partidos abiertos</h2>
+        <h2 className="text-lg font-bold text-white">Partidos</h2>
         {partidos.length === 0 ? (
-          <p className="text-sm text-white/50">No hay partidos abiertos.</p>
+          <p className="text-sm text-white/50">No hay partidos para mostrar.</p>
         ) : (
           partidos.map((partido) => (
             <div key={partido.id} className="rounded-xl border border-white/10 bg-cancha-800 p-5">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="font-bold text-white">{new Date(partido.fecha).toLocaleString('es-AR')}</h3>
-                <Boton
-                  variante="ghost"
-                  className="px-3 py-1 text-xs text-sancion"
-                  onClick={() => eliminarPartido(partido.id)}
-                  disabled={accionEnCurso}
-                >
-                  Eliminar
-                </Boton>
+                <h3 className="font-bold text-white">
+                  {new Date(partido.fecha).toLocaleString('es-AR')}{' '}
+                  <span className="ml-2 text-xs font-normal uppercase text-white/40">{partido.estado}</span>
+                </h3>
+                <div className="flex gap-2">
+                  {(partido.estado === 'cerrado' || partido.estado === 'jugado') && (
+                    <Boton
+                      variante="primario"
+                      className="px-3 py-1 text-xs"
+                      onClick={() => {
+                        setError('');
+                        setPartidoParaResultado(partido);
+                      }}
+                      disabled={accionEnCurso}
+                    >
+                      {partido.estado === 'jugado' ? 'Editar resultado' : 'Cargar resultado'}
+                    </Boton>
+                  )}
+                  {partido.estado === 'abierto' && (
+                    <Boton
+                      variante="ghost"
+                      className="px-3 py-1 text-xs text-sancion"
+                      onClick={() => eliminarPartido(partido.id)}
+                      disabled={accionEnCurso}
+                    >
+                      Eliminar
+                    </Boton>
+                  )}
+                </div>
               </div>
               <ListaJugadores
                 jugadores={inscripcionesPorPartido[partido.id] || []}
-                onPromover={(usuarioId) => promover(partido.id, usuarioId)}
-                onSancionar={(usuarioId) => {
-                  setError('');
-                  const jugador = (inscripcionesPorPartido[partido.id] || []).find((j) => j.usuarioId === usuarioId);
-                  setJugadorASancionar({ partidoId: partido.id, usuarioId, nombre: jugador?.nombre || 'este jugador' });
-                }}
+                onPromover={partido.estado === 'abierto' ? (usuarioId) => promover(partido.id, usuarioId) : undefined}
+                onSancionar={
+                  partido.estado === 'abierto'
+                    ? (usuarioId) => {
+                        setError('');
+                        const jugador = (inscripcionesPorPartido[partido.id] || []).find((j) => j.usuarioId === usuarioId);
+                        setJugadorASancionar({ partidoId: partido.id, usuarioId, nombre: jugador?.nombre || 'este jugador' });
+                      }
+                    : undefined
+                }
                 deshabilitado={accionEnCurso}
               />
             </div>
@@ -234,6 +292,19 @@ export default function AdminPanel() {
         onConfirmar={() => sancionar(jugadorASancionar.partidoId, jugadorASancionar.usuarioId)}
         onCancelar={() => {
           setJugadorASancionar(null);
+          setError('');
+        }}
+      />
+
+      <ModalCargarResultado
+        abierto={Boolean(partidoParaResultado)}
+        partido={partidoParaResultado}
+        elegibles={elegibles}
+        procesando={accionEnCurso}
+        error={error}
+        onConfirmar={guardarResultado}
+        onCancelar={() => {
+          setPartidoParaResultado(null);
           setError('');
         }}
       />

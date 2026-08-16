@@ -150,6 +150,15 @@ describe('inscripcionesService.bajarse', () => {
     const usuario = await usuariosService.obtenerUsuario('u2');
     expect(usuario.estaSancionado).toBe(false);
   });
+
+  it('rechaza con 400 si el partido no está abierto', async () => {
+    const partido = await crearPartidoAbierto();
+    await crearUsuario({ uid: 'u1', email: 'u1@gmail.com' });
+    await inscripcionesService.anotarse(partido.id, 'u1', POSICIONES_DEFAULT);
+    mockDb.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE id = ?").run(partido.id);
+
+    await expect(inscripcionesService.bajarse(partido.id, 'u1')).rejects.toMatchObject({ status: 400 });
+  });
 });
 
 describe('inscripcionesService.promover', () => {

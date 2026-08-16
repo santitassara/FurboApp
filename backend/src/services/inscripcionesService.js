@@ -83,6 +83,10 @@ async function bajarse(partidoId, usuarioId) {
   const inscripcion = await obtenerInscripcionActiva(partidoId, usuarioId);
   if (!inscripcion) throw crearError('No estás anotado en este partido', 400);
 
+  const partido = await partidosService.obtenerPartido(partidoId);
+  if (!partido) throw crearError('Partido no encontrado', 404);
+  if (partido.estado !== 'abierto') throw crearError('El partido ya no está abierto', 400);
+
   db.prepare("UPDATE Inscripciones SET estado = 'dado_de_baja' WHERE id = ?").run(inscripcion.id);
 
   if (inscripcion.tipo === 'titular') {

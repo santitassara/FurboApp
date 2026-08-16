@@ -5,6 +5,7 @@ import TarjetaPartido from '../components/TarjetaPartido';
 import MapaCancha from '../components/MapaCancha';
 import ModalConfirmacionSancion from '../components/ModalConfirmacionSancion';
 import ModalPosicion from '../components/ModalPosicion';
+import PartidoConEstado from '../components/PartidoConEstado';
 
 export default function Home() {
   const { perfil, estaSancionado, esAdmin, refrescarPerfil, actualizarPosicionesPerfil } = useAuth();
@@ -35,7 +36,10 @@ export default function Home() {
 
       const entradasFormacion = await Promise.all(
         partidosAbiertos
-          .filter((partido) => (partido.ocupados?.titulares || 0) >= partido.cupoTitulares)
+          .filter(
+            (partido) =>
+              partido.estado !== 'jugado' && (partido.ocupados?.titulares || 0) >= partido.cupoTitulares
+          )
           .map(async (partido) => {
             const { data } = await api.get(`/partidos/${partido.id}/formacion`);
             return [partido.id, data];
@@ -120,33 +124,34 @@ export default function Home() {
       {cargando ? (
         <p className="text-white/60">Cargando partidos…</p>
       ) : partidos.length === 0 ? (
-        <p className="text-white/60">No hay partidos abiertos por ahora.</p>
+        <p className="text-white/60">No hay partidos para mostrar por ahora.</p>
       ) : (
         <div className="flex flex-col gap-4">
           {partidos.map((partido) => (
-            <div
-              key={partido.id}
-              className={formacionesPorPartido[partido.id] ? 'grid grid-cols-1 gap-4 md:grid-cols-2' : ''}
-            >
-              {formacionesPorPartido[partido.id] && (
-                <MapaCancha
-                  partidoId={partido.id}
+            <PartidoConEstado key={partido.id} partido={partido}>
+              <div
+                className={formacionesPorPartido[partido.id] ? 'grid grid-cols-1 gap-4 md:grid-cols-2' : ''}
+              >
+                {formacionesPorPartido[partido.id] && (
+                  <MapaCancha
+                    partidoId={partido.id}
+                    formacion={formacionesPorPartido[partido.id]}
+                    esAdmin={esAdmin}
+                    onGuardado={(data) => setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))}
+                  />
+                )}
+                <TarjetaPartido
+                  partido={partido}
+                  inscripcionUsuario={inscripcionDelUsuario(partido.id)}
+                  estaSancionado={estaSancionado}
+                  procesando={partidoEnProceso === partido.id}
+                  onAnotarse={() => setPartidoParaAnotarse(partido.id)}
+                  onSolicitarBaja={() => solicitarBaja(partido)}
+                  jugadores={inscripcionesPorPartido[partido.id] || []}
                   formacion={formacionesPorPartido[partido.id]}
-                  esAdmin={esAdmin}
-                  onGuardado={(data) => setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))}
                 />
-              )}
-              <TarjetaPartido
-                partido={partido}
-                inscripcionUsuario={inscripcionDelUsuario(partido.id)}
-                estaSancionado={estaSancionado}
-                procesando={partidoEnProceso === partido.id}
-                onAnotarse={() => setPartidoParaAnotarse(partido.id)}
-                onSolicitarBaja={() => solicitarBaja(partido)}
-                jugadores={inscripcionesPorPartido[partido.id] || []}
-                formacion={formacionesPorPartido[partido.id]}
-              />
-            </div>
+              </div>
+            </PartidoConEstado>
           ))}
         </div>
       )}

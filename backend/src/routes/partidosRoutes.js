@@ -4,10 +4,12 @@ const verificarAdmin = require('../middlewares/verificarAdmin');
 const envolverAsync = require('../utils/envolverAsync');
 const partidosController = require('../controllers/partidosController');
 const inscripcionesController = require('../controllers/inscripcionesController');
+const resultadosController = require('../controllers/resultadosController');
 
 const router = express.Router();
 
 router.get('/', verificarToken, envolverAsync(partidosController.listar));
+router.get('/historial', verificarToken, envolverAsync(partidosController.historial));
 router.post('/', verificarToken, verificarAdmin, envolverAsync(partidosController.crear));
 router.delete('/:partidoId', verificarToken, verificarAdmin, envolverAsync(partidosController.eliminar));
 router.post('/:partidoId/anotarse', verificarToken, envolverAsync(inscripcionesController.anotarse));
@@ -38,6 +40,14 @@ router.post(
   verificarToken,
   verificarAdmin,
   envolverAsync(inscripcionesController.sancionarManualmente)
+);
+
+router.get('/:partidoId/resultado', verificarToken, envolverAsync(resultadosController.obtener));
+router.put(
+  '/:partidoId/resultado',
+  verificarToken,
+  verificarAdmin,
+  envolverAsync(resultadosController.guardar)
 );
 
 module.exports = router;

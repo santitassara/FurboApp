@@ -44,8 +44,12 @@ async function obtenerPartido(partidoId) {
   return db.prepare('SELECT * FROM Partidos WHERE id = ?').get(partidoId) || null;
 }
 
-async function listarPartidosAbiertos() {
-  return db.prepare("SELECT * FROM Partidos WHERE estado = 'abierto'").all();
+function listarPartidosVisibles() {
+  const abiertos = db.prepare("SELECT * FROM Partidos WHERE estado = 'abierto'").all();
+  const ultimoNoAbierto = db
+    .prepare("SELECT * FROM Partidos WHERE estado IN ('cerrado','jugado') ORDER BY fecha DESC LIMIT 1")
+    .get();
+  return ultimoNoAbierto ? [...abiertos, ultimoNoAbierto] : abiertos;
 }
 
 async function eliminarPartido(partidoId, uid) {
@@ -55,12 +59,31 @@ async function eliminarPartido(partidoId, uid) {
     throw crearError('Solo el admin que creó el partido puede eliminarlo', 403);
   }
 
+  const resultadosService = require('./resultadosService');
   const inscripcionesService = require('./inscripcionesService');
   const eliminar = db.transaction(() => {
+    resultadosService.eliminarPorPartido(partidoId);
     inscripcionesService.eliminarPorPartido(partidoId);
     db.prepare('DELETE FROM Partidos WHERE id = ?').run(partidoId);
   });
   eliminar();
 }
 
-module.exports = { crearPartido, obtenerPartido, listarPartidosAbiertos, eliminarPartido };
+function cerrarPartidosVencidos() {
+  db.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE estado = 'abierto' AND fecha <= ?").run(
+    new Date().toISOString()
+  );
+}
+
+function listarPartidosJugados() {
+  return db.prepare("SELECT * FROM Partidos WHERE estado = 'jugado' ORDER BY fecha DESC").all();
+}
+
+module.exports = {
+  crearPartido,
+  obtenerPartido,
+  listarPartidosVisibles,
+  eliminarPartido,
+  cerrarPartidosVencidos,
+  listarPartidosJugados,
+};

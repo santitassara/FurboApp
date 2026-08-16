@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Perfil from './pages/Perfil';
 import PerfilJugador from './pages/PerfilJugador';
 import Jugadores from './pages/Jugadores';
+import UltimosPartidos from './pages/UltimosPartidos';
 import AdminPanel from './pages/AdminPanel';
 import RutaPrivada from './components/RutaPrivada';
 import RutaAdmin from './components/RutaAdmin';
@@ -66,6 +67,16 @@ export default function App() {
           <RutaPrivada>
             <Layout>
               <PerfilJugador />
+            </Layout>
+          </RutaPrivada>
+        }
+      />
+      <Route
+        path="/historial"
+        element={
+          <RutaPrivada>
+            <Layout>
+              <UltimosPartidos />
             </Layout>
           </RutaPrivada>
         }
