@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { formatearFechaPartido } from '../utils/fecha';
@@ -19,6 +19,10 @@ export default function ItemHistorialPartido({ partido }) {
 
   const cantidadJugadores = (partido.ocupados?.titulares || 0) + (partido.ocupados?.suplentes || 0);
   const soyElegible = elegibles.some((j) => j.usuarioId === perfil?.uid);
+  const elegiblesParaVotar = useMemo(
+    () => elegibles.filter((j) => j.usuarioId !== perfil?.uid),
+    [elegibles, perfil?.uid],
+  );
 
   async function alternar() {
     const nuevoExpandido = !expandido;
@@ -118,7 +122,7 @@ export default function ItemHistorialPartido({ partido }) {
       <ModalVotarValoraciones
         abierto={votoAbierto}
         partido={partido}
-        elegibles={elegibles.filter((j) => j.usuarioId !== perfil?.uid)}
+        elegibles={elegiblesParaVotar}
         votosPropios={votosPropios}
         procesando={votando}
         error={errorVoto}
