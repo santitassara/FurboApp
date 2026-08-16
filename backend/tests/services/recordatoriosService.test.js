@@ -104,6 +104,20 @@ describe('recordatoriosService.enviarRecordatoriosPendientes', () => {
     expect(mockEnviarMail).not.toHaveBeenCalled();
   });
 
+  it('escapa HTML en el nombre de un compañero antes de interpolarlo en el mail', async () => {
+    insertarUsuario('u1', 'Juan', 'juan@mail.com');
+    insertarUsuario('u2', '<img src=x onerror=alert(1)>', 'atacante@mail.com');
+    insertarPartido('p7', EN_UNA_HORA);
+    insertarInscripcion('i1', 'p7', 'u1', 'titular', 'A');
+    insertarInscripcion('i2', 'p7', 'u2', 'titular', 'B');
+
+    await recordatoriosService.enviarRecordatoriosPendientes();
+
+    const htmlJuan = mockEnviarMail.mock.calls.find((c) => c[0].to === 'juan@mail.com')[0].html;
+    expect(htmlJuan).not.toContain('<img src=x onerror=alert(1)>');
+    expect(htmlJuan).toContain('&lt;img src=x onerror=alert(1)&gt;');
+  });
+
   it('sigue enviando a los demás titulares si un envío individual falla', async () => {
     insertarUsuario('u1', 'Juan', 'juan@mail.com');
     insertarUsuario('u2', 'Pedro', 'pedro@mail.com');

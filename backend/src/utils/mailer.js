@@ -4,15 +4,25 @@ let advertenciaEmitida = false;
 
 function tieneConfigSmtp() {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
-  return Boolean(SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS);
+  return Boolean(
+    SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS && Number.isInteger(Number(SMTP_PORT))
+  );
+}
+
+function advertirSiConfigInvalida() {
+  if (!tieneConfigSmtp() && !advertenciaEmitida) {
+    console.warn('SMTP no configurado o inválido: los recordatorios de partido no se enviarán por mail');
+    advertenciaEmitida = true;
+  }
+}
+
+function verificarConfigSmtp() {
+  advertirSiConfigInvalida();
 }
 
 async function enviarMail({ to, subject, html }) {
   if (!tieneConfigSmtp()) {
-    if (!advertenciaEmitida) {
-      console.warn('SMTP no configurado: los mails de recordatorio no se enviarán');
-      advertenciaEmitida = true;
-    }
+    advertirSiConfigInvalida();
     return;
   }
 
@@ -31,4 +41,4 @@ async function enviarMail({ to, subject, html }) {
   });
 }
 
-module.exports = { enviarMail };
+module.exports = { enviarMail, verificarConfigSmtp };

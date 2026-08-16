@@ -27,11 +27,23 @@ function formatearFechaHora(fechaIso) {
   });
 }
 
+function escaparHtml(texto) {
+  return String(texto).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[c]));
+}
+
 function armarHtml({ fechaTexto, equipo, companeros }) {
-  const lineaEquipo = equipo ? `<p>Vos pertenecés al equipo ${equipo}.</p>` : '';
-  const lineaCompaneros = companeros.length ? `<p>Titulares: ${companeros.join(', ')}</p>` : '';
+  const lineaEquipo = equipo ? `<p>Vos pertenecés al equipo ${escaparHtml(equipo)}.</p>` : '';
+  const lineaCompaneros = companeros.length
+    ? `<p>Titulares: ${companeros.map(escaparHtml).join(', ')}</p>`
+    : '';
   return [
-    `<p>Tu partido es el ${fechaTexto}.</p>`,
+    `<p>Tu partido es el ${escaparHtml(fechaTexto)}.</p>`,
     lineaEquipo,
     lineaCompaneros,
     '<p>Sos titular, no faltes. No te cagués en tus amigos. La pelota no se mancha.</p>',

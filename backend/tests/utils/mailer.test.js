@@ -61,4 +61,89 @@ describe('mailer.enviarMail', () => {
       html: '<p>Hola</p>',
     });
   });
+
+  it('no envía y no lanza si SMTP_PORT no es numérico aunque el resto esté configurado', async () => {
+    process.env.SMTP_HOST = 'smtp.test.com';
+    process.env.SMTP_PORT = '587x';
+    process.env.SMTP_USER = 'usuario@test.com';
+    process.env.SMTP_PASS = 'secreto';
+    const { enviarMail } = require('../../src/utils/mailer');
+
+    await expect(
+      enviarMail({ to: 'jugador@mail.com', subject: 'Asunto', html: '<p>Hola</p>' })
+    ).resolves.toBeUndefined();
+
+    expect(createTransportMock).not.toHaveBeenCalled();
+    expect(sendMailMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('mailer.verificarConfigSmtp', () => {
+  const ENV_ORIGINAL = process.env;
+  let warnSpy;
+
+  beforeEach(() => {
+    jest.resetModules();
+    process.env = { ...ENV_ORIGINAL };
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  afterAll(() => {
+    process.env = ENV_ORIGINAL;
+  });
+
+  it('advierte cuando faltan variables de SMTP', () => {
+    delete process.env.SMTP_HOST;
+    delete process.env.SMTP_PORT;
+    delete process.env.SMTP_USER;
+    delete process.env.SMTP_PASS;
+    const { verificarConfigSmtp } = require('../../src/utils/mailer');
+
+    verificarConfigSmtp();
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy.mock.calls[0][0]).toMatch(/SMTP no configurado o inválido/);
+  });
+
+  it('advierte cuando SMTP_PORT no es numérico aunque el resto esté configurado', () => {
+    process.env.SMTP_HOST = 'smtp.test.com';
+    process.env.SMTP_PORT = '587x';
+    process.env.SMTP_USER = 'usuario@test.com';
+    process.env.SMTP_PASS = 'secreto';
+    const { verificarConfigSmtp } = require('../../src/utils/mailer');
+
+    verificarConfigSmtp();
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy.mock.calls[0][0]).toMatch(/SMTP no configurado o inválido/);
+  });
+
+  it('no advierte cuando la configuración SMTP es válida', () => {
+    process.env.SMTP_HOST = 'smtp.test.com';
+    process.env.SMTP_PORT = '587';
+    process.env.SMTP_USER = 'usuario@test.com';
+    process.env.SMTP_PASS = 'secreto';
+    const { verificarConfigSmtp } = require('../../src/utils/mailer');
+
+    verificarConfigSmtp();
+
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('no duplica la advertencia si enviarMail también dispara la comprobación', async () => {
+    delete process.env.SMTP_HOST;
+    delete process.env.SMTP_PORT;
+    delete process.env.SMTP_USER;
+    delete process.env.SMTP_PASS;
+    const { verificarConfigSmtp, enviarMail } = require('../../src/utils/mailer');
+
+    verificarConfigSmtp();
+    await enviarMail({ to: 'jugador@mail.com', subject: 'Asunto', html: '<p>Hola</p>' });
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
 });
