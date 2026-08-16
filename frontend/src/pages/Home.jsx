@@ -12,7 +12,6 @@ export default function Home() {
   const [partidos, setPartidos] = useState([]);
   const [inscripcionesPorPartido, setInscripcionesPorPartido] = useState({});
   const [formacionesPorPartido, setFormacionesPorPartido] = useState({});
-  const [resultadosPorPartido, setResultadosPorPartido] = useState({});
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const [partidoParaBaja, setPartidoParaBaja] = useState(null);
@@ -47,16 +46,6 @@ export default function Home() {
           })
       );
       setFormacionesPorPartido(Object.fromEntries(entradasFormacion));
-
-      const entradasResultado = await Promise.all(
-        partidosAbiertos
-          .filter((partido) => partido.estado === 'jugado')
-          .map(async (partido) => {
-            const { data } = await api.get(`/partidos/${partido.id}/resultado`);
-            return [partido.id, data];
-          })
-      );
-      setResultadosPorPartido(Object.fromEntries(entradasResultado));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -139,7 +128,7 @@ export default function Home() {
       ) : (
         <div className="flex flex-col gap-4">
           {partidos.map((partido) => (
-            <PartidoConEstado key={partido.id} partido={partido} resultado={resultadosPorPartido[partido.id]}>
+            <PartidoConEstado key={partido.id} partido={partido}>
               <div
                 className={formacionesPorPartido[partido.id] ? 'grid grid-cols-1 gap-4 md:grid-cols-2' : ''}
               >

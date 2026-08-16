@@ -12,6 +12,17 @@ async function listar(req, res) {
   res.json(partidosConCupos);
 }
 
+async function historial(req, res) {
+  const partidos = await partidosService.listarPartidosJugados();
+  const partidosConCupos = await Promise.all(
+    partidos.map(async (partido) => ({
+      ...partido,
+      ocupados: await inscripcionesService.contarOcupados(partido.id),
+    }))
+  );
+  res.json(partidosConCupos);
+}
+
 async function crear(req, res) {
   const { fecha, cupoTitulares, cupoSuplentes } = req.body;
   const partido = await partidosService.crearPartido({
@@ -29,4 +40,4 @@ async function eliminar(req, res) {
   res.status(204).send();
 }
 
-module.exports = { listar, crear, eliminar };
+module.exports = { listar, historial, crear, eliminar };

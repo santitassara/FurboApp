@@ -1,8 +1,6 @@
-import ResultadoPartido from './ResultadoPartido';
-
-export default function PartidoConEstado({ partido, resultado, children }) {
+export default function PartidoConEstado({ partido, children }) {
   if (partido.estado === 'jugado') {
-    return <ResultadoPartido partido={partido} resultado={resultado} />;
+    return null;
   }
 
   if (partido.estado === 'cerrado') {

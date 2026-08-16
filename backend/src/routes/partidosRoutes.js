@@ -9,6 +9,7 @@ const resultadosController = require('../controllers/resultadosController');
 const router = express.Router();
 
 router.get('/', verificarToken, envolverAsync(partidosController.listar));
+router.get('/historial', verificarToken, envolverAsync(partidosController.historial));
 router.post('/', verificarToken, verificarAdmin, envolverAsync(partidosController.crear));
 router.delete('/:partidoId', verificarToken, verificarAdmin, envolverAsync(partidosController.eliminar));
 router.post('/:partidoId/anotarse', verificarToken, envolverAsync(inscripcionesController.anotarse));

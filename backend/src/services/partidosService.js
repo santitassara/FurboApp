@@ -75,4 +75,15 @@ function cerrarPartidosVencidos() {
   );
 }
 
-module.exports = { crearPartido, obtenerPartido, listarPartidosVisibles, eliminarPartido, cerrarPartidosVencidos };
+function listarPartidosJugados() {
+  return db.prepare("SELECT * FROM Partidos WHERE estado = 'jugado' ORDER BY fecha DESC").all();
+}
+
+module.exports = {
+  crearPartido,
+  obtenerPartido,
+  listarPartidosVisibles,
+  eliminarPartido,
+  cerrarPartidosVencidos,
+  listarPartidosJugados,
+};

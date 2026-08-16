@@ -23,6 +23,13 @@ const ICONOS = {
   admin: (
     <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3Z" />
   ),
+  historial: (
+    <>
+      <circle cx="12" cy="13" r="8" />
+      <path d="M12 9v4l2.5 2.5" />
+      <path d="M9 2h6" />
+    </>
+  ),
   salir: (
     <>
       <path d="M9 4H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h3" />
@@ -55,6 +62,7 @@ export default function Layout({ children }) {
     { to: '/inicio', etiqueta: 'Inicio', icono: 'inicio' },
     { to: '/perfil', etiqueta: 'Mi Perfil', icono: 'perfil' },
     { to: '/jugadores', etiqueta: 'Jugadores', icono: 'jugadores' },
+    { to: '/historial', etiqueta: 'Últimos partidos', icono: 'historial' },
   ];
   if (esAdmin) {
     items.push({ to: '/admin', etiqueta: 'Panel Admin', icono: 'admin' });
