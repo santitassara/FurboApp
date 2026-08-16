@@ -133,12 +133,14 @@ export default function ResultadoPartido({ partido, resultado }) {
         )}
       </Panel>
 
-      {jugadorDestacado && (
-        <div className="mx-auto mb-4 flex w-fit items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-2.5">
-          <IconoTrofeo />
-          <span className="text-sm text-white">
-            MVP: <span className="font-bold text-pasto-500">{jugadorDestacado.nombre}</span>
-          </span>
+      {jugadorDestacado.jugadores.length > 0 && (
+        <div className="mx-auto mb-4 flex w-fit flex-wrap items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-2.5">
+          {jugadorDestacado.jugadores.map((jugador) => (
+            <span key={jugador.usuarioId} className="flex items-center gap-2 text-sm text-white">
+              <IconoTrofeo />
+              MVP: <span className="font-bold text-pasto-500">{jugador.nombre}</span>
+            </span>
+          ))}
         </div>
       )}
 
@@ -150,12 +152,16 @@ export default function ResultadoPartido({ partido, resultado }) {
             {rendimientos.map((rendimiento) => (
               <li key={rendimiento.usuarioId} className="flex items-center justify-between gap-2 text-sm">
                 <span className="truncate text-white/90">{rendimiento.nombre}</span>
-                <span className="flex items-center gap-2">
-                  <BarraRendimiento puntaje={rendimiento.puntaje} />
-                  <span className="w-8 shrink-0 text-right text-xs font-bold text-white/60">
-                    {rendimiento.puntaje}/10
+                {rendimiento.votos === 0 ? (
+                  <span className="text-xs text-white/40">Sin votos</span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <BarraRendimiento puntaje={Math.round(rendimiento.promedio)} />
+                    <span className="w-16 shrink-0 text-right text-xs font-bold text-white/60">
+                      {rendimiento.promedio}/10 ({rendimiento.votos})
+                    </span>
                   </span>
-                </span>
+                )}
               </li>
             ))}
           </ul>
