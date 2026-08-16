@@ -80,4 +80,22 @@ for (const [columna, tipo] of Object.entries(columnasFormacion)) {
   }
 }
 
+const columnasRendimientos = db.prepare('PRAGMA table_info(RendimientosJugador)').all();
+const tieneColumnaLegadaUsuarioId = columnasRendimientos.some((columna) => columna.name === 'usuarioId');
+if (tieneColumnaLegadaUsuarioId) {
+  // El modelo anterior guardaba un puntaje único puesto por el admin, sin dueño de voto:
+  // no hay forma de atribuirle un votanteId real, así que se descartan al migrar.
+  db.exec('DELETE FROM RendimientosJugador');
+  db.exec('ALTER TABLE RendimientosJugador RENAME COLUMN usuarioId TO jugadorId');
+}
+const columnasRendimientosActualizadas = db.prepare('PRAGMA table_info(RendimientosJugador)').all();
+const tieneVotanteId = columnasRendimientosActualizadas.some((columna) => columna.name === 'votanteId');
+if (!tieneVotanteId) {
+  db.exec('ALTER TABLE RendimientosJugador ADD COLUMN votanteId TEXT REFERENCES Usuarios(uid)');
+}
+db.exec(
+  'CREATE UNIQUE INDEX IF NOT EXISTS idx_rendimientos_voto_unico ON RendimientosJugador (partidoId, jugadorId, votanteId)'
+);
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_votos_mvp_unico ON VotosMvp (partidoId, votanteId)');
+
 module.exports = { db };

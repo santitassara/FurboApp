@@ -66,8 +66,16 @@ CREATE TABLE IF NOT EXISTS Goles (
 CREATE TABLE IF NOT EXISTS RendimientosJugador (
   id TEXT PRIMARY KEY,
   partidoId TEXT NOT NULL REFERENCES Partidos(id),
-  usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
+  jugadorId TEXT NOT NULL REFERENCES Usuarios(uid),
+  votanteId TEXT REFERENCES Usuarios(uid),
   puntaje INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS VotosMvp (
+  id TEXT PRIMARY KEY,
+  partidoId TEXT NOT NULL REFERENCES Partidos(id),
+  votanteId TEXT NOT NULL REFERENCES Usuarios(uid),
+  jugadorId TEXT NOT NULL REFERENCES Usuarios(uid)
 );
 
 CREATE TABLE IF NOT EXISTS SancionesPartido (
@@ -79,4 +87,5 @@ CREATE TABLE IF NOT EXISTS SancionesPartido (
 
 CREATE INDEX IF NOT EXISTS idx_goles_partido ON Goles (partidoId);
 CREATE INDEX IF NOT EXISTS idx_rendimientos_partido ON RendimientosJugador (partidoId);
+CREATE INDEX IF NOT EXISTS idx_votos_mvp_partido ON VotosMvp (partidoId);
 CREATE INDEX IF NOT EXISTS idx_sanciones_partido_partido ON SancionesPartido (partidoId);

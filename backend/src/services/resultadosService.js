@@ -87,9 +87,9 @@ async function guardarResultado(partidoId, payload = {}) {
     }
     for (const rendimiento of rendimientos) {
       db.prepare(
-        `INSERT INTO RendimientosJugador (id, partidoId, usuarioId, puntaje)
-         VALUES (@id, @partidoId, @usuarioId, @puntaje)`
-      ).run({ id: crypto.randomUUID(), partidoId, usuarioId: rendimiento.usuarioId, puntaje: rendimiento.puntaje });
+        `INSERT INTO RendimientosJugador (id, partidoId, jugadorId, votanteId, puntaje)
+         VALUES (@id, @partidoId, @jugadorId, @votanteId, @puntaje)`
+      ).run({ id: crypto.randomUUID(), partidoId, jugadorId: rendimiento.usuarioId, votanteId: null, puntaje: rendimiento.puntaje });
     }
     for (const sancion of sanciones) {
       db.prepare(
@@ -136,8 +136,8 @@ async function obtenerResultado(partidoId) {
   const filasRendimientos = db.prepare('SELECT * FROM RendimientosJugador WHERE partidoId = ?').all(partidoId);
   const rendimientos = await Promise.all(
     filasRendimientos.map(async (fila) => {
-      const usuario = await usuariosService.obtenerUsuario(fila.usuarioId);
-      return { usuarioId: fila.usuarioId, nombre: usuario?.nombre || 'Jugador', puntaje: fila.puntaje };
+      const usuario = await usuariosService.obtenerUsuario(fila.jugadorId);
+      return { usuarioId: fila.jugadorId, nombre: usuario?.nombre || 'Jugador', puntaje: fila.puntaje };
     })
   );
 
