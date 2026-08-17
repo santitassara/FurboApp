@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 const { db } = require('../config/db');
 const usuariosService = require('./usuariosService');
 const partidosService = require('./partidosService');
+const gruposService = require('./gruposService');
 const { sonPosicionesValidas } = require('../constants/posiciones');
 const { LINEAS, POSICION_A_LINEA, generarLineas, splitEquipos } = require('../utils/formacion');
 
@@ -35,16 +36,16 @@ async function listarTitularesActivos(partidoId) {
     .all(partidoId);
 }
 
-async function anotarse(partidoId, usuarioId, { posicionPrincipal, posicionSecundaria } = {}) {
+async function anotarse(partidoId, grupoId, usuarioId, { posicionPrincipal, posicionSecundaria } = {}) {
   if (!sonPosicionesValidas(posicionPrincipal, posicionSecundaria)) {
     throw crearError('Posiciones inválidas', 400);
   }
 
-  const usuario = await usuariosService.obtenerUsuario(usuarioId);
-  if (!usuario) throw crearError('Usuario no encontrado', 404);
-  if (usuario.estaSancionado) throw crearError('Estás sancionado y no podés anotarte', 403);
+  const membresia = await gruposService.obtenerMembresia(grupoId, usuarioId);
+  if (!membresia) throw crearError('No pertenecés a este grupo', 403);
+  if (membresia.estaSancionado) throw crearError('Estás sancionado y no podés anotarte', 403);
 
-  const partido = await partidosService.obtenerPartido(partidoId);
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
   if (partido.estado !== 'abierto') throw crearError('El partido no está abierto', 400);
 
@@ -79,40 +80,43 @@ async function anotarse(partidoId, usuarioId, { posicionPrincipal, posicionSecun
   return nuevaInscripcion;
 }
 
-async function bajarse(partidoId, usuarioId) {
+async function bajarse(partidoId, grupoId, usuarioId) {
   const inscripcion = await obtenerInscripcionActiva(partidoId, usuarioId);
   if (!inscripcion) throw crearError('No estás anotado en este partido', 400);
 
-  const partido = await partidosService.obtenerPartido(partidoId);
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
   if (partido.estado !== 'abierto') throw crearError('El partido ya no está abierto', 400);
 
   db.prepare("UPDATE Inscripciones SET estado = 'dado_de_baja' WHERE id = ?").run(inscripcion.id);
 
   if (inscripcion.tipo === 'titular') {
-    await usuariosService.sancionar(usuarioId);
+    await gruposService.sancionar(grupoId, usuarioId);
   }
 
   return { ...inscripcion, estado: 'dado_de_baja' };
 }
 
-async function sancionarManualmente(partidoId, usuarioId) {
+async function sancionarManualmente(partidoId, grupoId, usuarioId) {
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
+  if (!partido) throw crearError('Partido no encontrado', 404);
+
   const inscripcion = await obtenerInscripcionActiva(partidoId, usuarioId);
   if (!inscripcion) throw crearError('El jugador no está anotado en este partido', 404);
   if (inscripcion.tipo !== 'titular') throw crearError('Solo se puede sancionar a jugadores titulares', 400);
 
   db.prepare("UPDATE Inscripciones SET estado = 'dado_de_baja' WHERE id = ?").run(inscripcion.id);
-  await usuariosService.sancionar(usuarioId);
+  await gruposService.sancionar(grupoId, usuarioId);
 
   return { ...inscripcion, estado: 'dado_de_baja' };
 }
 
-async function promover(partidoId, usuarioId) {
+async function promover(partidoId, grupoId, usuarioId) {
   const inscripcion = await obtenerInscripcionActiva(partidoId, usuarioId);
   if (!inscripcion) throw crearError('El jugador no está anotado en este partido', 404);
   if (inscripcion.tipo !== 'suplente') throw crearError('El jugador ya es titular', 400);
 
-  const partido = await partidosService.obtenerPartido(partidoId);
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
 
   const ocupados = await contarOcupados(partidoId);
@@ -132,8 +136,8 @@ function eliminarPorPartido(partidoId) {
   db.prepare('DELETE FROM Inscripciones WHERE partidoId = ?').run(partidoId);
 }
 
-async function obtenerFormacion(partidoId) {
-  const partido = await partidosService.obtenerPartido(partidoId);
+async function obtenerFormacion(partidoId, grupoId) {
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
 
   const ocupados = await contarOcupados(partidoId);
@@ -200,8 +204,8 @@ function crearBalanceador(cupoPorEquipo) {
   return { equiposConCupo, equipoMenorCarga, equipoAleatorioSesgado, registrar };
 }
 
-async function generarFormacionAutomatica(partidoId) {
-  const partido = await partidosService.obtenerPartido(partidoId);
+async function generarFormacionAutomatica(partidoId, grupoId) {
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
 
   const ocupados = await contarOcupados(partidoId);
@@ -279,8 +283,8 @@ async function generarFormacionAutomatica(partidoId) {
   return { habilitado: true, cupoPorEquipo, lineasEsperadas, jugadores: jugadoresFinales };
 }
 
-async function guardarFormacion(partidoId, asignaciones) {
-  const partido = await partidosService.obtenerPartido(partidoId);
+async function guardarFormacion(partidoId, grupoId, asignaciones) {
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
 
   const ocupados = await contarOcupados(partidoId);
@@ -344,7 +348,7 @@ async function guardarFormacion(partidoId, asignaciones) {
   });
   actualizar(asignaciones);
 
-  return obtenerFormacion(partidoId);
+  return obtenerFormacion(partidoId, grupoId);
 }
 
 module.exports = {
