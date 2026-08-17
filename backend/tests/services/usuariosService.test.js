@@ -10,15 +10,14 @@ function insertarUsuario(overrides = {}) {
     uid: 'uid-x',
     nombre: 'Jugador X',
     email: 'x@gmail.com',
-    rol: 'jugador',
-    estaSancionado: 0,
+    esSuperAdmin: 0,
     fechaCreacion: '2026-01-01T00:00:00.000Z',
     ...overrides,
   };
   mockDb
     .prepare(
-      `INSERT INTO Usuarios (uid, nombre, email, rol, estaSancionado, fechaCreacion)
-       VALUES (@uid, @nombre, @email, @rol, @estaSancionado, @fechaCreacion)`
+      `INSERT INTO Usuarios (uid, nombre, email, esSuperAdmin, fechaCreacion)
+       VALUES (@uid, @nombre, @email, @esSuperAdmin, @fechaCreacion)`
     )
     .run(usuario);
   return usuario;
@@ -30,21 +29,20 @@ beforeEach(() => {
 });
 
 describe('usuariosService.sincronizarUsuario', () => {
-  it('crea un usuario nuevo como jugador si el email no está en ADMIN_EMAILS', async () => {
+  it('crea un usuario nuevo sin esSuperAdmin si el email no está en ADMIN_EMAILS', async () => {
     const usuario = await usuariosService.sincronizarUsuario({
       uid: 'uid-1',
       email: 'jugador@gmail.com',
       nombre: 'Jugador Uno',
     });
 
-    expect(usuario.rol).toBe('jugador');
-    expect(usuario.estaSancionado).toBe(false);
+    expect(usuario.esSuperAdmin).toBe(false);
 
     const fila = mockDb.prepare('SELECT * FROM Usuarios WHERE uid = ?').get('uid-1');
-    expect(fila.rol).toBe('jugador');
+    expect(fila.esSuperAdmin).toBe(0);
   });
 
-  it('crea un usuario nuevo como admin si el email está en ADMIN_EMAILS y verificado', async () => {
+  it('crea un usuario nuevo con esSuperAdmin si el email está en ADMIN_EMAILS y verificado', async () => {
     process.env.ADMIN_EMAILS = 'admin@gmail.com, otro@gmail.com';
 
     const usuario = await usuariosService.sincronizarUsuario({
@@ -54,10 +52,10 @@ describe('usuariosService.sincronizarUsuario', () => {
       emailVerificado: true,
     });
 
-    expect(usuario.rol).toBe('admin');
+    expect(usuario.esSuperAdmin).toBe(true);
   });
 
-  it('crea un usuario nuevo como jugador si el email está en ADMIN_EMAILS pero no está verificado', async () => {
+  it('no marca esSuperAdmin si el email está en ADMIN_EMAILS pero no está verificado', async () => {
     process.env.ADMIN_EMAILS = 'admin@gmail.com, otro@gmail.com';
 
     const usuario = await usuariosService.sincronizarUsuario({
@@ -67,11 +65,11 @@ describe('usuariosService.sincronizarUsuario', () => {
       emailVerificado: false,
     });
 
-    expect(usuario.rol).toBe('jugador');
+    expect(usuario.esSuperAdmin).toBe(false);
   });
 
-  it('no degrada a un admin existente y devuelve el usuario tal cual si no hay cambios', async () => {
-    insertarUsuario({ uid: 'uid-3', email: 'jugador3@gmail.com', estaSancionado: 1 });
+  it('no degrada a super admin existente y devuelve el usuario tal cual si no hay cambios', async () => {
+    insertarUsuario({ uid: 'uid-3', email: 'jugador3@gmail.com', esSuperAdmin: 1 });
 
     const usuario = await usuariosService.sincronizarUsuario({
       uid: 'uid-3',
@@ -79,12 +77,11 @@ describe('usuariosService.sincronizarUsuario', () => {
       nombre: 'Jugador Tres',
     });
 
-    expect(usuario.rol).toBe('jugador');
-    expect(usuario.estaSancionado).toBe(true);
+    expect(usuario.esSuperAdmin).toBe(true);
   });
 
-  it('promueve a admin un usuario existente que era jugador cuando su email está en ADMIN_EMAILS y verificado', async () => {
-    insertarUsuario({ uid: 'uid-5', email: 'nuevo-admin@gmail.com', rol: 'jugador' });
+  it('promueve a super admin un usuario existente cuando su email está en ADMIN_EMAILS y verificado', async () => {
+    insertarUsuario({ uid: 'uid-5', email: 'nuevo-admin@gmail.com', esSuperAdmin: 0 });
     process.env.ADMIN_EMAILS = 'nuevo-admin@gmail.com';
 
     const usuario = await usuariosService.sincronizarUsuario({
@@ -94,10 +91,10 @@ describe('usuariosService.sincronizarUsuario', () => {
       emailVerificado: true,
     });
 
-    expect(usuario.rol).toBe('admin');
+    expect(usuario.esSuperAdmin).toBe(true);
 
-    const fila = mockDb.prepare('SELECT rol FROM Usuarios WHERE uid = ?').get('uid-5');
-    expect(fila.rol).toBe('admin');
+    const fila = mockDb.prepare('SELECT esSuperAdmin FROM Usuarios WHERE uid = ?').get('uid-5');
+    expect(fila.esSuperAdmin).toBe(1);
   });
 });
 
@@ -113,43 +110,6 @@ describe('usuariosService.obtenerUsuario', () => {
 
     const usuario = await usuariosService.obtenerUsuario('uid-x');
 
-    expect(usuario).toMatchObject({ uid: 'uid-x', rol: 'jugador', estaSancionado: false });
-  });
-});
-
-describe('usuariosService.listarSancionados', () => {
-  it('devuelve solo los usuarios sancionados', async () => {
-    insertarUsuario({ uid: '1', email: 's@gmail.com', estaSancionado: 1 });
-    insertarUsuario({ uid: '2', email: 'ns@gmail.com', estaSancionado: 0 });
-
-    const sancionados = await usuariosService.listarSancionados();
-
-    expect(sancionados).toEqual([expect.objectContaining({ uid: '1', estaSancionado: true })]);
-  });
-});
-
-describe('usuariosService.perdonarSancion', () => {
-  it('lanza error 404 si el usuario no existe', async () => {
-    await expect(usuariosService.perdonarSancion('uid-x')).rejects.toMatchObject({ status: 404 });
-  });
-
-  it('setea estaSancionado en false si el usuario existe', async () => {
-    insertarUsuario({ uid: 'uid-x', estaSancionado: 1 });
-
-    await usuariosService.perdonarSancion('uid-x');
-
-    const fila = mockDb.prepare('SELECT estaSancionado FROM Usuarios WHERE uid = ?').get('uid-x');
-    expect(fila.estaSancionado).toBe(0);
-  });
-});
-
-describe('usuariosService.sancionar', () => {
-  it('setea estaSancionado en true', async () => {
-    insertarUsuario({ uid: 'uid-y', estaSancionado: 0 });
-
-    await usuariosService.sancionar('uid-y');
-
-    const fila = mockDb.prepare('SELECT estaSancionado FROM Usuarios WHERE uid = ?').get('uid-y');
-    expect(fila.estaSancionado).toBe(1);
+    expect(usuario).toMatchObject({ uid: 'uid-x', esSuperAdmin: false });
   });
 });
