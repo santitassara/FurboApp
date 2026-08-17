@@ -15,7 +15,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuariosRoutes);
-app.use('/api/partidos', partidosRoutes);
+app.use('/api/grupos/:grupoId/partidos', partidosRoutes);
 app.use('/api/grupos', gruposRoutes);
 
 app.use((req, res) => {
