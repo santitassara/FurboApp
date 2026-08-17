@@ -1,6 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useGrupo } from '../context/GrupoContext';
 import BadgeSancion from './BadgeSancion';
+import SelectorGrupoActivo from './SelectorGrupoActivo';
 
 const ICONOS = {
   inicio: (
@@ -55,7 +57,8 @@ function Icono({ nombre, className }) {
 }
 
 export default function Layout({ children }) {
-  const { perfil, estaSancionado, esAdmin, cerrarSesion } = useAuth();
+  const { perfil, cerrarSesion } = useAuth();
+  const { grupoActivo } = useGrupo();
   const { pathname } = useLocation();
 
   const items = [
@@ -64,7 +67,7 @@ export default function Layout({ children }) {
     { to: '/jugadores', etiqueta: 'Jugadores', icono: 'jugadores' },
     { to: '/historial', etiqueta: 'Últimos partidos', icono: 'historial' },
   ];
-  if (esAdmin) {
+  if (grupoActivo?.rol === 'admin') {
     items.push({ to: '/admin', etiqueta: 'Panel Admin', icono: 'admin' });
   }
 
@@ -75,6 +78,10 @@ export default function Layout({ children }) {
           <p className="font-display text-3xl leading-none tracking-wide text-white">
             Furbo<span className="text-pasto-500">App</span>
           </p>
+        </div>
+
+        <div className="px-2 pb-2">
+          <SelectorGrupoActivo />
         </div>
 
         <nav className="flex flex-1 gap-1 overflow-x-auto px-2 pb-2 md:flex-col md:overflow-visible md:pb-0">
@@ -98,7 +105,7 @@ export default function Layout({ children }) {
         <div className="flex flex-col gap-3 border-t border-white/10 px-3 py-4">
           <div className="flex items-center justify-between gap-2 px-2">
             <p className="truncate text-sm font-semibold text-white/80">{perfil?.nombre}</p>
-            <BadgeSancion sancionado={estaSancionado} />
+            <BadgeSancion sancionado={Boolean(grupoActivo?.estaSancionado)} />
           </div>
           <button
             onClick={cerrarSesion}

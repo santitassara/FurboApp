@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useGrupo } from '../context/GrupoContext';
 
 export default function SelectorGrupoActivo() {
@@ -34,12 +35,12 @@ export default function SelectorGrupoActivo() {
             </li>
           ))}
           <li>
-            <a
-              href="/grupos"
+            <Link
+              to="/grupos"
               className="block w-full px-3 py-2 text-left text-sm text-white/60 hover:bg-white/5"
             >
               Crear o unirme a otro grupo
-            </a>
+            </Link>
           </li>
         </ul>
       )}
