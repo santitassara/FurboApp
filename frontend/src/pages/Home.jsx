@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useGrupo } from '../context/GrupoContext';
+import { rutaGrupo } from '../utils/rutasGrupo';
 import TarjetaPartido from '../components/TarjetaPartido';
 import MapaCancha from '../components/MapaCancha';
 import ModalConfirmacionSancion from '../components/ModalConfirmacionSancion';
@@ -8,7 +10,8 @@ import ModalPosicion from '../components/ModalPosicion';
 import PartidoConEstado from '../components/PartidoConEstado';
 
 export default function Home() {
-  const { perfil, estaSancionado, esAdmin, refrescarPerfil, actualizarPosicionesPerfil } = useAuth();
+  const { perfil, actualizarPosicionesPerfil } = useAuth();
+  const { grupoActivo, refrescarGrupos } = useGrupo();
   const [partidos, setPartidos] = useState([]);
   const [inscripcionesPorPartido, setInscripcionesPorPartido] = useState({});
   const [formacionesPorPartido, setFormacionesPorPartido] = useState({});
@@ -20,15 +23,18 @@ export default function Home() {
   const [partidoParaAnotarse, setPartidoParaAnotarse] = useState(null);
 
   const cargarPartidos = useCallback(async () => {
+    if (!grupoActivo) return;
     setCargando(true);
     setError('');
     try {
-      const { data: partidosAbiertos } = await api.get('/partidos');
+      const { data: partidosAbiertos } = await api.get(rutaGrupo(grupoActivo.id, '/partidos'));
       setPartidos(partidosAbiertos);
 
       const entradas = await Promise.all(
         partidosAbiertos.map(async (partido) => {
-          const { data: jugadores } = await api.get(`/partidos/${partido.id}/inscripciones`);
+          const { data: jugadores } = await api.get(
+            rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/inscripciones`)
+          );
           return [partido.id, jugadores];
         })
       );
@@ -41,7 +47,7 @@ export default function Home() {
               partido.estado !== 'jugado' && (partido.ocupados?.titulares || 0) >= partido.cupoTitulares
           )
           .map(async (partido) => {
-            const { data } = await api.get(`/partidos/${partido.id}/formacion`);
+            const { data } = await api.get(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/formacion`));
             return [partido.id, data];
           })
       );
@@ -51,7 +57,7 @@ export default function Home() {
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [grupoActivo]);
 
   useEffect(() => {
     cargarPartidos();
@@ -66,7 +72,10 @@ export default function Home() {
     setError('');
     setPartidoEnProceso(partidoId);
     try {
-      await api.post(`/partidos/${partidoId}/anotarse`, { posicionPrincipal, posicionSecundaria });
+      await api.post(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/anotarse`), {
+        posicionPrincipal,
+        posicionSecundaria,
+      });
       await cargarPartidos();
       setPartidoParaAnotarse(null);
     } catch (err) {
@@ -80,9 +89,9 @@ export default function Home() {
     setError('');
     setPartidoEnProceso(partidoId);
     try {
-      await api.post(`/partidos/${partidoId}/bajarse`);
+      await api.post(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/bajarse`));
       await cargarPartidos();
-      await refrescarPerfil();
+      await refrescarGrupos();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -112,6 +121,10 @@ export default function Home() {
     }
   }
 
+  if (!grupoActivo) {
+    return null;
+  }
+
   return (
     <div className="mx-auto flex flex-col gap-6">
       <header>
@@ -136,14 +149,14 @@ export default function Home() {
                   <MapaCancha
                     partidoId={partido.id}
                     formacion={formacionesPorPartido[partido.id]}
-                    esAdmin={esAdmin}
+                    esAdmin={grupoActivo?.rol === 'admin'}
                     onGuardado={(data) => setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))}
                   />
                 )}
                 <TarjetaPartido
                   partido={partido}
                   inscripcionUsuario={inscripcionDelUsuario(partido.id)}
-                  estaSancionado={estaSancionado}
+                  estaSancionado={grupoActivo?.estaSancionado}
                   procesando={partidoEnProceso === partido.id}
                   onAnotarse={() => setPartidoParaAnotarse(partido.id)}
                   onSolicitarBaja={() => solicitarBaja(partido)}

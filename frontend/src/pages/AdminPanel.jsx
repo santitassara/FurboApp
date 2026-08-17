@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
+import { useGrupo } from '../context/GrupoContext';
+import { rutaGrupo } from '../utils/rutasGrupo';
 import Boton from '../components/Boton';
 import ListaJugadores from '../components/ListaJugadores';
 import ModalConfirmacionSancionAdmin from '../components/ModalConfirmacionSancionAdmin';
@@ -8,6 +10,7 @@ import ModalCargarResultado from '../components/ModalCargarResultado';
 const FORMULARIO_INICIAL = { fecha: '', cupoTitulares: 10, cupoSuplentes: 5 };
 
 export default function AdminPanel() {
+  const { grupoActivo } = useGrupo();
   const [partidos, setPartidos] = useState([]);
   const [inscripcionesPorPartido, setInscripcionesPorPartido] = useState({});
   const [sancionados, setSancionados] = useState([]);
@@ -20,18 +23,21 @@ export default function AdminPanel() {
   const [partidoParaResultado, setPartidoParaResultado] = useState(null);
 
   const cargarTodo = useCallback(async () => {
+    if (!grupoActivo) return;
     setError('');
     try {
       const [{ data: partidosAbiertos }, { data: sancionadosActuales }] = await Promise.all([
-        api.get('/partidos'),
-        api.get('/usuarios/sancionados'),
+        api.get(rutaGrupo(grupoActivo.id, '/partidos')),
+        api.get(rutaGrupo(grupoActivo.id, '/usuarios/sancionados')),
       ]);
       setPartidos(partidosAbiertos);
       setSancionados(sancionadosActuales);
 
       const entradas = await Promise.all(
         partidosAbiertos.map(async (partido) => {
-          const { data: jugadores } = await api.get(`/partidos/${partido.id}/inscripciones`);
+          const { data: jugadores } = await api.get(
+            rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/inscripciones`)
+          );
           return [partido.id, jugadores];
         })
       );
@@ -41,7 +47,7 @@ export default function AdminPanel() {
         partidosAbiertos
           .filter((partido) => partido.estado !== 'abierto')
           .map(async (partido) => {
-            const { data } = await api.get(`/partidos/${partido.id}/formacion`);
+            const { data } = await api.get(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/formacion`));
             return [partido.id, data];
           })
       );
@@ -49,7 +55,7 @@ export default function AdminPanel() {
     } catch (err) {
       setError(err.message);
     }
-  }, []);
+  }, [grupoActivo]);
 
   useEffect(() => {
     cargarTodo();
@@ -61,7 +67,7 @@ export default function AdminPanel() {
     setMensaje('');
     setAccionEnCurso(true);
     try {
-      await api.post('/partidos', {
+      await api.post(rutaGrupo(grupoActivo.id, '/partidos'), {
         fecha: new Date(formulario.fecha).toISOString(),
         cupoTitulares: Number(formulario.cupoTitulares),
         cupoSuplentes: Number(formulario.cupoSuplentes),
@@ -81,7 +87,7 @@ export default function AdminPanel() {
     setMensaje('');
     setAccionEnCurso(true);
     try {
-      await api.post(`/usuarios/${uid}/perdonar`);
+      await api.post(rutaGrupo(grupoActivo.id, `/usuarios/${uid}/perdonar`));
       await cargarTodo();
     } catch (err) {
       setError(err.message);
@@ -95,7 +101,7 @@ export default function AdminPanel() {
     setMensaje('');
     setAccionEnCurso(true);
     try {
-      await api.post(`/partidos/${partidoId}/promover/${usuarioId}`);
+      await api.post(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/promover/${usuarioId}`));
       await cargarTodo();
     } catch (err) {
       setError(err.message);
@@ -110,7 +116,7 @@ export default function AdminPanel() {
     setMensaje('');
     setAccionEnCurso(true);
     try {
-      await api.delete(`/partidos/${partidoId}`);
+      await api.delete(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}`));
       setMensaje('Partido eliminado con éxito.');
       await cargarTodo();
     } catch (err) {
@@ -125,7 +131,7 @@ export default function AdminPanel() {
     setMensaje('');
     setAccionEnCurso(true);
     try {
-      await api.post(`/partidos/${partidoId}/sancionar/${usuarioId}`);
+      await api.post(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/sancionar/${usuarioId}`));
       setJugadorASancionar(null);
       await cargarTodo();
     } catch (err) {
@@ -145,7 +151,7 @@ export default function AdminPanel() {
     setMensaje('');
     setAccionEnCurso(true);
     try {
-      await api.put(`/partidos/${partidoParaResultado.id}/resultado`, payload);
+      await api.put(rutaGrupo(grupoActivo.id, `/partidos/${partidoParaResultado.id}/resultado`), payload);
       setMensaje('Resultado cargado con éxito.');
       setPartidoParaResultado(null);
       await cargarTodo();
