@@ -1,12 +1,13 @@
 const usuariosService = require('../services/usuariosService');
+const gruposService = require('../services/gruposService');
 
 async function listarSancionados(req, res) {
-  const sancionados = await usuariosService.listarSancionados();
+  const sancionados = await gruposService.listarSancionados(req.params.grupoId);
   res.json(sancionados);
 }
 
 async function perdonar(req, res) {
-  await usuariosService.perdonarSancion(req.params.uid);
+  await gruposService.perdonarSancion(req.params.grupoId, req.params.uid);
   res.json({ mensaje: 'Sanción revocada' });
 }
 
