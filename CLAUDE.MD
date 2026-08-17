@@ -25,17 +25,24 @@ FurboApp/
 ---
 
 ## 4. Actores y Permisos (Roles)
+
+Los roles son **por Grupo**: un usuario puede ser admin de un Grupo y jugador de otro. Además existe un **Super Admin** (vía `ADMIN_EMAILS`, sin cambios respecto al mecanismo actual) que puede administrar cualquier Grupo sin ser miembro — pensado para soporte/mantenimiento, no para jugar.
+
 1.  **Administrador (Admin)**:
     *   Login con Google.
-    *   Puede crear fechas de partidos.
+    *   Puede crear fechas de partidos dentro de un Grupo.
     *   Puede anotarse para jugar.
-    *   Puede ver la lista de jugadores sancionados.
-    *   Puede revocar la sanción de un jugador.
+    *   Puede ver la lista de jugadores sancionados en el Grupo.
+    *   Puede revocar la sanción de un jugador en el Grupo.
 2.  **Jugador**:
     *   Login con Google.
-    *   Puede ver el próximo partido disponible.
-    *   Puede anotarse a un partido (si no está sancionado).
-    *   Puede darse de baja de un partido (esto acciona la sanción automática).
+    *   Puede ver el próximo partido disponible en sus Grupos.
+    *   Puede anotarse a un partido (si no está sancionado en ese Grupo).
+    *   Puede darse de baja de un partido (esto acciona la sanción automática en ese Grupo).
+3.  **Super Admin**:
+    *   Usuario especial definido en `ADMIN_EMAILS`.
+    *   Puede administrar cualquier Grupo sin ser miembro del mismo.
+    *   No es un "jugador" en ningún Grupo.
 
 ---
 
@@ -45,16 +52,31 @@ FurboApp/
 *   `uid` (TEXT, PK, ID de Google)
 *   `nombre` (TEXT)
 *   `email` (TEXT, UNIQUE)
-*   `rol` (TEXT: "admin" | "jugador")
-*   `estaSancionado` (INTEGER, 0/1)
+*   `esSuperAdmin` (INTEGER, 0/1 — vía `ADMIN_EMAILS`, independiente de los Grupos)
 *   `fechaCreacion` (TEXT, ISO 8601)
 *   `passwordHash` (TEXT, nullable — solo presente si el usuario se registró con email/password)
+
+### Tabla: `Grupos`
+*   `id` (TEXT, PK)
+*   `nombre` (TEXT)
+*   `codigoInvitacion` (TEXT, UNIQUE)
+*   `creadoPor` (TEXT, uid del usuario que lo creó)
+*   `fechaCreacion` (TEXT, ISO 8601)
+
+### Tabla: `UsuariosGrupos`
+*   `id` (TEXT, PK)
+*   `grupoId` (TEXT, FK -> Grupos)
+*   `usuarioId` (TEXT, FK -> Usuarios)
+*   `rol` (TEXT: "admin" | "jugador" — por grupo)
+*   `estaSancionado` (INTEGER, 0/1 — por grupo)
+*   `fechaIngreso` (TEXT, ISO 8601)
 
 ### Tabla: `Partidos`
 *   `id` (TEXT, PK, generado con `crypto.randomUUID()`)
 *   `fecha` (TEXT, ISO 8601)
 *   `estado` (TEXT: "abierto" | "cerrado" | "jugado")
 *   `creadoPor` (TEXT, uid del Admin)
+*   `grupoId` (TEXT, FK -> Grupos)
 *   `cupoTitulares` (INTEGER)
 *   `cupoSuplentes` (INTEGER)
 
@@ -73,24 +95,33 @@ FurboApp/
 Todas las rutas (excepto validaciones públicas si las hubiera) deben estar protegidas por un Middleware `verificarToken` que valide el Bearer token de Google usando `firebase-admin`.
 
 ### Auth & Usuarios
-*   `POST /api/auth/sync`: Recibe el token. El backend verifica si el usuario existe en Firestore. Si no, lo crea con rol "jugador" y `estaSancionado: false`.
-*   `POST /api/auth/register`: (Público) Crea una cuenta nueva con email/password. Siempre asigna rol "jugador"; responde 409 si el email ya existe (sin importar su origen, no hace "linking" a cuentas existentes).
+*   `POST /api/auth/sync`: Recibe el token. El backend verifica si el usuario existe en la BD. Si no, lo crea con `esSuperAdmin: 0`.
+*   `POST /api/auth/register`: (Público) Crea una cuenta nueva con email/password. Responde 409 si el email ya existe.
 *   `POST /api/auth/login`: (Público) Valida email + password contra `passwordHash` y devuelve un JWT propio junto con el usuario.
-*   `GET /api/usuarios/sancionados`: (Solo Admin) Retorna lista de jugadores con `estaSancionado: true`.
-*   `POST /api/usuarios/:uid/perdonar`: (Solo Admin) Pone `estaSancionado: false` al usuario.
+
+### Grupos
+*   `POST /api/grupos`: Crea un Grupo nuevo. Body: `{ nombre }`. El usuario autenticado queda como admin de ese Grupo.
+*   `POST /api/grupos/unirse`: Body: `{ codigoInvitacion }`. Une al usuario autenticado como jugador (directo, sin aprobación).
+*   `GET /api/grupos/mios`: Lista los Grupos donde el usuario autenticado tiene membresía.
+
+Las rutas de Partidos, sancionados y perdón de sanción quedan anidadas bajo `/api/grupos/:grupoId/...` y requieren membresía en ese Grupo (o Super Admin).
 
 ### Partidos
-*   `GET /api/partidos`: Retorna los partidos con estado "abierto".
-*   `POST /api/partidos`: (Solo Admin) Crea una nueva fecha de partido. Body: `{ fecha }`.
+*   `GET /api/grupos/:grupoId/partidos`: Retorna los partidos con estado "abierto" del Grupo.
+*   `POST /api/grupos/:grupoId/partidos`: (Solo Admin del Grupo) Crea una nueva fecha de partido. Body: `{ fecha }`.
 
 ### Inscripciones (Flujo principal de la app)
-*   `POST /api/partidos/:partidoId/anotarse`: 
-    *   Verifica si el usuario está sancionado. Si lo está -> Error 403.
+*   `POST /api/grupos/:grupoId/partidos/:partidoId/anotarse`: 
+    *   Verifica si el usuario está sancionado en el Grupo. Si lo está -> Error 403.
     *   Si no, crea/actualiza registro en `Inscripciones` a "anotado".
-*   `POST /api/partidos/:partidoId/bajarse`:
+*   `POST /api/grupos/:grupoId/partidos/:partidoId/bajarse`:
     *   Busca la inscripción del usuario.
     *   Cambia estado a "dado_de_baja".
-    *   **CRÍTICO:** Actualiza el perfil del usuario en Firestore seteando `estaSancionado: true`.
+    *   **CRÍTICO:** Actualiza el registro en `UsuariosGrupos` seteando `estaSancionado: 1`.
+
+### Gestión de Sanciones (por Grupo)
+*   `GET /api/grupos/:grupoId/usuarios/sancionados`: (Solo Admin del Grupo) Retorna lista de jugadores con `estaSancionado: 1` en ese Grupo.
+*   `POST /api/grupos/:grupoId/usuarios/:uid/perdonar`: (Solo Admin del Grupo) Pone `estaSancionado: 0` al usuario en ese Grupo.
 
 ---
 
