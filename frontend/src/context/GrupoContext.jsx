@@ -36,7 +36,8 @@ export function GrupoProvider({ children }) {
 
   useEffect(() => {
     if (cargandoGrupos) return;
-    if (grupoActivoId && !misGrupos.some((grupo) => grupo.id === grupoActivoId)) {
+    const sigueSiendoValido = grupoActivoId && misGrupos.some((grupo) => grupo.id === grupoActivoId);
+    if (!sigueSiendoValido) {
       const primero = misGrupos[0]?.id || null;
       if (primero) localStorage.setItem(GRUPO_ACTIVO_KEY, primero);
       else localStorage.removeItem(GRUPO_ACTIVO_KEY);
