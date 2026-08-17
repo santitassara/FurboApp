@@ -19,8 +19,8 @@ async function obtenerElegibles(partidoId) {
   return filas.map((fila) => fila.usuarioId);
 }
 
-async function guardarResultado(partidoId, payload = {}) {
-  const partido = await partidosService.obtenerPartido(partidoId);
+async function guardarResultado(partidoId, grupoId, payload = {}) {
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
   if (partido.estado === 'abierto') throw crearError('El partido todavía no cerró', 400);
 
@@ -87,10 +87,13 @@ async function guardarResultado(partidoId, payload = {}) {
   });
   guardar();
 
-  return obtenerResultado(partidoId);
+  return obtenerResultado(partidoId, grupoId);
 }
 
-async function obtenerResultado(partidoId) {
+async function obtenerResultado(partidoId, grupoId) {
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
+  if (!partido) throw crearError('Partido no encontrado', 404);
+
   const resultado = db.prepare('SELECT * FROM Resultados WHERE partidoId = ?').get(partidoId);
   if (!resultado) return null;
 
