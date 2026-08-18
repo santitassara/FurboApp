@@ -54,6 +54,10 @@ for (const [columna, tipo] of Object.entries(columnasPerfilJugador)) {
     db.exec(`ALTER TABLE Usuarios ADD COLUMN ${columna} ${tipo}`);
   }
 }
+const tieneSuscripcionPush = columnasUsuarios.some((columna) => columna.name === 'suscripcionPush');
+if (!tieneSuscripcionPush) {
+  db.exec('ALTER TABLE Usuarios ADD COLUMN suscripcionPush TEXT');
+}
 
 const columnasInscripciones = db.prepare('PRAGMA table_info(Inscripciones)').all();
 const tienePosicionPrincipalInscripcion = columnasInscripciones.some(
@@ -103,6 +107,10 @@ const columnasPartidos = db.prepare('PRAGMA table_info(Partidos)').all();
 const tieneRecordatorioEnviado = columnasPartidos.some((columna) => columna.name === 'recordatorioEnviado');
 if (!tieneRecordatorioEnviado) {
   db.exec('ALTER TABLE Partidos ADD COLUMN recordatorioEnviado INTEGER NOT NULL DEFAULT 0');
+}
+const tieneRecordatorioPostPartidoEnviado = columnasPartidos.some((columna) => columna.name === 'recordatorioPostPartidoEnviado');
+if (!tieneRecordatorioPostPartidoEnviado) {
+  db.exec('ALTER TABLE Partidos ADD COLUMN recordatorioPostPartidoEnviado INTEGER NOT NULL DEFAULT 0');
 }
 
 const columnasUsuariosActuales = db.prepare('PRAGMA table_info(Usuarios)').all();

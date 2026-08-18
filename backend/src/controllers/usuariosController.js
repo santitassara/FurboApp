@@ -39,6 +39,12 @@ async function listarUsuarios(req, res) {
   res.json(usuarios);
 }
 
+async function guardarSuscripcionPush(req, res) {
+  const suscripcion = req.body;
+  await usuariosService.guardarSuscripcionPush(req.usuario.uid, suscripcion);
+  res.json({ mensaje: 'Suscripción guardada' });
+}
+
 module.exports = {
   listarSancionados,
   perdonar,
@@ -47,4 +53,5 @@ module.exports = {
   subirMiFoto,
   obtenerPerfilDeJugador,
   listarUsuarios,
+  guardarSuscripcionPush,
 };
