@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useGrupo } from '../context/GrupoContext';
+import { rutaGrupo } from '../utils/rutasGrupo';
 import { formatearFechaPartido } from '../utils/fecha';
 import ResultadoPartido from './ResultadoPartido';
 import ModalVotarValoraciones from './ModalVotarValoraciones';
 
 export default function ItemHistorialPartido({ partido }) {
   const { perfil } = useAuth();
+  const { grupoActivo } = useGrupo();
   const [expandido, setExpandido] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [elegibles, setElegibles] = useState([]);
@@ -32,8 +35,8 @@ export default function ItemHistorialPartido({ partido }) {
       setError('');
       try {
         const [{ data: datosResultado }, { data: datosFormacion }] = await Promise.all([
-          api.get(`/partidos/${partido.id}/resultado`),
-          api.get(`/partidos/${partido.id}/formacion`),
+          api.get(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/resultado`)),
+          api.get(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/formacion`)),
         ]);
         setResultado(datosResultado);
         setElegibles((datosFormacion.jugadores || []).filter((j) => j.equipo));
@@ -48,7 +51,7 @@ export default function ItemHistorialPartido({ partido }) {
   async function abrirVotacion() {
     setErrorVoto('');
     try {
-      const { data } = await api.get(`/partidos/${partido.id}/votos/mios`);
+      const { data } = await api.get(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/votos/mios`));
       setVotosPropios(data);
       setVotoAbierto(true);
     } catch (err) {
@@ -60,9 +63,9 @@ export default function ItemHistorialPartido({ partido }) {
     setVotando(true);
     setErrorVoto('');
     try {
-      await api.post(`/partidos/${partido.id}/votos`, payload);
+      await api.post(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/votos`), payload);
       setVotoAbierto(false);
-      const { data } = await api.get(`/partidos/${partido.id}/resultado`);
+      const { data } = await api.get(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/resultado`));
       setResultado(data);
     } catch (err) {
       setErrorVoto(err.message);

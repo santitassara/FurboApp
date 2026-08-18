@@ -117,8 +117,9 @@ if (!tieneGrupoId) {
   db.exec('ALTER TABLE Partidos ADD COLUMN grupoId TEXT');
 }
 
+const yaExisteAlgunGrupo = Boolean(db.prepare('SELECT id FROM Grupos LIMIT 1').get());
 const tieneRolLegado = columnasUsuariosActuales.some((columna) => columna.name === 'rol');
-if (tieneRolLegado) {
+if (tieneRolLegado && !yaExisteAlgunGrupo) {
   // Migración única de single-tenant a multi-tenant: crea un Grupo "Legado", le
   // asigna todos los Partidos existentes, y mete a todos los Usuarios existentes
   // como miembros de ese grupo con su rol/sanción actual.

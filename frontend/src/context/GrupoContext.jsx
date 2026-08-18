@@ -53,7 +53,6 @@ export function GrupoProvider({ children }) {
   async function crearGrupo(nombre) {
     const { data } = await api.post('/grupos', { nombre });
     await refrescarGrupos();
-    seleccionarGrupo(data.id);
     return data;
   }
 
