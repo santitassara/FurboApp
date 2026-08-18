@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS Usuarios (
   tocaPase INTEGER,
   gambeta INTEGER,
   marcaDefensa INTEGER,
-  fisico INTEGER
+  fisico INTEGER,
+  suscripcionPush TEXT
 );
 
 CREATE TABLE IF NOT EXISTS Grupos (
@@ -46,7 +47,8 @@ CREATE TABLE IF NOT EXISTS Partidos (
   grupoId TEXT NOT NULL REFERENCES Grupos(id),
   cupoTitulares INTEGER NOT NULL,
   cupoSuplentes INTEGER NOT NULL,
-  recordatorioEnviado INTEGER NOT NULL DEFAULT 0
+  recordatorioEnviado INTEGER NOT NULL DEFAULT 0,
+  recordatorioPostPartidoEnviado INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS Inscripciones (

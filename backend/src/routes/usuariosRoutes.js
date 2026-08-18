@@ -10,6 +10,7 @@ router.get('/', verificarToken, envolverAsync(usuariosController.listarUsuarios)
 router.patch('/me/posiciones', verificarToken, envolverAsync(usuariosController.actualizarMisPosiciones));
 router.patch('/me/perfil', verificarToken, envolverAsync(usuariosController.actualizarMiPerfil));
 router.post('/me/foto', verificarToken, subirFoto, envolverAsync(usuariosController.subirMiFoto));
+router.post('/me/suscripcion', verificarToken, envolverAsync(usuariosController.guardarSuscripcionPush));
 router.get('/:uid/perfil', verificarToken, envolverAsync(usuariosController.obtenerPerfilDeJugador));
 
 module.exports = router;

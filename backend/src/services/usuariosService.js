@@ -293,6 +293,13 @@ async function autenticarConPassword({ email, password }) {
   return filaAUsuario(usuario);
 }
 
+async function guardarSuscripcionPush(uid, suscripcion) {
+  db.prepare('UPDATE Usuarios SET suscripcionPush = ? WHERE uid = ?').run(
+    JSON.stringify(suscripcion),
+    uid
+  );
+}
+
 module.exports = {
   sincronizarUsuario,
   obtenerUsuario,
@@ -304,4 +311,5 @@ module.exports = {
   registrarConPassword,
   autenticarConPassword,
   calcularPromedioHabilidades,
+  guardarSuscripcionPush,
 };
