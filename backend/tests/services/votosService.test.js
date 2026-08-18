@@ -8,6 +8,8 @@ const partidosService = require('../../src/services/partidosService');
 const resultadosService = require('../../src/services/resultadosService');
 const votosService = require('../../src/services/votosService');
 
+const GRUPO_ID = 'grupo-1';
+
 async function crearUsuario(overrides = {}) {
   return usuariosService.sincronizarUsuario({
     uid: 'u1',
@@ -24,6 +26,7 @@ async function crearPartido(overrides = {}) {
     cupoTitulares: 2,
     cupoSuplentes: 1,
     creadoPor: admin.uid,
+    grupoId: GRUPO_ID,
     ...overrides,
   });
 }
@@ -45,7 +48,14 @@ beforeEach(() => {
   mockDb.exec('DELETE FROM Resultados');
   mockDb.exec('DELETE FROM Inscripciones');
   mockDb.exec('DELETE FROM Partidos');
+  mockDb.exec('DELETE FROM Grupos');
   mockDb.exec('DELETE FROM Usuarios');
+  mockDb
+    .prepare(
+      `INSERT INTO Grupos (id, nombre, codigoInvitacion, creadoPor, fechaCreacion)
+       VALUES (?, 'Grupo de test', 'TEST-0001', 'admin-1', '2026-01-01T00:00:00.000Z')`
+    )
+    .run(GRUPO_ID);
 });
 
 async function crearPartidoJugadoConElegibles() {
@@ -57,7 +67,7 @@ async function crearPartidoJugadoConElegibles() {
   insertarInscripcion({ id: 'i2', partidoId: partido.id, usuarioId: 'u2', tipo: 'titular', equipo: 'B' });
   insertarInscripcion({ id: 'i3', partidoId: partido.id, usuarioId: 'u3', tipo: 'titular', equipo: 'A' });
   mockDb.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE id = ?").run(partido.id);
-  await resultadosService.guardarResultado(partido.id, {});
+  await resultadosService.guardarResultado(partido.id, GRUPO_ID, {});
   return partido;
 }
 
@@ -68,7 +78,7 @@ describe('votosService.guardarVotos', () => {
     insertarInscripcion({ id: 'i1', partidoId: partido.id, usuarioId: 'u1', tipo: 'titular', equipo: 'A' });
 
     await expect(
-      votosService.guardarVotos(partido.id, 'u1', { valoraciones: [] })
+      votosService.guardarVotos(partido.id, GRUPO_ID, 'u1', { valoraciones: [] })
     ).rejects.toMatchObject({ status: 400 });
   });
 
@@ -76,7 +86,7 @@ describe('votosService.guardarVotos', () => {
     const partido = await crearPartidoJugadoConElegibles();
 
     await expect(
-      votosService.guardarVotos(partido.id, 'no-elegible', { valoraciones: [] })
+      votosService.guardarVotos(partido.id, GRUPO_ID, 'no-elegible', { valoraciones: [] })
     ).rejects.toMatchObject({ status: 403 });
   });
 
@@ -84,7 +94,7 @@ describe('votosService.guardarVotos', () => {
     const partido = await crearPartidoJugadoConElegibles();
 
     await expect(
-      votosService.guardarVotos(partido.id, 'u1', {
+      votosService.guardarVotos(partido.id, GRUPO_ID, 'u1', {
         valoraciones: [{ jugadorId: 'no-elegible', puntaje: 8 }],
       })
     ).rejects.toMatchObject({ status: 400 });
@@ -94,7 +104,7 @@ describe('votosService.guardarVotos', () => {
     const partido = await crearPartidoJugadoConElegibles();
 
     await expect(
-      votosService.guardarVotos(partido.id, 'u1', {
+      votosService.guardarVotos(partido.id, GRUPO_ID, 'u1', {
         valoraciones: [{ jugadorId: 'u1', puntaje: 8 }],
       })
     ).rejects.toMatchObject({ status: 400 });
@@ -104,7 +114,7 @@ describe('votosService.guardarVotos', () => {
     const partido = await crearPartidoJugadoConElegibles();
 
     await expect(
-      votosService.guardarVotos(partido.id, 'u1', {
+      votosService.guardarVotos(partido.id, GRUPO_ID, 'u1', {
         valoraciones: [{ jugadorId: 'u2', puntaje: 11 }],
       })
     ).rejects.toMatchObject({ status: 400 });
@@ -114,17 +124,17 @@ describe('votosService.guardarVotos', () => {
     const partido = await crearPartidoJugadoConElegibles();
 
     await expect(
-      votosService.guardarVotos(partido.id, 'u1', { valoraciones: [], mvpId: 'u1' })
+      votosService.guardarVotos(partido.id, GRUPO_ID, 'u1', { valoraciones: [], mvpId: 'u1' })
     ).rejects.toMatchObject({ status: 400 });
     await expect(
-      votosService.guardarVotos(partido.id, 'u1', { valoraciones: [], mvpId: 'no-elegible' })
+      votosService.guardarVotos(partido.id, GRUPO_ID, 'u1', { valoraciones: [], mvpId: 'no-elegible' })
     ).rejects.toMatchObject({ status: 400 });
   });
 
   it('guarda valoraciones y mvp, y los devuelve al leer mis votos', async () => {
     const partido = await crearPartidoJugadoConElegibles();
 
-    await votosService.guardarVotos(partido.id, 'u1', {
+    await votosService.guardarVotos(partido.id, GRUPO_ID, 'u1', {
       valoraciones: [
         { jugadorId: 'u2', puntaje: 8 },
         { jugadorId: 'u3', puntaje: 6 },
@@ -132,7 +142,7 @@ describe('votosService.guardarVotos', () => {
       mvpId: 'u2',
     });
 
-    const misVotos = await votosService.obtenerVotosDeVotante(partido.id, 'u1');
+    const misVotos = await votosService.obtenerVotosDeVotante(partido.id, GRUPO_ID, 'u1');
     expect(misVotos.mvpId).toBe('u2');
     expect(misVotos.valoraciones).toEqual(
       expect.arrayContaining([
@@ -145,20 +155,20 @@ describe('votosService.guardarVotos', () => {
   it('re-enviar el voto de un mismo jugador reemplaza el puntaje anterior (upsert)', async () => {
     const partido = await crearPartidoJugadoConElegibles();
 
-    await votosService.guardarVotos(partido.id, 'u1', { valoraciones: [{ jugadorId: 'u2', puntaje: 8 }] });
-    await votosService.guardarVotos(partido.id, 'u1', { valoraciones: [{ jugadorId: 'u2', puntaje: 5 }] });
+    await votosService.guardarVotos(partido.id, GRUPO_ID, 'u1', { valoraciones: [{ jugadorId: 'u2', puntaje: 8 }] });
+    await votosService.guardarVotos(partido.id, GRUPO_ID, 'u1', { valoraciones: [{ jugadorId: 'u2', puntaje: 5 }] });
 
-    const misVotos = await votosService.obtenerVotosDeVotante(partido.id, 'u1');
+    const misVotos = await votosService.obtenerVotosDeVotante(partido.id, GRUPO_ID, 'u1');
     expect(misVotos.valoraciones).toEqual([{ jugadorId: 'u2', puntaje: 5 }]);
   });
 
   it('enviar mvpId null no borra un voto mvp anterior', async () => {
     const partido = await crearPartidoJugadoConElegibles();
 
-    await votosService.guardarVotos(partido.id, 'u1', { valoraciones: [], mvpId: 'u2' });
-    await votosService.guardarVotos(partido.id, 'u1', { valoraciones: [{ jugadorId: 'u3', puntaje: 7 }] });
+    await votosService.guardarVotos(partido.id, GRUPO_ID, 'u1', { valoraciones: [], mvpId: 'u2' });
+    await votosService.guardarVotos(partido.id, GRUPO_ID, 'u1', { valoraciones: [{ jugadorId: 'u3', puntaje: 7 }] });
 
-    const misVotos = await votosService.obtenerVotosDeVotante(partido.id, 'u1');
+    const misVotos = await votosService.obtenerVotosDeVotante(partido.id, GRUPO_ID, 'u1');
     expect(misVotos.mvpId).toBe('u2');
   });
 });

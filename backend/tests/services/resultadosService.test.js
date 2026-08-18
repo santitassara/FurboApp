@@ -7,6 +7,8 @@ const usuariosService = require('../../src/services/usuariosService');
 const partidosService = require('../../src/services/partidosService');
 const resultadosService = require('../../src/services/resultadosService');
 
+const GRUPO_ID = 'grupo-1';
+
 async function crearUsuario(overrides = {}) {
   return usuariosService.sincronizarUsuario({
     uid: 'u1',
@@ -23,6 +25,7 @@ async function crearPartido(overrides = {}) {
     cupoTitulares: 2,
     cupoSuplentes: 1,
     creadoPor: admin.uid,
+    grupoId: GRUPO_ID,
     ...overrides,
   });
 }
@@ -44,7 +47,14 @@ beforeEach(() => {
   mockDb.exec('DELETE FROM Resultados');
   mockDb.exec('DELETE FROM Inscripciones');
   mockDb.exec('DELETE FROM Partidos');
+  mockDb.exec('DELETE FROM Grupos');
   mockDb.exec('DELETE FROM Usuarios');
+  mockDb
+    .prepare(
+      `INSERT INTO Grupos (id, nombre, codigoInvitacion, creadoPor, fechaCreacion)
+       VALUES (?, 'Grupo de test', 'TEST-0001', 'admin-1', '2026-01-01T00:00:00.000Z')`
+    )
+    .run(GRUPO_ID);
 });
 
 async function crearPartidoConElegibles() {
@@ -84,14 +94,14 @@ describe('resultadosService.guardarResultado', () => {
   it('rechaza con 400 si el partido está abierto', async () => {
     const partido = await crearPartidoConElegibles();
 
-    await expect(resultadosService.guardarResultado(partido.id, {})).rejects.toMatchObject({ status: 400 });
+    await expect(resultadosService.guardarResultado(partido.id, GRUPO_ID, {})).rejects.toMatchObject({ status: 400 });
   });
 
   it('rechaza con 400 si no hay elegibles (formación no guardada)', async () => {
     const partido = await crearPartido();
     mockDb.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE id = ?").run(partido.id);
 
-    await expect(resultadosService.guardarResultado(partido.id, {})).rejects.toMatchObject({ status: 400 });
+    await expect(resultadosService.guardarResultado(partido.id, GRUPO_ID, {})).rejects.toMatchObject({ status: 400 });
   });
 
   it('rechaza un gol de un jugador no elegible', async () => {
@@ -99,7 +109,7 @@ describe('resultadosService.guardarResultado', () => {
     mockDb.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE id = ?").run(partido.id);
 
     await expect(
-      resultadosService.guardarResultado(partido.id, {
+      resultadosService.guardarResultado(partido.id, GRUPO_ID, {
         goles: [{ usuarioId: 'no-elegible', equipo: 'A', minuto: 10 }],
       })
     ).rejects.toMatchObject({ status: 400 });
@@ -110,7 +120,7 @@ describe('resultadosService.guardarResultado', () => {
     mockDb.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE id = ?").run(partido.id);
 
     await expect(
-      resultadosService.guardarResultado(partido.id, {
+      resultadosService.guardarResultado(partido.id, GRUPO_ID, {
         goles: [{ usuarioId: 'u1', equipo: 'A', minuto: 5, asistenciaUsuarioId: 'u1' }],
       })
     ).rejects.toMatchObject({ status: 400 });
@@ -120,7 +130,7 @@ describe('resultadosService.guardarResultado', () => {
     const partido = await crearPartidoConElegibles();
     mockDb.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE id = ?").run(partido.id);
 
-    const resultado = await resultadosService.guardarResultado(partido.id, {
+    const resultado = await resultadosService.guardarResultado(partido.id, GRUPO_ID, {
       goles: [
         { usuarioId: 'u1', equipo: 'A', minuto: 10, asistenciaUsuarioId: 'u2' },
         { usuarioId: 'u2', equipo: 'B', minuto: 20 },
@@ -140,7 +150,7 @@ describe('resultadosService.guardarResultado', () => {
     );
     expect(resultado.jugadorDestacado).toEqual({ jugadores: [], votos: 0, totalElegibles: 2 });
 
-    const partidoActualizado = await partidosService.obtenerPartido(partido.id);
+    const partidoActualizado = await partidosService.obtenerPartido(partido.id, GRUPO_ID);
     expect(partidoActualizado.estado).toBe('jugado');
   });
 
@@ -148,10 +158,10 @@ describe('resultadosService.guardarResultado', () => {
     const partido = await crearPartidoConElegibles();
     mockDb.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE id = ?").run(partido.id);
 
-    await resultadosService.guardarResultado(partido.id, {
+    await resultadosService.guardarResultado(partido.id, GRUPO_ID, {
       goles: [{ usuarioId: 'u1', equipo: 'A', minuto: 10 }],
     });
-    const segundo = await resultadosService.guardarResultado(partido.id, {
+    const segundo = await resultadosService.guardarResultado(partido.id, GRUPO_ID, {
       goles: [{ usuarioId: 'u2', equipo: 'B', minuto: 5 }],
     });
 
@@ -164,7 +174,7 @@ describe('resultadosService.obtenerResultado', () => {
   it('devuelve null si todavía no se cargó', async () => {
     const partido = await crearPartidoConElegibles();
 
-    const resultado = await resultadosService.obtenerResultado(partido.id);
+    const resultado = await resultadosService.obtenerResultado(partido.id, GRUPO_ID);
 
     expect(resultado).toBeNull();
   });
@@ -191,11 +201,11 @@ describe('resultadosService.obtenerResultado — rendimientos y mvp votados', ()
   it('promedia los votos recibidos y marca sin votos a quien no recibió ninguno', async () => {
     const partido = await crearPartidoConElegibles();
     mockDb.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE id = ?").run(partido.id);
-    await resultadosService.guardarResultado(partido.id, {});
+    await resultadosService.guardarResultado(partido.id, GRUPO_ID, {});
     insertarVoto({ partidoId: partido.id, jugadorId: 'u1', votanteId: 'u2', puntaje: 8 });
     insertarVoto({ partidoId: partido.id, jugadorId: 'u1', votanteId: 'admin-1', puntaje: 6 });
 
-    const resultado = await resultadosService.obtenerResultado(partido.id);
+    const resultado = await resultadosService.obtenerResultado(partido.id, GRUPO_ID);
 
     expect(resultado.rendimientos).toEqual(
       expect.arrayContaining([
@@ -208,11 +218,11 @@ describe('resultadosService.obtenerResultado — rendimientos y mvp votados', ()
   it('muestra empatados como destacados cuando hay igual cantidad de votos mvp', async () => {
     const partido = await crearPartidoConElegibles();
     mockDb.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE id = ?").run(partido.id);
-    await resultadosService.guardarResultado(partido.id, {});
+    await resultadosService.guardarResultado(partido.id, GRUPO_ID, {});
     insertarVotoMvp({ partidoId: partido.id, votanteId: 'u1', jugadorId: 'u2' });
     insertarVotoMvp({ partidoId: partido.id, votanteId: 'admin-1', jugadorId: 'u1' });
 
-    const resultado = await resultadosService.obtenerResultado(partido.id);
+    const resultado = await resultadosService.obtenerResultado(partido.id, GRUPO_ID);
 
     expect(resultado.jugadorDestacado.votos).toBe(1);
     expect(resultado.jugadorDestacado.totalElegibles).toBe(2);
@@ -227,10 +237,24 @@ describe('resultadosService.obtenerResultado — rendimientos y mvp votados', ()
   it('sin votos mvp devuelve lista vacía', async () => {
     const partido = await crearPartidoConElegibles();
     mockDb.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE id = ?").run(partido.id);
-    await resultadosService.guardarResultado(partido.id, {});
+    await resultadosService.guardarResultado(partido.id, GRUPO_ID, {});
 
-    const resultado = await resultadosService.obtenerResultado(partido.id);
+    const resultado = await resultadosService.obtenerResultado(partido.id, GRUPO_ID);
 
     expect(resultado.jugadorDestacado).toEqual({ jugadores: [], votos: 0, totalElegibles: 2 });
+  });
+});
+
+describe('resultadosService.obtenerResultado — aislamiento por grupo', () => {
+  it('rechaza con 404 si el partido pertenece a otro grupo', async () => {
+    mockDb
+      .prepare(
+        `INSERT INTO Grupos (id, nombre, codigoInvitacion, creadoPor, fechaCreacion)
+         VALUES ('grupo-2', 'Otro grupo', 'TEST-0002', 'admin-1', '2026-01-01T00:00:00.000Z')`
+      )
+      .run();
+    const partido = await crearPartidoConElegibles();
+
+    await expect(resultadosService.obtenerResultado(partido.id, 'grupo-2')).rejects.toMatchObject({ status: 404 });
   });
 });

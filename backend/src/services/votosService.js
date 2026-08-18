@@ -9,8 +9,8 @@ function crearError(mensaje, status) {
   return error;
 }
 
-async function guardarVotos(partidoId, votanteId, payload = {}) {
-  const partido = await partidosService.obtenerPartido(partidoId);
+async function guardarVotos(partidoId, grupoId, votanteId, payload = {}) {
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
   if (partido.estado !== 'jugado') {
     throw crearError('El partido todavía no tiene resultado cargado', 400);
@@ -65,10 +65,13 @@ async function guardarVotos(partidoId, votanteId, payload = {}) {
   });
   guardar();
 
-  return obtenerVotosDeVotante(partidoId, votanteId);
+  return obtenerVotosDeVotante(partidoId, grupoId, votanteId);
 }
 
-async function obtenerVotosDeVotante(partidoId, votanteId) {
+async function obtenerVotosDeVotante(partidoId, grupoId, votanteId) {
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
+  if (!partido) throw crearError('Partido no encontrado', 404);
+
   const valoraciones = db
     .prepare('SELECT jugadorId, puntaje FROM RendimientosJugador WHERE partidoId = ? AND votanteId = ?')
     .all(partidoId, votanteId);

@@ -4,6 +4,8 @@ const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const usuariosRoutes = require('./routes/usuariosRoutes');
 const partidosRoutes = require('./routes/partidosRoutes');
+const usuariosGrupoRoutes = require('./routes/usuariosGrupoRoutes');
+const gruposRoutes = require('./routes/gruposRoutes');
 const manejadorErrores = require('./middlewares/manejadorErrores');
 
 const app = express();
@@ -14,7 +16,9 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuariosRoutes);
-app.use('/api/partidos', partidosRoutes);
+app.use('/api/grupos/:grupoId/partidos', partidosRoutes);
+app.use('/api/grupos/:grupoId/usuarios', usuariosGrupoRoutes);
+app.use('/api/grupos', gruposRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });

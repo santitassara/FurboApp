@@ -126,8 +126,6 @@ export function AuthProvider({ children }) {
     actualizarPosicionesPerfil,
     actualizarMiPerfil,
     subirFotoPerfil,
-    esAdmin: perfil?.rol === 'admin',
-    estaSancionado: Boolean(perfil?.estaSancionado),
   };
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;

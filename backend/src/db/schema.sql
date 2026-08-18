@@ -2,8 +2,7 @@ CREATE TABLE IF NOT EXISTS Usuarios (
   uid TEXT PRIMARY KEY,
   nombre TEXT NOT NULL,
   email TEXT NOT NULL,
-  rol TEXT NOT NULL CHECK (rol IN ('admin', 'jugador')),
-  estaSancionado INTEGER NOT NULL DEFAULT 0,
+  esSuperAdmin INTEGER NOT NULL DEFAULT 0,
   fechaCreacion TEXT NOT NULL,
   passwordHash TEXT,
   posicionPrincipal TEXT,
@@ -20,11 +19,31 @@ CREATE TABLE IF NOT EXISTS Usuarios (
   fisico INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS Grupos (
+  id TEXT PRIMARY KEY,
+  nombre TEXT NOT NULL,
+  codigoInvitacion TEXT NOT NULL UNIQUE,
+  creadoPor TEXT NOT NULL REFERENCES Usuarios(uid),
+  fechaCreacion TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS UsuariosGrupos (
+  id TEXT PRIMARY KEY,
+  grupoId TEXT NOT NULL REFERENCES Grupos(id),
+  usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
+  rol TEXT NOT NULL CHECK (rol IN ('admin', 'jugador')),
+  estaSancionado INTEGER NOT NULL DEFAULT 0,
+  fechaIngreso TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_grupos_unico ON UsuariosGrupos (grupoId, usuarioId);
+
 CREATE TABLE IF NOT EXISTS Partidos (
   id TEXT PRIMARY KEY,
   fecha TEXT NOT NULL,
   estado TEXT NOT NULL CHECK (estado IN ('abierto', 'cerrado', 'jugado')),
   creadoPor TEXT NOT NULL REFERENCES Usuarios(uid),
+  grupoId TEXT NOT NULL REFERENCES Grupos(id),
   cupoTitulares INTEGER NOT NULL,
   cupoSuplentes INTEGER NOT NULL,
   recordatorioEnviado INTEGER NOT NULL DEFAULT 0

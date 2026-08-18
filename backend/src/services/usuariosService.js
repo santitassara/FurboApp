@@ -16,7 +16,7 @@ const dummyPasswordHash = bcrypt.hashSync('dummy', 10);
 const filaAUsuario = (fila) => {
   if (!fila) return null;
   const { passwordHash, ...resto } = fila;
-  return { ...resto, estaSancionado: Boolean(fila.estaSancionado) };
+  return { ...resto, esSuperAdmin: Boolean(fila.esSuperAdmin) };
 };
 
 function normalizarVacio(valor) {
@@ -54,7 +54,7 @@ function obtenerAdminEmails() {
 }
 
 async function sincronizarUsuario({ uid, email, nombre, emailVerificado }) {
-  const esAdmin = Boolean(emailVerificado) && obtenerAdminEmails().includes((email || '').toLowerCase());
+  const esSuperAdmin = Boolean(emailVerificado) && obtenerAdminEmails().includes((email || '').toLowerCase());
   const existente = db.prepare('SELECT * FROM Usuarios WHERE uid = ?').get(uid);
 
   if (!existente) {
@@ -62,21 +62,20 @@ async function sincronizarUsuario({ uid, email, nombre, emailVerificado }) {
       uid,
       nombre,
       email,
-      rol: esAdmin ? 'admin' : 'jugador',
-      estaSancionado: false,
+      esSuperAdmin,
       fechaCreacion: new Date().toISOString(),
     };
     db.prepare(
-      `INSERT INTO Usuarios (uid, nombre, email, rol, estaSancionado, fechaCreacion)
-       VALUES (@uid, @nombre, @email, @rol, @estaSancionado, @fechaCreacion)`
-    ).run({ ...nuevoUsuario, estaSancionado: 0 });
-    return nuevoUsuario;
+      `INSERT INTO Usuarios (uid, nombre, email, esSuperAdmin, fechaCreacion)
+       VALUES (@uid, @nombre, @email, @esSuperAdmin, @fechaCreacion)`
+    ).run({ ...nuevoUsuario, esSuperAdmin: esSuperAdmin ? 1 : 0 });
+    return { ...nuevoUsuario };
   }
 
   const usuarioExistente = filaAUsuario(existente);
-  if (esAdmin && usuarioExistente.rol !== 'admin') {
-    db.prepare('UPDATE Usuarios SET rol = ? WHERE uid = ?').run('admin', uid);
-    usuarioExistente.rol = 'admin';
+  if (esSuperAdmin && !usuarioExistente.esSuperAdmin) {
+    db.prepare('UPDATE Usuarios SET esSuperAdmin = 1 WHERE uid = ?').run(uid);
+    usuarioExistente.esSuperAdmin = true;
   }
   return usuarioExistente;
 }
@@ -85,23 +84,6 @@ async function obtenerUsuario(uid) {
   return filaAUsuario(db.prepare('SELECT * FROM Usuarios WHERE uid = ?').get(uid));
 }
 
-async function listarSancionados() {
-  return db.prepare('SELECT * FROM Usuarios WHERE estaSancionado = 1').all().map(filaAUsuario);
-}
-
-async function perdonarSancion(uid) {
-  const existente = db.prepare('SELECT uid FROM Usuarios WHERE uid = ?').get(uid);
-  if (!existente) {
-    const error = new Error('Usuario no encontrado');
-    error.status = 404;
-    throw error;
-  }
-  db.prepare('UPDATE Usuarios SET estaSancionado = 0 WHERE uid = ?').run(uid);
-}
-
-async function sancionar(uid) {
-  db.prepare('UPDATE Usuarios SET estaSancionado = 1 WHERE uid = ?').run(uid);
-}
 
 async function actualizarPosiciones(uid, { posicionPrincipal, posicionSecundaria } = {}) {
   if (!sonPosicionesValidas(posicionPrincipal, posicionSecundaria)) {
@@ -280,14 +262,12 @@ async function registrarConPassword({ nombre, email, password }) {
       uid: crypto.randomUUID(),
       nombre: String(nombre).trim(),
       email: emailNormalizado,
-      rol: 'jugador',
-      estaSancionado: false,
       fechaCreacion: new Date().toISOString(),
     };
     db.prepare(
-      `INSERT INTO Usuarios (uid, nombre, email, rol, estaSancionado, fechaCreacion, passwordHash)
-       VALUES (@uid, @nombre, @email, @rol, @estaSancionado, @fechaCreacion, @passwordHash)`
-    ).run({ ...nuevoUsuario, estaSancionado: 0, passwordHash });
+      `INSERT INTO Usuarios (uid, nombre, email, fechaCreacion, passwordHash)
+       VALUES (@uid, @nombre, @email, @fechaCreacion, @passwordHash)`
+    ).run({ ...nuevoUsuario, passwordHash });
     return { ...nuevoUsuario, passwordHash };
   })();
 
@@ -316,9 +296,6 @@ async function autenticarConPassword({ email, password }) {
 module.exports = {
   sincronizarUsuario,
   obtenerUsuario,
-  listarSancionados,
-  perdonarSancion,
-  sancionar,
   actualizarPosiciones,
   actualizarPerfil,
   obtenerPerfilPublico,

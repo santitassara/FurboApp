@@ -12,23 +12,24 @@ const AHORA = Date.now();
 const EN_UNA_HORA = new Date(AHORA + 60 * 60 * 1000).toISOString();
 const EN_TRES_HORAS = new Date(AHORA + 3 * 60 * 60 * 1000).toISOString();
 const HACE_UNA_HORA = new Date(AHORA - 60 * 60 * 1000).toISOString();
+const GRUPO_ID = 'grupo-1';
 
 function insertarUsuario(uid, nombre, email) {
   mockDb
     .prepare(
-      `INSERT INTO Usuarios (uid, nombre, email, rol, estaSancionado, fechaCreacion)
-       VALUES (?, ?, ?, 'jugador', 0, '2026-01-01T00:00:00.000Z')`
+      `INSERT INTO Usuarios (uid, nombre, email, fechaCreacion)
+       VALUES (?, ?, ?, '2026-01-01T00:00:00.000Z')`
     )
     .run(uid, nombre, email);
 }
 
-function insertarPartido(id, fecha, recordatorioEnviado = 0) {
+function insertarPartido(id, fecha, grupoId, recordatorioEnviado = 0) {
   mockDb
     .prepare(
-      `INSERT INTO Partidos (id, fecha, estado, creadoPor, cupoTitulares, cupoSuplentes, recordatorioEnviado)
-       VALUES (?, ?, 'abierto', 'admin-1', 10, 5, ?)`
+      `INSERT INTO Partidos (id, fecha, estado, creadoPor, grupoId, cupoTitulares, cupoSuplentes, recordatorioEnviado)
+       VALUES (?, ?, 'abierto', 'admin-1', ?, 10, 5, ?)`
     )
-    .run(id, fecha, recordatorioEnviado);
+    .run(id, fecha, grupoId, recordatorioEnviado);
 }
 
 function insertarInscripcion(id, partidoId, usuarioId, tipo, equipo = null) {
@@ -43,8 +44,16 @@ function insertarInscripcion(id, partidoId, usuarioId, tipo, equipo = null) {
 beforeEach(() => {
   mockDb.exec('DELETE FROM Inscripciones');
   mockDb.exec('DELETE FROM Partidos');
+  mockDb.exec('DELETE FROM UsuariosGrupos');
+  mockDb.exec('DELETE FROM Grupos');
   mockDb.exec('DELETE FROM Usuarios');
   insertarUsuario('admin-1', 'Admin Uno', 'admin@mail.com');
+  mockDb
+    .prepare(
+      `INSERT INTO Grupos (id, nombre, codigoInvitacion, creadoPor, fechaCreacion)
+       VALUES (?, 'Grupo de test', 'TEST-0001', 'admin-1', '2026-01-01T00:00:00.000Z')`
+    )
+    .run(GRUPO_ID);
   mockEnviarMail.mockClear();
   mockEnviarMail.mockResolvedValue(undefined);
 });
@@ -53,7 +62,7 @@ describe('recordatoriosService.enviarRecordatoriosPendientes', () => {
   it('envía un mail por titular y marca el partido como procesado', async () => {
     insertarUsuario('u1', 'Juan', 'juan@mail.com');
     insertarUsuario('u2', 'Pedro', 'pedro@mail.com');
-    insertarPartido('p1', EN_UNA_HORA);
+    insertarPartido('p1', EN_UNA_HORA, GRUPO_ID);
     insertarInscripcion('i1', 'p1', 'u1', 'titular', 'A');
     insertarInscripcion('i2', 'p1', 'u2', 'titular', 'B');
 
@@ -73,7 +82,7 @@ describe('recordatoriosService.enviarRecordatoriosPendientes', () => {
   });
 
   it('no envía nada pero marca el partido si no hay titulares', async () => {
-    insertarPartido('p2', EN_UNA_HORA);
+    insertarPartido('p2', EN_UNA_HORA, GRUPO_ID);
 
     await recordatoriosService.enviarRecordatoriosPendientes();
 
@@ -84,7 +93,7 @@ describe('recordatoriosService.enviarRecordatoriosPendientes', () => {
 
   it('ignora partidos ya marcados como procesados', async () => {
     insertarUsuario('u1', 'Juan', 'juan@mail.com');
-    insertarPartido('p3', EN_UNA_HORA, 1);
+    insertarPartido('p3', EN_UNA_HORA, GRUPO_ID, 1);
     insertarInscripcion('i1', 'p3', 'u1', 'titular');
 
     await recordatoriosService.enviarRecordatoriosPendientes();
@@ -94,8 +103,8 @@ describe('recordatoriosService.enviarRecordatoriosPendientes', () => {
 
   it('ignora partidos fuera de la ventana de 1 hora', async () => {
     insertarUsuario('u1', 'Juan', 'juan@mail.com');
-    insertarPartido('p4', EN_TRES_HORAS);
-    insertarPartido('p5', HACE_UNA_HORA);
+    insertarPartido('p4', EN_TRES_HORAS, GRUPO_ID);
+    insertarPartido('p5', HACE_UNA_HORA, GRUPO_ID);
     insertarInscripcion('i1', 'p4', 'u1', 'titular');
     insertarInscripcion('i2', 'p5', 'u1', 'titular');
 
@@ -107,7 +116,7 @@ describe('recordatoriosService.enviarRecordatoriosPendientes', () => {
   it('escapa HTML en el nombre de un compañero antes de interpolarlo en el mail', async () => {
     insertarUsuario('u1', 'Juan', 'juan@mail.com');
     insertarUsuario('u2', '<img src=x onerror=alert(1)>', 'atacante@mail.com');
-    insertarPartido('p7', EN_UNA_HORA);
+    insertarPartido('p7', EN_UNA_HORA, GRUPO_ID);
     insertarInscripcion('i1', 'p7', 'u1', 'titular', 'A');
     insertarInscripcion('i2', 'p7', 'u2', 'titular', 'B');
 
@@ -121,7 +130,7 @@ describe('recordatoriosService.enviarRecordatoriosPendientes', () => {
   it('sigue enviando a los demás titulares si un envío individual falla', async () => {
     insertarUsuario('u1', 'Juan', 'juan@mail.com');
     insertarUsuario('u2', 'Pedro', 'pedro@mail.com');
-    insertarPartido('p6', EN_UNA_HORA);
+    insertarPartido('p6', EN_UNA_HORA, GRUPO_ID);
     insertarInscripcion('i1', 'p6', 'u1', 'titular');
     insertarInscripcion('i2', 'p6', 'u2', 'titular');
     mockEnviarMail.mockImplementation(({ to }) => {
