@@ -88,6 +88,7 @@ class InstallAppPrompt {
     const { outcome } = await this.deferredPrompt.userChoice;
 
     if (outcome === 'accepted') {
+      localStorage.setItem('furbo-app-installed', 'true');
       this.hideAndroidButton();
       this.clearDismissal('android');
     } else {
