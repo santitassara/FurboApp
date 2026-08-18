@@ -3,6 +3,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useGrupo } from '../context/GrupoContext';
 import { rutaGrupo } from '../utils/rutasGrupo';
+import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import TarjetaPartido from '../components/TarjetaPartido';
 import MapaCancha from '../components/MapaCancha';
 import ModalConfirmacionSancion from '../components/ModalConfirmacionSancion';
@@ -12,6 +13,7 @@ import PartidoConEstado from '../components/PartidoConEstado';
 export default function Home() {
   const { perfil, actualizarPosicionesPerfil } = useAuth();
   const { grupoActivo, refrescarGrupos } = useGrupo();
+  const { canInstall, triggerInstall } = useInstallPrompt();
   const [partidos, setPartidos] = useState([]);
   const [inscripcionesPorPartido, setInscripcionesPorPartido] = useState({});
   const [formacionesPorPartido, setFormacionesPorPartido] = useState({});
@@ -127,9 +129,34 @@ export default function Home() {
 
   return (
     <div className="mx-auto flex flex-col gap-6">
-      <header>
-        <h1 className="font-display text-4xl leading-none text-white">Próximos partidos</h1>
-        <p className="mt-1 text-sm text-white/60">Hola, {perfil?.nombre}</p>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-4xl leading-none text-white">Próximos partidos</h1>
+          <p className="mt-1 text-sm text-white/60">Hola, {perfil?.nombre}</p>
+        </div>
+        {canInstall && (
+          <button
+            onClick={triggerInstall}
+            className="mt-1 flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#667eea] to-[#764ba2] px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-95"
+            aria-label="Instalar aplicación"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Instalar como App
+          </button>
+        )}
       </header>
 
       {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}

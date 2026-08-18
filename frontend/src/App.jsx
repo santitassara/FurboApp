@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useGrupo } from './context/GrupoContext';
 import Login from './pages/Login';
@@ -13,10 +14,19 @@ import RutaPrivada from './components/RutaPrivada';
 import RutaAdmin from './components/RutaAdmin';
 import Layout from './components/Layout';
 import Boton from './components/Boton';
+import InstallAppPrompt from './components/InstallAppPrompt';
+import './components/InstallAppPrompt.css';
 
 export default function App() {
   const { perfil, cargando, errorAuth, cerrarSesion } = useAuth();
   const { grupoActivo, cargandoGrupos } = useGrupo();
+
+  useEffect(() => {
+    window.__furboInstallPrompt = new InstallAppPrompt({
+      dismissDaysAndroid: 7,
+      dismissDaysIos: 7,
+    });
+  }, []);
 
   if (cargando) {
     return <div className="flex min-h-screen items-center justify-center text-white/70">Cargando…</div>;
