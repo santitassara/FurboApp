@@ -63,6 +63,15 @@ export function GrupoProvider({ children }) {
     return data;
   }
 
+  async function abandonarGrupo(grupoId) {
+    await api.delete(`/grupos/${grupoId}/abandonar`);
+    if (grupoActivoId === grupoId) {
+      setGrupoActivoId(null);
+      localStorage.removeItem(GRUPO_ACTIVO_KEY);
+    }
+    await refrescarGrupos();
+  }
+
   const grupoActivo = misGrupos.find((grupo) => grupo.id === grupoActivoId) || null;
 
   const valor = {
@@ -73,6 +82,7 @@ export function GrupoProvider({ children }) {
     seleccionarGrupo,
     crearGrupo,
     unirseAGrupo,
+    abandonarGrupo,
     refrescarGrupos,
   };
 
