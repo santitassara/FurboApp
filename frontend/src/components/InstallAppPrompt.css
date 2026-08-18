@@ -1,0 +1,177 @@
+/* Install App Prompt Styles */
+
+.install-prompt-container {
+  position: fixed;
+  z-index: 9999;
+}
+
+/* Android Button */
+.install-app-button-android {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+  font-family: inherit;
+
+  @media (max-width: 768px) {
+    bottom: 16px;
+    right: 16px;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+}
+
+.install-app-button-android:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.install-app-button-android:active {
+  transform: translateY(0);
+}
+
+.install-app-button-android svg {
+  width: 18px;
+  height: 18px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* iOS Banner - Bottom Sheet */
+.install-app-banner-ios {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.1);
+  z-index: 9999;
+  animation: slideUpIos 0.3s ease-out forwards;
+  padding: 0;
+
+  @media (prefers-color-scheme: dark) {
+    background: #1a1a1a;
+    box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.5);
+  }
+}
+
+@keyframes slideUpIos {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.install-app-banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  gap: 12px;
+
+  @media (max-width: 480px) {
+    padding: 16px;
+  }
+}
+
+.install-app-banner-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.install-app-banner-text strong {
+  font-size: 16px;
+  font-weight: 700;
+  color: #000;
+
+  @media (prefers-color-scheme: dark) {
+    color: #fff;
+  }
+}
+
+.install-app-banner-text p {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+  line-height: 1.4;
+
+  @media (prefers-color-scheme: dark) {
+    color: #aaa;
+  }
+}
+
+.install-app-banner-close {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s ease;
+  padding: 0;
+  border-radius: 8px;
+
+  @media (prefers-color-scheme: dark) {
+    color: #aaa;
+  }
+}
+
+.install-app-banner-close:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #000;
+
+  @media (prefers-color-scheme: dark) {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+}
+
+.install-app-banner-close:active {
+  transform: scale(0.95);
+}
+
+.install-app-banner-close svg {
+  width: 24px;
+  height: 24px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Safe area support */
+@supports (padding: max(0px)) {
+  .install-app-button-android {
+    bottom: max(20px, env(safe-area-inset-bottom));
+    right: max(20px, env(safe-area-inset-right));
+  }
+
+  .install-app-banner-ios {
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+
+  .install-app-banner-content {
+    padding-bottom: max(20px, calc(20px + env(safe-area-inset-bottom)));
+  }
+}
