@@ -1,12 +1,29 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import Boton from './Boton';
 import { useGrupo } from '../context/GrupoContext';
 
 export default function SelectorGrupoActivo() {
-  const { misGrupos, grupoActivo, seleccionarGrupo } = useGrupo();
+  const { misGrupos, grupoActivo, seleccionarGrupo, abandonarGrupo } = useGrupo();
   const [abierto, setAbierto] = useState(false);
+  const [procesando, setProcesando] = useState(false);
+  const [error, setError] = useState('');
 
   if (!grupoActivo) return null;
+
+  async function manejarAbandonar() {
+    if (!window.confirm(`¿Abandonar "${grupoActivo.nombre}"? Esta acción no se puede deshacer.`)) return;
+    setError('');
+    setProcesando(true);
+    try {
+      await abandonarGrupo(grupoActivo.id);
+      setAbierto(false);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setProcesando(false);
+    }
+  }
 
   return (
     <div className="relative px-2">
@@ -42,6 +59,20 @@ export default function SelectorGrupoActivo() {
               Crear o unirme a otro grupo
             </Link>
           </li>
+          <li className="border-t border-white/10">
+            <button
+              onClick={manejarAbandonar}
+              disabled={procesando}
+              className="block w-full px-3 py-2 text-left text-sm text-sancion hover:bg-sancion/10"
+            >
+              {procesando ? 'Abandonando…' : 'Abandonar grupo'}
+            </button>
+          </li>
+          {error && (
+            <li className="px-3 py-2">
+              <p className="text-xs text-sancion">{error}</p>
+            </li>
+          )}
         </ul>
       )}
     </div>

@@ -18,4 +18,10 @@ async function listarMios(req, res) {
   res.json(grupos);
 }
 
-module.exports = { crear, unirse, listarMios };
+async function abandonar(req, res) {
+  const { grupoId } = req.params;
+  await gruposService.abandonarGrupo(grupoId, req.usuario.uid);
+  res.status(204).send();
+}
+
+module.exports = { crear, unirse, listarMios, abandonar };

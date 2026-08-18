@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Boton from './Boton';
 import { useGrupo } from '../context/GrupoContext';
 
 export default function CrearGrupoForm() {
+  const navigate = useNavigate();
   const { crearGrupo, seleccionarGrupo } = useGrupo();
   const [nombre, setNombre] = useState('');
   const [procesando, setProcesando] = useState(false);
@@ -48,7 +50,10 @@ export default function CrearGrupoForm() {
             {copiado ? 'Copiado ✓' : 'Copiar'}
           </Boton>
         </div>
-        <Boton type="button" onClick={() => seleccionarGrupo(grupoCreado.id)}>
+        <Boton type="button" onClick={() => {
+          seleccionarGrupo(grupoCreado.id);
+          navigate('/inicio');
+        }}>
           Continuar
         </Boton>
       </div>

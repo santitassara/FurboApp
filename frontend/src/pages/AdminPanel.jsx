@@ -166,11 +166,16 @@ export default function AdminPanel() {
     <div className="mx-auto flex max-w-3xl flex-col gap-8">
       <h1 className="font-display text-4xl leading-none text-white">Panel de admin</h1>
 
+      <div className="rounded-xl border border-white/10 bg-cancha-800 p-5">
+        <p className="text-sm text-white/70 mb-2">Comparte el código para que se unan al grupo:</p>
+        <p className="font-mono text-2xl font-bold text-pasto-400">{grupoActivo?.codigoInvitacion}</p>
+      </div>
+
       {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
       {mensaje && <p className="rounded-lg bg-pasto-600/20 px-4 py-2 text-sm text-pasto-500">{mensaje}</p>}
 
       <section className="rounded-xl border border-white/10 bg-cancha-800 p-5">
-        <h2 className="mb-4 text-lg font-bold text-white">Crear partido</h2>
+        <h2 className="mb-4 text-lg font-bold text-white">Crear partido para {grupoActivo.nombre}</h2>
         <form onSubmit={crearPartido} className="flex flex-col gap-4 sm:flex-row sm:items-end">
           <label className="flex flex-1 flex-col gap-1 text-sm text-white/70">
             Fecha y hora

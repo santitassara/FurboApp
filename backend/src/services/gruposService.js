@@ -125,6 +125,25 @@ async function listarSancionados(grupoId) {
     .all(grupoId);
 }
 
+async function abandonarGrupo(grupoId, usuarioId) {
+  const miembro = obtenerMembresiaSync(grupoId, usuarioId);
+  if (!miembro) throw crearError('El usuario no pertenece a este grupo', 404);
+
+  const abandonar = db.transaction(() => {
+    db.prepare('DELETE FROM UsuariosGrupos WHERE grupoId = ? AND usuarioId = ?').run(grupoId, usuarioId);
+
+    const miembrosRestantes = db.prepare('SELECT COUNT(*) as count FROM UsuariosGrupos WHERE grupoId = ?').get(grupoId);
+
+    if (miembrosRestantes.count === 0) {
+      db.prepare('DELETE FROM Inscripciones WHERE partidoId IN (SELECT id FROM Partidos WHERE grupoId = ?)').run(grupoId);
+      db.prepare('DELETE FROM Partidos WHERE grupoId = ?').run(grupoId);
+      db.prepare('DELETE FROM Grupos WHERE id = ?').run(grupoId);
+    }
+  });
+
+  abandonar();
+}
+
 module.exports = {
   crearGrupo,
   unirseAGrupo,
@@ -133,4 +152,5 @@ module.exports = {
   sancionar,
   perdonarSancion,
   listarSancionados,
+  abandonarGrupo,
 };
