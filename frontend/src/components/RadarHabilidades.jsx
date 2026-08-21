@@ -1,9 +1,21 @@
-import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Label } from 'recharts';
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
 
 const CustomRadarLabel = (props) => {
-  const { x, y, value } = props;
+  const { x, y, value, cx, cy } = props;
+  // Posicionar el label dentro del polígono (60% de distancia desde centro hacia punta)
+  const offsetX = cx + (x - cx) * 0.6;
+  const offsetY = cy + (y - cy) * 0.6;
+
   return (
-    <text x={x} y={y} fill="rgba(255, 255, 255, 0.9)" textAnchor="middle" dominantBaseline="middle" fontSize="14" fontWeight="600">
+    <text
+      x={offsetX}
+      y={offsetY}
+      fill="rgba(255, 255, 255, 0.85)"
+      textAnchor="middle"
+      dominantBaseline="middle"
+      fontSize="16"
+      fontWeight="700"
+    >
       {value}
     </text>
   );
