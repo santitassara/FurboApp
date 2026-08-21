@@ -8,6 +8,7 @@ import {
   ETIQUETAS_LINEA,
   ORDEN_LINEAS_CAMPO,
   listarFormaciones,
+  normalizarAutomatico,
 } from '../utils/formaciones';
 import { useGrupo } from '../context/GrupoContext';
 import { rutaGrupo } from '../utils/rutasGrupo';
@@ -18,6 +19,12 @@ function claveUbicacion(equipo, linea, ordenLinea) {
 
 function ordenarLineas(lineas) {
   return [...lineas].sort((a, b) => ORDEN_LINEAS_CAMPO.indexOf(a.key) - ORDEN_LINEAS_CAMPO.indexOf(b.key));
+}
+
+// Forma canónica de un arreglo de líneas, para comparar si dos selecciones representan
+// la misma forma (mismas keys y cantidades) más allá del orden de referencia de objetos.
+function serializarLineas(lineas) {
+  return JSON.stringify((lineas || []).map(({ key, cantidad }) => ({ key, cantidad })));
 }
 
 // Deriva la forma del equipo a partir de lo que ya está ubicado en el mapa
@@ -89,7 +96,10 @@ function Asiento({ equipo, linea, ordenLinea, jugador, draggable }) {
 
 function Columna({ equipo, linea, cupo, jugadores, draggable }) {
   const jugadorPorOrden = new Map(jugadores.map((jugador) => [jugador.ordenLinea, jugador]));
-  const asientos = Array.from({ length: cupo }, (_, ordenLinea) => jugadorPorOrden.get(ordenLinea) || null);
+  // Nunca menos asientos que jugadores ya ubicados en esta columna: si por alguna razón
+  // hay más jugadores que el cupo de la formación, igual deben poder renderizarse.
+  const cupoEfectivo = Math.max(cupo, jugadores.length);
+  const asientos = Array.from({ length: cupoEfectivo }, (_, ordenLinea) => jugadorPorOrden.get(ordenLinea) || null);
 
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1 self-stretch py-3 sm:gap-3">
@@ -111,7 +121,9 @@ function MitadCancha({ equipo, estructura, ubicaciones, draggable }) {
   const columnas = [{ key: 'arquero', cantidad: 1 }, ...estructura];
   const ordenadas = equipo === 'A' ? columnas : [...columnas].reverse();
 
-  if (estructura.length === 0) {
+  const hayArqueroUbicado = ubicaciones.some((u) => u.equipo === equipo && u.linea === 'arquero');
+
+  if (estructura.length === 0 && !hayArqueroUbicado) {
     return (
       <div className="flex min-w-0 flex-1 items-center justify-center px-2 py-4 text-center text-xs text-white/40">
         Elegí una formación para armar este equipo.
@@ -131,10 +143,33 @@ function MitadCancha({ equipo, estructura, ubicaciones, draggable }) {
   );
 }
 
+// Dado el conjunto de keys ya usadas por OTRAS líneas, devuelve las keys que una línea
+// puede tomar sin duplicar ninguna y sin mezclar "medio" con "medioContencion"/"medioOfensivo".
+function keysCompatibles(keysDeOtrasLineas) {
+  const tieneMedio = keysDeOtrasLineas.includes('medio');
+  const tieneSplit = keysDeOtrasLineas.some((k) => k === 'medioContencion' || k === 'medioOfensivo');
+  return ORDEN_LINEAS_CAMPO.filter((key) => {
+    if (keysDeOtrasLineas.includes(key)) return false;
+    if (key === 'medio' && tieneSplit) return false;
+    if ((key === 'medioContencion' || key === 'medioOfensivo') && tieneMedio) return false;
+    return true;
+  });
+}
+
+// Una selección "Libre" es inválida sólo cuando la suma de sus líneas no cubre
+// exactamente los jugadores de campo del equipo. Automático y catálogo siempre son válidos.
+function seleccionLibreEsInvalida(seleccion, jugadoresDeCampo) {
+  if (seleccion.codigo !== CODIGO_LIBRE) return false;
+  const suma = (seleccion.lineas || []).reduce((acc, l) => acc + l.cantidad, 0);
+  return suma !== jugadoresDeCampo;
+}
+
 function SelectorFormacion({ etiqueta, cantidadJugadores, seleccion, onCambiar, disabled }) {
   const opciones = listarFormaciones(cantidadJugadores);
   const jugadoresDeCampo = cantidadJugadores - 1;
   const sumaLibre = (seleccion.lineas || []).reduce((acc, l) => acc + l.cantidad, 0);
+  const puedeAgregarLinea =
+    seleccion.lineas.length < 4 && keysCompatibles(seleccion.lineas.map((l) => l.key)).length > 0;
 
   function actualizarLineaLibre(indice, delta) {
     const lineas = [...seleccion.lineas];
@@ -142,13 +177,16 @@ function SelectorFormacion({ etiqueta, cantidadJugadores, seleccion, onCambiar, 
     onCambiar({ codigo: CODIGO_LIBRE, lineas });
   }
 
+  function cambiarKeyLinea(indice, nuevaKey) {
+    const lineas = seleccion.lineas.map((l, i) => (i === indice ? { ...l, key: nuevaKey } : l));
+    onCambiar({ codigo: CODIGO_LIBRE, lineas });
+  }
+
   function agregarLineaLibre() {
     if (seleccion.lineas.length >= 4) return;
-    const disponibles = ORDEN_LINEAS_CAMPO.filter(
-      (key) => key !== 'medio' && !seleccion.lineas.some((l) => l.key === key)
-    );
-    const siguienteKey = seleccion.lineas.length === 0 ? 'defensa' : disponibles[0] || 'delantero';
-    onCambiar({ codigo: CODIGO_LIBRE, lineas: [...seleccion.lineas, { key: siguienteKey, cantidad: 1 }] });
+    const disponibles = keysCompatibles(seleccion.lineas.map((l) => l.key));
+    if (disponibles.length === 0) return;
+    onCambiar({ codigo: CODIGO_LIBRE, lineas: [...seleccion.lineas, { key: disponibles[0], cantidad: 1 }] });
   }
 
   function quitarLineaLibre(indice) {
@@ -178,30 +216,55 @@ function SelectorFormacion({ etiqueta, cantidadJugadores, seleccion, onCambiar, 
             {formacion.codigo} — {formacion.nombre}
           </option>
         ))}
-        <option value={CODIGO_LIBRE}>Libre</option>
+        {jugadoresDeCampo >= 2 && <option value={CODIGO_LIBRE}>Libre</option>}
       </select>
 
       {seleccion.codigo === CODIGO_LIBRE && (
         <div className="rounded-lg bg-cancha-800 p-2 text-xs text-white/80">
-          {seleccion.lineas.map((linea, indice) => (
-            <div key={indice} className="mb-1 flex items-center justify-between gap-2">
-              <span>{ETIQUETAS_LINEA[linea.key]}</span>
-              <div className="flex items-center gap-2">
-                <button type="button" disabled={disabled} onClick={() => actualizarLineaLibre(indice, -1)}>
-                  -
-                </button>
-                <span>{linea.cantidad}</span>
-                <button type="button" disabled={disabled} onClick={() => actualizarLineaLibre(indice, 1)}>
-                  +
-                </button>
-                <button type="button" disabled={disabled} onClick={() => quitarLineaLibre(indice)}>
-                  ×
-                </button>
+          {seleccion.lineas.map((linea, indice) => {
+            const opcionesLinea = keysCompatibles(
+              seleccion.lineas.filter((_, i) => i !== indice).map((l) => l.key)
+            );
+            return (
+              <div key={indice} className="mb-1 flex items-center justify-between gap-2">
+                <select
+                  className="rounded bg-cancha-700 px-1 py-0.5 text-xs text-white"
+                  value={linea.key}
+                  disabled={disabled}
+                  onChange={(evento) => cambiarKeyLinea(indice, evento.target.value)}
+                >
+                  {opcionesLinea.map((key) => (
+                    <option key={key} value={key}>
+                      {ETIQUETAS_LINEA[key]}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex items-center gap-2">
+                  <button type="button" disabled={disabled} onClick={() => actualizarLineaLibre(indice, -1)}>
+                    -
+                  </button>
+                  <span>{linea.cantidad}</span>
+                  <button type="button" disabled={disabled} onClick={() => actualizarLineaLibre(indice, 1)}>
+                    +
+                  </button>
+                  <button
+                    type="button"
+                    disabled={disabled || seleccion.lineas.length <= 2}
+                    onClick={() => quitarLineaLibre(indice)}
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <div className="mt-1 flex items-center justify-between">
-            <button type="button" disabled={disabled} onClick={agregarLineaLibre} className="underline">
+            <button
+              type="button"
+              disabled={disabled || !puedeAgregarLinea}
+              onClick={agregarLineaLibre}
+              className="underline"
+            >
               + línea
             </button>
             <span className={sumaLibre === jugadoresDeCampo ? 'text-pasto-500' : 'text-sancion'}>
@@ -251,25 +314,48 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
     );
   }
 
+  // "Automático" no tiene preview antes de generar: si el equipo ya tiene jugadores ubicados
+  // (p.ej. tras recargar la página con una formación guardada), se preserva ese layout real.
+  // Si no tiene ninguno (p.ej. justo después de cambiar la selección a Automático), se usa un
+  // reparto parejo sintético como preview/borrador para que el tablero no quede sin asientos.
   const estructuraA =
     seleccionA.codigo === CODIGO_AUTOMATICO
-      ? estructuraDesdeUbicaciones(ubicaciones, 'A')
+      ? ubicaciones.some((j) => j.equipo === 'A')
+        ? estructuraDesdeUbicaciones(ubicaciones, 'A')
+        : ordenarLineas(normalizarAutomatico(formacion.cupoPorEquipo.A))
       : seleccionA.codigo === CODIGO_LIBRE
         ? ordenarLineas(seleccionA.lineas)
         : ordenarLineas(listarFormaciones(formacion.cupoPorEquipo.A).find((f) => f.codigo === seleccionA.codigo)?.lineas || []);
   const estructuraB =
     seleccionB.codigo === CODIGO_AUTOMATICO
-      ? estructuraDesdeUbicaciones(ubicaciones, 'B')
+      ? ubicaciones.some((j) => j.equipo === 'B')
+        ? estructuraDesdeUbicaciones(ubicaciones, 'B')
+        : ordenarLineas(normalizarAutomatico(formacion.cupoPorEquipo.B))
       : seleccionB.codigo === CODIGO_LIBRE
         ? ordenarLineas(seleccionB.lineas)
         : ordenarLineas(listarFormaciones(formacion.cupoPorEquipo.B).find((f) => f.codigo === seleccionB.codigo)?.lineas || []);
 
   const sinUbicar = ubicaciones.filter((jugador) => !jugador.equipo);
 
+  const jugadoresDeCampoA = formacion.cupoPorEquipo.A - 1;
+  const jugadoresDeCampoB = formacion.cupoPorEquipo.B - 1;
+  const seleccionInvalida =
+    seleccionLibreEsInvalida(seleccionA, jugadoresDeCampoA) || seleccionLibreEsInvalida(seleccionB, jugadoresDeCampoB);
+
   function cambiarSeleccion(equipo, nuevaSeleccion) {
+    const seleccionAnterior = equipo === 'A' ? seleccionA : seleccionB;
     const setSeleccion = equipo === 'A' ? setSeleccionA : setSeleccionB;
     setSeleccion(nuevaSeleccion);
-    // Cambiar de formación invalida las ubicaciones actuales de ese equipo: vuelven a "sin ubicar".
+
+    // Sólo se limpian las ubicaciones del equipo si la forma realmente cambió: un +/- de Libre
+    // que no modifica ninguna cantidad (p.ej. "-" en una línea ya en su piso de 1) no debe
+    // desarmar lo que el admin ya acomodó. Cambiar de código (Automático/catálogo/Libre)
+    // siempre se considera un cambio real de forma.
+    const mismaForma =
+      seleccionAnterior.codigo === nuevaSeleccion.codigo &&
+      serializarLineas(seleccionAnterior.lineas) === serializarLineas(nuevaSeleccion.lineas);
+    if (mismaForma) return;
+
     setUbicaciones((anterior) =>
       anterior.map((jugador) =>
         jugador.equipo === equipo ? { ...jugador, equipo: null, linea: null, ordenLinea: null } : jugador
@@ -391,11 +477,16 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
             variante="ghost"
             className="mt-4 w-full"
             onClick={generarAutomaticamente}
-            disabled={generando || guardando}
+            disabled={generando || guardando || seleccionInvalida}
           >
             {generando ? 'Generando…' : 'Generar equipos automáticos'}
           </Boton>
-          <Boton variante="primario" className="mt-2 w-full" onClick={guardar} disabled={guardando}>
+          <Boton
+            variante="primario"
+            className="mt-2 w-full"
+            onClick={guardar}
+            disabled={guardando || seleccionInvalida}
+          >
             {guardando ? 'Guardando…' : 'Guardar formación'}
           </Boton>
         </>

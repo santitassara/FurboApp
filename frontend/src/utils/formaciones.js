@@ -101,3 +101,26 @@ export const FORMACIONES_POR_CANTIDAD = {
 export function listarFormaciones(cantidadJugadores) {
   return FORMACIONES_POR_CANTIDAD[cantidadJugadores] || [];
 }
+
+// Espejo exacto de generarLineas (backend/src/utils/formacion.js) sin la línea de arquero,
+// combinado con normalizarAutomatico (backend/src/data/formaciones.js).
+function generarLineasAutomatico(cantidadJugadores) {
+  if (cantidadJugadores <= 0) return { defensa: 0, medio: 0, delantero: 0 };
+  if (cantidadJugadores === 1) return { defensa: 0, medio: 0, delantero: 0 };
+  const resto = cantidadJugadores - 1;
+  const base = Math.floor(resto / 3);
+  const extra = resto % 3;
+  const lineas = { defensa: base, medio: base, delantero: base };
+  const ordenReparto = ['medio', 'defensa', 'delantero'];
+  for (let i = 0; i < extra; i++) lineas[ordenReparto[i]]++;
+  return lineas;
+}
+
+export function normalizarAutomatico(cantidadJugadores) {
+  const { defensa, medio, delantero } = generarLineasAutomatico(cantidadJugadores);
+  return [
+    { key: 'defensa', cantidad: defensa },
+    { key: 'medio', cantidad: medio },
+    { key: 'delantero', cantidad: delantero },
+  ].filter((linea) => linea.cantidad > 0);
+}

@@ -136,7 +136,7 @@ function eliminarPorPartido(partidoId) {
   db.prepare('DELETE FROM Inscripciones WHERE partidoId = ?').run(partidoId);
 }
 
-const { resolverLineas, capacidadBroad, TODAS_LAS_LINEAS, CODIGO_AUTOMATICO } = require('../data/formaciones');
+const { resolverLineas, capacidadBroad, TODAS_LAS_LINEAS, CODIGO_AUTOMATICO, LINEAS_CAMPO } = require('../data/formaciones');
 
 function derivarLineasEsperadas(jugadores) {
   const conteo = { A: {}, B: {} };
@@ -144,9 +144,14 @@ function derivarLineasEsperadas(jugadores) {
     if (!jugador.equipo || !jugador.linea || jugador.linea === 'arquero') continue;
     conteo[jugador.equipo][jugador.linea] = (conteo[jugador.equipo][jugador.linea] || 0) + 1;
   }
+  function ordenarPorLineaCampo(entradas) {
+    return entradas
+      .map(([key, cantidad]) => ({ key, cantidad }))
+      .sort((a, b) => LINEAS_CAMPO.indexOf(a.key) - LINEAS_CAMPO.indexOf(b.key));
+  }
   return {
-    A: Object.entries(conteo.A).map(([key, cantidad]) => ({ key, cantidad })),
-    B: Object.entries(conteo.B).map(([key, cantidad]) => ({ key, cantidad })),
+    A: ordenarPorLineaCampo(Object.entries(conteo.A)),
+    B: ordenarPorLineaCampo(Object.entries(conteo.B)),
   };
 }
 
@@ -185,7 +190,7 @@ function crearBalanceadorConCapacidad(cupoPorEquipo, capBroad) {
   };
 
   function tieneCupo(equipo, linea) {
-    return (estado[equipo].porLinea[linea] || 0) < capBroad[equipo][linea];
+    return estado[equipo].restante > 0 && (estado[equipo].porLinea[linea] || 0) < capBroad[equipo][linea];
   }
 
   function equiposConCupo(linea) {
