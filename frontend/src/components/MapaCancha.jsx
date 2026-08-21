@@ -166,7 +166,7 @@ function SelectorFormacion({ etiqueta, cantidadJugadores, seleccion, onCambiar, 
         onChange={(evento) => {
           const codigo = evento.target.value;
           if (codigo === CODIGO_LIBRE) {
-            onCambiar({ codigo: CODIGO_LIBRE, lineas: [{ key: 'defensa', cantidad: 1 }, { key: 'delantero', cantidad: jugadoresDeCampo - 1 || 1 }] });
+            onCambiar({ codigo: CODIGO_LIBRE, lineas: [{ key: 'defensa', cantidad: 1 }, { key: 'delantero', cantidad: Math.max(1, jugadoresDeCampo - 1) }] });
           } else {
             onCambiar({ codigo, lineas: [] });
           }
