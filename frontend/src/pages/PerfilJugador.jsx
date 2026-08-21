@@ -5,6 +5,7 @@ import { etiquetaPosicion } from '../constants/posiciones';
 import { etiquetaResistencia } from '../constants/resistencia';
 import { etiquetaRitmoJuego } from '../constants/ritmoJuego';
 import TarjetaJugadorFIFA from '../components/TarjetaJugadorFIFA';
+import RadarHabilidades from '../components/RadarHabilidades';
 
 export default function PerfilJugador() {
   const { uid } = useParams();
@@ -64,16 +65,19 @@ export default function PerfilJugador() {
             />
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-cancha-800/60 p-6">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-pasto-500">Resumen</h2>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {tiles.map((tile) => (
-                <div key={tile.etiqueta} className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
-                  <p className="text-[11px] uppercase tracking-wide text-white/50">{tile.etiqueta}</p>
-                  <p className="mt-1 text-sm font-semibold text-white">{tile.valor}</p>
-                </div>
-              ))}
+          <div className="flex flex-col gap-6">
+            <div className="rounded-2xl border border-white/10 bg-cancha-800/60 p-6">
+              <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-pasto-500">Resumen</h2>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                {tiles.map((tile) => (
+                  <div key={tile.etiqueta} className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
+                    <p className="text-[11px] uppercase tracking-wide text-white/50">{tile.etiqueta}</p>
+                    <p className="mt-1 text-sm font-semibold text-white">{tile.valor}</p>
+                  </div>
+                ))}
+              </div>
             </div>
+            <RadarHabilidades perfil={perfil} />
           </div>
         </div>
       )}

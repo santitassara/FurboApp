@@ -85,12 +85,11 @@ export default function TarjetaJugadorFIFA({ nombre, posicion, habilidades = {},
           <p className="max-w-[85%] overflow-hidden truncate px-4 text-center font-display font-bold uppercase tracking-widest drop-shadow-md">
             {nombre || 'Sin nombre'}
           </p>
-          <div className="mt-1 h-[2px] w-[65%] bg-[#e9d290]/40" />
         </div>
 
         <div className="absolute bottom-[16%] z-20 w-full px-[15%]">
           <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-            <div className="flex flex-col gap-1 border-r border-[#e9d290]/30 pr-2">
+            <div className="flex flex-col gap-1 pr-2">
               {ATRIBUTOS.slice(0, 3).map(({ campo, etiqueta }) => (
                 <div key={campo} className="flex items-center justify-between font-display text-lg drop-shadow-sm">
                   <span className="w-1/2 pr-2 text-right font-bold">{habilidades[campo] ?? '–'}</span>
