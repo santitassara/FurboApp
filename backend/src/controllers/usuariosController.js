@@ -1,12 +1,13 @@
 const usuariosService = require('../services/usuariosService');
+const gruposService = require('../services/gruposService');
 
 async function listarSancionados(req, res) {
-  const sancionados = await usuariosService.listarSancionados();
+  const sancionados = await gruposService.listarSancionados(req.params.grupoId);
   res.json(sancionados);
 }
 
 async function perdonar(req, res) {
-  await usuariosService.perdonarSancion(req.params.uid);
+  await gruposService.perdonarSancion(req.params.grupoId, req.params.uid);
   res.json({ mensaje: 'Sanción revocada' });
 }
 
@@ -20,6 +21,14 @@ async function actualizarMiPerfil(req, res) {
   res.json(usuario);
 }
 
+async function subirMiFoto(req, res) {
+  if (!req.file) {
+    return res.status(400).json({ error: 'Falta el archivo de la foto' });
+  }
+  const usuario = await usuariosService.guardarFoto(req.usuario.uid, req.file);
+  res.json(usuario);
+}
+
 async function obtenerPerfilDeJugador(req, res) {
   const perfil = await usuariosService.obtenerPerfilPublico(req.params.uid);
   res.json(perfil);
@@ -30,11 +39,19 @@ async function listarUsuarios(req, res) {
   res.json(usuarios);
 }
 
+async function guardarSuscripcionPush(req, res) {
+  const suscripcion = req.body;
+  await usuariosService.guardarSuscripcionPush(req.usuario.uid, suscripcion);
+  res.json({ mensaje: 'Suscripción guardada' });
+}
+
 module.exports = {
   listarSancionados,
   perdonar,
   actualizarMisPosiciones,
   actualizarMiPerfil,
+  subirMiFoto,
   obtenerPerfilDeJugador,
   listarUsuarios,
+  guardarSuscripcionPush,
 };

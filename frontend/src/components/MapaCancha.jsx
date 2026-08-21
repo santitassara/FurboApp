@@ -3,6 +3,8 @@ import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
 import api from '../services/api';
 import Boton from './Boton';
 import { LINEAS } from '../utils/formacion';
+import { useGrupo } from '../context/GrupoContext';
+import { rutaGrupo } from '../utils/rutasGrupo';
 
 const ETIQUETAS_LINEA = {
   arquero: 'POR',
@@ -113,6 +115,7 @@ function MitadCancha({ equipo, ubicaciones, draggable }) {
 }
 
 export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }) {
+  const { grupoActivo } = useGrupo();
   const jugadoresIniciales = useMemo(() => formacion?.jugadores || [], [formacion]);
   const [ubicaciones, setUbicaciones] = useState(jugadoresIniciales);
   const [guardando, setGuardando] = useState(false);
@@ -177,7 +180,7 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
     setError('');
     setGenerando(true);
     try {
-      const { data } = await api.post(`/partidos/${partidoId}/formacion/auto`);
+      const { data } = await api.post(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/formacion/auto`));
       setUbicaciones(data.jugadores);
     } catch (err) {
       setError(err.message);
@@ -198,7 +201,7 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
           linea: jugador.linea,
           ordenLinea: jugador.ordenLinea,
         }));
-      const { data } = await api.put(`/partidos/${partidoId}/formacion`, { asignaciones });
+      const { data } = await api.put(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/formacion`), { asignaciones });
       setUbicaciones(data.jugadores);
       onGuardado?.(data);
     } catch (err) {

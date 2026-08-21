@@ -1,9 +1,14 @@
 const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
 const bcrypt = require('bcryptjs');
 const { db } = require('../config/db');
 const { sonPosicionesValidas } = require('../constants/posiciones');
 const { esResistenciaValida } = require('../constants/resistencia');
 const { esRitmoJuegoValido } = require('../constants/ritmoJuego');
+const { TIPOS_PERMITIDOS } = require('../middlewares/subirFoto');
+
+const DIRECTORIO_FOTOS = path.join(__dirname, '../../uploads/perfiles');
 
 // Dummy hash for timing consistency in autenticarConPassword (prevents email enumeration)
 const dummyPasswordHash = bcrypt.hashSync('dummy', 10);
@@ -11,7 +16,7 @@ const dummyPasswordHash = bcrypt.hashSync('dummy', 10);
 const filaAUsuario = (fila) => {
   if (!fila) return null;
   const { passwordHash, ...resto } = fila;
-  return { ...resto, estaSancionado: Boolean(fila.estaSancionado) };
+  return { ...resto, esSuperAdmin: Boolean(fila.esSuperAdmin) };
 };
 
 function normalizarVacio(valor) {
@@ -49,7 +54,7 @@ function obtenerAdminEmails() {
 }
 
 async function sincronizarUsuario({ uid, email, nombre, emailVerificado }) {
-  const esAdmin = Boolean(emailVerificado) && obtenerAdminEmails().includes((email || '').toLowerCase());
+  const esSuperAdmin = Boolean(emailVerificado) && obtenerAdminEmails().includes((email || '').toLowerCase());
   const existente = db.prepare('SELECT * FROM Usuarios WHERE uid = ?').get(uid);
 
   if (!existente) {
@@ -57,21 +62,20 @@ async function sincronizarUsuario({ uid, email, nombre, emailVerificado }) {
       uid,
       nombre,
       email,
-      rol: esAdmin ? 'admin' : 'jugador',
-      estaSancionado: false,
+      esSuperAdmin,
       fechaCreacion: new Date().toISOString(),
     };
     db.prepare(
-      `INSERT INTO Usuarios (uid, nombre, email, rol, estaSancionado, fechaCreacion)
-       VALUES (@uid, @nombre, @email, @rol, @estaSancionado, @fechaCreacion)`
-    ).run({ ...nuevoUsuario, estaSancionado: 0 });
-    return nuevoUsuario;
+      `INSERT INTO Usuarios (uid, nombre, email, esSuperAdmin, fechaCreacion)
+       VALUES (@uid, @nombre, @email, @esSuperAdmin, @fechaCreacion)`
+    ).run({ ...nuevoUsuario, esSuperAdmin: esSuperAdmin ? 1 : 0 });
+    return { ...nuevoUsuario };
   }
 
   const usuarioExistente = filaAUsuario(existente);
-  if (esAdmin && usuarioExistente.rol !== 'admin') {
-    db.prepare('UPDATE Usuarios SET rol = ? WHERE uid = ?').run('admin', uid);
-    usuarioExistente.rol = 'admin';
+  if (esSuperAdmin && !usuarioExistente.esSuperAdmin) {
+    db.prepare('UPDATE Usuarios SET esSuperAdmin = 1 WHERE uid = ?').run(uid);
+    usuarioExistente.esSuperAdmin = true;
   }
   return usuarioExistente;
 }
@@ -80,23 +84,6 @@ async function obtenerUsuario(uid) {
   return filaAUsuario(db.prepare('SELECT * FROM Usuarios WHERE uid = ?').get(uid));
 }
 
-async function listarSancionados() {
-  return db.prepare('SELECT * FROM Usuarios WHERE estaSancionado = 1').all().map(filaAUsuario);
-}
-
-async function perdonarSancion(uid) {
-  const existente = db.prepare('SELECT uid FROM Usuarios WHERE uid = ?').get(uid);
-  if (!existente) {
-    const error = new Error('Usuario no encontrado');
-    error.status = 404;
-    throw error;
-  }
-  db.prepare('UPDATE Usuarios SET estaSancionado = 0 WHERE uid = ?').run(uid);
-}
-
-async function sancionar(uid) {
-  db.prepare('UPDATE Usuarios SET estaSancionado = 1 WHERE uid = ?').run(uid);
-}
 
 async function actualizarPosiciones(uid, { posicionPrincipal, posicionSecundaria } = {}) {
   if (!sonPosicionesValidas(posicionPrincipal, posicionSecundaria)) {
@@ -205,7 +192,30 @@ async function obtenerPerfilPublico(uid) {
     gambeta: fila.gambeta,
     marcaDefensa: fila.marcaDefensa,
     fisico: fila.fisico,
+    fotoUrl: fila.fotoUrl,
   };
+}
+
+async function guardarFoto(uid, archivo) {
+  const extension = TIPOS_PERMITIDOS[archivo.mimetype];
+  if (!extension) {
+    const error = new Error('Formato de imagen no soportado. Usá JPG, PNG o WEBP.');
+    error.status = 400;
+    throw error;
+  }
+
+  fs.mkdirSync(DIRECTORIO_FOTOS, { recursive: true });
+  for (const ext of new Set(Object.values(TIPOS_PERMITIDOS))) {
+    const rutaPrevia = path.join(DIRECTORIO_FOTOS, `${uid}.${ext}`);
+    if (fs.existsSync(rutaPrevia)) fs.unlinkSync(rutaPrevia);
+  }
+
+  const nombreArchivo = `${uid}.${extension}`;
+  fs.writeFileSync(path.join(DIRECTORIO_FOTOS, nombreArchivo), archivo.buffer);
+
+  const fotoUrl = `/uploads/perfiles/${nombreArchivo}?v=${Date.now()}`;
+  db.prepare('UPDATE Usuarios SET fotoUrl = ? WHERE uid = ?').run(fotoUrl, uid);
+  return obtenerUsuario(uid);
 }
 
 const CAMPOS_HABILIDAD = ['velocidad', 'pegada', 'tocaPase', 'gambeta', 'marcaDefensa', 'fisico'];
@@ -252,14 +262,12 @@ async function registrarConPassword({ nombre, email, password }) {
       uid: crypto.randomUUID(),
       nombre: String(nombre).trim(),
       email: emailNormalizado,
-      rol: 'jugador',
-      estaSancionado: false,
       fechaCreacion: new Date().toISOString(),
     };
     db.prepare(
-      `INSERT INTO Usuarios (uid, nombre, email, rol, estaSancionado, fechaCreacion, passwordHash)
-       VALUES (@uid, @nombre, @email, @rol, @estaSancionado, @fechaCreacion, @passwordHash)`
-    ).run({ ...nuevoUsuario, estaSancionado: 0, passwordHash });
+      `INSERT INTO Usuarios (uid, nombre, email, fechaCreacion, passwordHash)
+       VALUES (@uid, @nombre, @email, @fechaCreacion, @passwordHash)`
+    ).run({ ...nuevoUsuario, passwordHash });
     return { ...nuevoUsuario, passwordHash };
   })();
 
@@ -285,17 +293,23 @@ async function autenticarConPassword({ email, password }) {
   return filaAUsuario(usuario);
 }
 
+async function guardarSuscripcionPush(uid, suscripcion) {
+  db.prepare('UPDATE Usuarios SET suscripcionPush = ? WHERE uid = ?').run(
+    JSON.stringify(suscripcion),
+    uid
+  );
+}
+
 module.exports = {
   sincronizarUsuario,
   obtenerUsuario,
-  listarSancionados,
-  perdonarSancion,
-  sancionar,
   actualizarPosiciones,
   actualizarPerfil,
   obtenerPerfilPublico,
+  guardarFoto,
   listarUsuarios,
   registrarConPassword,
   autenticarConPassword,
   calcularPromedioHabilidades,
+  guardarSuscripcionPush,
 };

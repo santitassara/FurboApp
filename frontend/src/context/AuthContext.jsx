@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider } from '../config/firebase';
 import api from '../services/api';
+import { registrarSuscripcionPush } from '../services/notificacionesService';
 
 const AuthContext = createContext(null);
 export const TOKEN_KEY = 'furboapp_token';
@@ -22,6 +23,7 @@ export function AuthProvider({ children }) {
       const { data } = await api.post('/auth/sync');
       setPerfil(data);
       setErrorAuth('');
+      await registrarSuscripcionPush(tokenPropio);
     } catch (error) {
       localStorage.removeItem(TOKEN_KEY);
       setPerfil(null);
@@ -37,9 +39,11 @@ export function AuthProvider({ children }) {
       setUsuarioFirebase(usuario);
       try {
         if (usuario) {
+          const token = await usuario.getIdToken();
           const { data } = await api.post('/auth/sync');
           setPerfil(data);
           setErrorAuth('');
+          await registrarSuscripcionPush(token);
         } else {
           await intentarRestaurarSesionPropia();
         }
@@ -77,6 +81,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem(TOKEN_KEY, data.token);
     setPerfil(data.usuario);
     setErrorAuth('');
+    await registrarSuscripcionPush(data.token);
   }
 
   async function registrarse(nombre, email, password) {
@@ -84,6 +89,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem(TOKEN_KEY, data.token);
     setPerfil(data.usuario);
     setErrorAuth('');
+    await registrarSuscripcionPush(data.token);
   }
 
   async function actualizarPosicionesPerfil(posicionPrincipal, posicionSecundaria) {
@@ -93,6 +99,13 @@ export function AuthProvider({ children }) {
 
   async function actualizarMiPerfil(datos) {
     const { data } = await api.patch('/usuarios/me/perfil', datos);
+    setPerfil(data);
+  }
+
+  async function subirFotoPerfil(archivo) {
+    const formData = new FormData();
+    formData.append('foto', archivo);
+    const { data } = await api.post('/usuarios/me/foto', formData);
     setPerfil(data);
   }
 
@@ -118,8 +131,7 @@ export function AuthProvider({ children }) {
     refrescarPerfil,
     actualizarPosicionesPerfil,
     actualizarMiPerfil,
-    esAdmin: perfil?.rol === 'admin',
-    estaSancionado: Boolean(perfil?.estaSancionado),
+    subirFotoPerfil,
   };
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;
