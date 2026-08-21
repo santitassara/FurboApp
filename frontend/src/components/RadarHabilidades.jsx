@@ -2,6 +2,12 @@ import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Responsi
 
 const CustomRadarLabel = (props) => {
   const { x, y, value, cx, cy } = props;
+
+  // Solo renderizar si tenemos coordenadas válidas
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(cx) || !Number.isFinite(cy)) {
+    return null;
+  }
+
   // Posicionar el label dentro del polígono (60% de distancia desde centro hacia punta)
   const offsetX = cx + (x - cx) * 0.6;
   const offsetY = cy + (y - cy) * 0.6;
@@ -15,6 +21,7 @@ const CustomRadarLabel = (props) => {
       dominantBaseline="middle"
       fontSize="16"
       fontWeight="700"
+      pointerEvents="none"
     >
       {value}
     </text>
