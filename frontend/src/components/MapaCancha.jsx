@@ -2,22 +2,34 @@ import { useEffect, useMemo, useState } from 'react';
 import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
 import api from '../services/api';
 import Boton from './Boton';
-import { LINEAS } from '../utils/formacion';
+import {
+  CODIGO_AUTOMATICO,
+  CODIGO_LIBRE,
+  ETIQUETAS_LINEA,
+  ORDEN_LINEAS_CAMPO,
+  listarFormaciones,
+} from '../utils/formaciones';
 import { useGrupo } from '../context/GrupoContext';
 import { rutaGrupo } from '../utils/rutasGrupo';
-
-const ETIQUETAS_LINEA = {
-  arquero: 'POR',
-  defensa: 'DEF',
-  medio: 'MED',
-  delantero: 'ATA',
-};
 
 function claveUbicacion(equipo, linea, ordenLinea) {
   return `${equipo}-${linea}-${ordenLinea}`;
 }
 
-const CUPO_LINEA = { arquero: 1, defensa: 4, medio: 4, delantero: 4 };
+function ordenarLineas(lineas) {
+  return [...lineas].sort((a, b) => ORDEN_LINEAS_CAMPO.indexOf(a.key) - ORDEN_LINEAS_CAMPO.indexOf(b.key));
+}
+
+// Deriva la forma del equipo a partir de lo que ya está ubicado en el mapa
+// (usado cuando la selección es "Automático": no hay preview antes de generar).
+function estructuraDesdeUbicaciones(ubicaciones, equipo) {
+  const conteo = new Map();
+  for (const jugador of ubicaciones) {
+    if (jugador.equipo !== equipo || !jugador.linea || jugador.linea === 'arquero') continue;
+    conteo.set(jugador.linea, (conteo.get(jugador.linea) || 0) + 1);
+  }
+  return ordenarLineas(Array.from(conteo.entries()).map(([key, cantidad]) => ({ key, cantidad })));
+}
 
 function obtenerIniciales(nombre) {
   const palabras = (nombre || '').trim().split(/\s+/).filter(Boolean);
@@ -75,9 +87,8 @@ function Asiento({ equipo, linea, ordenLinea, jugador, draggable }) {
   );
 }
 
-function Columna({ equipo, linea, jugadores, draggable }) {
+function Columna({ equipo, linea, cupo, jugadores, draggable }) {
   const jugadorPorOrden = new Map(jugadores.map((jugador) => [jugador.ordenLinea, jugador]));
-  const cupo = draggable ? Math.max(CUPO_LINEA[linea], jugadores.length) : jugadores.length;
   const asientos = Array.from({ length: cupo }, (_, ordenLinea) => jugadorPorOrden.get(ordenLinea) || null);
 
   return (
@@ -96,20 +107,109 @@ function Columna({ equipo, linea, jugadores, draggable }) {
   );
 }
 
-const LINEAS_POR_EQUIPO = {
-  A: LINEAS,
-  B: [...LINEAS].reverse(),
-};
+function MitadCancha({ equipo, estructura, ubicaciones, draggable }) {
+  const columnas = [{ key: 'arquero', cantidad: 1 }, ...estructura];
+  const ordenadas = equipo === 'A' ? columnas : [...columnas].reverse();
 
-function MitadCancha({ equipo, ubicaciones, draggable }) {
+  if (estructura.length === 0) {
+    return (
+      <div className="flex min-w-0 flex-1 items-center justify-center px-2 py-4 text-center text-xs text-white/40">
+        Elegí una formación para armar este equipo.
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-w-0 flex-1 items-stretch gap-1 px-2 py-4">
-      {LINEAS_POR_EQUIPO[equipo].map((linea) => {
-        const jugadoresLinea = ubicaciones.filter((u) => u.equipo === equipo && u.linea === linea);
+      {ordenadas.map(({ key, cantidad }) => {
+        const jugadoresLinea = ubicaciones.filter((u) => u.equipo === equipo && u.linea === key);
         return (
-          <Columna key={linea} equipo={equipo} linea={linea} jugadores={jugadoresLinea} draggable={draggable} />
+          <Columna key={key} equipo={equipo} linea={key} cupo={cantidad} jugadores={jugadoresLinea} draggable={draggable} />
         );
       })}
+    </div>
+  );
+}
+
+function SelectorFormacion({ etiqueta, cantidadJugadores, seleccion, onCambiar, disabled }) {
+  const opciones = listarFormaciones(cantidadJugadores);
+  const jugadoresDeCampo = cantidadJugadores - 1;
+  const sumaLibre = (seleccion.lineas || []).reduce((acc, l) => acc + l.cantidad, 0);
+
+  function actualizarLineaLibre(indice, delta) {
+    const lineas = [...seleccion.lineas];
+    lineas[indice] = { ...lineas[indice], cantidad: Math.max(1, lineas[indice].cantidad + delta) };
+    onCambiar({ codigo: CODIGO_LIBRE, lineas });
+  }
+
+  function agregarLineaLibre() {
+    if (seleccion.lineas.length >= 4) return;
+    const disponibles = ORDEN_LINEAS_CAMPO.filter(
+      (key) => key !== 'medio' && !seleccion.lineas.some((l) => l.key === key)
+    );
+    const siguienteKey = seleccion.lineas.length === 0 ? 'defensa' : disponibles[0] || 'delantero';
+    onCambiar({ codigo: CODIGO_LIBRE, lineas: [...seleccion.lineas, { key: siguienteKey, cantidad: 1 }] });
+  }
+
+  function quitarLineaLibre(indice) {
+    if (seleccion.lineas.length <= 2) return;
+    onCambiar({ codigo: CODIGO_LIBRE, lineas: seleccion.lineas.filter((_, i) => i !== indice) });
+  }
+
+  return (
+    <div className="mb-2 flex flex-col gap-2">
+      <label className="text-xs uppercase text-white/40">{etiqueta}</label>
+      <select
+        className="rounded-lg bg-cancha-700 px-2 py-1 text-sm text-white"
+        value={seleccion.codigo}
+        disabled={disabled}
+        onChange={(evento) => {
+          const codigo = evento.target.value;
+          if (codigo === CODIGO_LIBRE) {
+            onCambiar({ codigo: CODIGO_LIBRE, lineas: [{ key: 'defensa', cantidad: 1 }, { key: 'delantero', cantidad: jugadoresDeCampo - 1 || 1 }] });
+          } else {
+            onCambiar({ codigo, lineas: [] });
+          }
+        }}
+      >
+        <option value={CODIGO_AUTOMATICO}>Automático (parejo)</option>
+        {opciones.map((formacion) => (
+          <option key={formacion.codigo} value={formacion.codigo}>
+            {formacion.codigo} — {formacion.nombre}
+          </option>
+        ))}
+        <option value={CODIGO_LIBRE}>Libre</option>
+      </select>
+
+      {seleccion.codigo === CODIGO_LIBRE && (
+        <div className="rounded-lg bg-cancha-800 p-2 text-xs text-white/80">
+          {seleccion.lineas.map((linea, indice) => (
+            <div key={indice} className="mb-1 flex items-center justify-between gap-2">
+              <span>{ETIQUETAS_LINEA[linea.key]}</span>
+              <div className="flex items-center gap-2">
+                <button type="button" disabled={disabled} onClick={() => actualizarLineaLibre(indice, -1)}>
+                  -
+                </button>
+                <span>{linea.cantidad}</span>
+                <button type="button" disabled={disabled} onClick={() => actualizarLineaLibre(indice, 1)}>
+                  +
+                </button>
+                <button type="button" disabled={disabled} onClick={() => quitarLineaLibre(indice)}>
+                  ×
+                </button>
+              </div>
+            </div>
+          ))}
+          <div className="mt-1 flex items-center justify-between">
+            <button type="button" disabled={disabled} onClick={agregarLineaLibre} className="underline">
+              + línea
+            </button>
+            <span className={sumaLibre === jugadoresDeCampo ? 'text-pasto-500' : 'text-sancion'}>
+              {sumaLibre}/{jugadoresDeCampo} jugadores de campo
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -118,6 +218,8 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
   const { grupoActivo } = useGrupo();
   const jugadoresIniciales = useMemo(() => formacion?.jugadores || [], [formacion]);
   const [ubicaciones, setUbicaciones] = useState(jugadoresIniciales);
+  const [seleccionA, setSeleccionA] = useState({ codigo: CODIGO_AUTOMATICO, lineas: [] });
+  const [seleccionB, setSeleccionB] = useState({ codigo: CODIGO_AUTOMATICO, lineas: [] });
   const [guardando, setGuardando] = useState(false);
   const [generando, setGenerando] = useState(false);
   const [error, setError] = useState('');
@@ -149,7 +251,31 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
     );
   }
 
+  const estructuraA =
+    seleccionA.codigo === CODIGO_AUTOMATICO
+      ? estructuraDesdeUbicaciones(ubicaciones, 'A')
+      : seleccionA.codigo === CODIGO_LIBRE
+        ? ordenarLineas(seleccionA.lineas)
+        : ordenarLineas(listarFormaciones(formacion.cupoPorEquipo.A).find((f) => f.codigo === seleccionA.codigo)?.lineas || []);
+  const estructuraB =
+    seleccionB.codigo === CODIGO_AUTOMATICO
+      ? estructuraDesdeUbicaciones(ubicaciones, 'B')
+      : seleccionB.codigo === CODIGO_LIBRE
+        ? ordenarLineas(seleccionB.lineas)
+        : ordenarLineas(listarFormaciones(formacion.cupoPorEquipo.B).find((f) => f.codigo === seleccionB.codigo)?.lineas || []);
+
   const sinUbicar = ubicaciones.filter((jugador) => !jugador.equipo);
+
+  function cambiarSeleccion(equipo, nuevaSeleccion) {
+    const setSeleccion = equipo === 'A' ? setSeleccionA : setSeleccionB;
+    setSeleccion(nuevaSeleccion);
+    // Cambiar de formación invalida las ubicaciones actuales de ese equipo: vuelven a "sin ubicar".
+    setUbicaciones((anterior) =>
+      anterior.map((jugador) =>
+        jugador.equipo === equipo ? { ...jugador, equipo: null, linea: null, ordenLinea: null } : jugador
+      )
+    );
+  }
 
   function manejarDragEnd(evento) {
     const { active, over } = evento;
@@ -180,7 +306,11 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
     setError('');
     setGenerando(true);
     try {
-      const { data } = await api.post(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/formacion/auto`));
+      const body = {
+        A: { codigo: seleccionA.codigo, lineas: seleccionA.lineas },
+        B: { codigo: seleccionB.codigo, lineas: seleccionB.lineas },
+      };
+      const { data } = await api.post(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/formacion/auto`), body);
       setUbicaciones(data.jugadores);
     } catch (err) {
       setError(err.message);
@@ -214,13 +344,33 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
   const contenido = (
     <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
       <h4 className="mb-3 text-sm font-bold uppercase tracking-wide text-pasto-500">Formación</h4>
+
+      {esAdmin && (
+        <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <SelectorFormacion
+            etiqueta="Equipo 1"
+            cantidadJugadores={formacion.cupoPorEquipo.A}
+            seleccion={seleccionA}
+            onCambiar={(nueva) => cambiarSeleccion('A', nueva)}
+            disabled={generando || guardando}
+          />
+          <SelectorFormacion
+            etiqueta="Equipo 2"
+            cantidadJugadores={formacion.cupoPorEquipo.B}
+            seleccion={seleccionB}
+            onCambiar={(nueva) => cambiarSeleccion('B', nueva)}
+            disabled={generando || guardando}
+          />
+        </div>
+      )}
+
       <div
         className="flex aspect-[1.83] w-full overflow-hidden rounded-lg border border-white/10 bg-cover bg-center shadow-inner"
         style={{ backgroundImage: "url('/layout-cancha-futbol.jpeg')" }}
       >
-        <MitadCancha equipo="A" ubicaciones={ubicaciones} draggable={esAdmin} />
+        <MitadCancha equipo="A" estructura={estructuraA} ubicaciones={ubicaciones} draggable={esAdmin} />
         <div className="w-px bg-white/20" />
-        <MitadCancha equipo="B" ubicaciones={ubicaciones} draggable={esAdmin} />
+        <MitadCancha equipo="B" estructura={estructuraB} ubicaciones={ubicaciones} draggable={esAdmin} />
       </div>
 
       {esAdmin && sinUbicar.length > 0 && (
