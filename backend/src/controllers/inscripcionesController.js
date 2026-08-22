@@ -73,7 +73,11 @@ async function guardarFormacion(req, res) {
 }
 
 async function generarFormacionAutomatica(req, res) {
-  const formacion = await inscripcionesService.generarFormacionAutomatica(req.params.partidoId, req.params.grupoId);
+  const formacion = await inscripcionesService.generarFormacionAutomatica(
+    req.params.partidoId,
+    req.params.grupoId,
+    { A: req.body?.A, B: req.body?.B }
+  );
   res.json(formacion);
 }
 

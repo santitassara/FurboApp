@@ -4,7 +4,7 @@ const usuariosService = require('./usuariosService');
 const partidosService = require('./partidosService');
 const gruposService = require('./gruposService');
 const { sonPosicionesValidas } = require('../constants/posiciones');
-const { LINEAS, POSICION_A_LINEA, generarLineas, splitEquipos } = require('../utils/formacion');
+const { LINEAS, POSICION_A_LINEA, splitEquipos } = require('../utils/formacion');
 
 function crearError(mensaje, status) {
   const error = new Error(mensaje);
@@ -136,6 +136,25 @@ function eliminarPorPartido(partidoId) {
   db.prepare('DELETE FROM Inscripciones WHERE partidoId = ?').run(partidoId);
 }
 
+const { resolverLineas, capacidadBroad, TODAS_LAS_LINEAS, CODIGO_AUTOMATICO, LINEAS_CAMPO } = require('../data/formaciones');
+
+function derivarLineasEsperadas(jugadores) {
+  const conteo = { A: {}, B: {} };
+  for (const jugador of jugadores) {
+    if (!jugador.equipo || !jugador.linea || jugador.linea === 'arquero') continue;
+    conteo[jugador.equipo][jugador.linea] = (conteo[jugador.equipo][jugador.linea] || 0) + 1;
+  }
+  function ordenarPorLineaCampo(entradas) {
+    return entradas
+      .map(([key, cantidad]) => ({ key, cantidad }))
+      .sort((a, b) => LINEAS_CAMPO.indexOf(a.key) - LINEAS_CAMPO.indexOf(b.key));
+  }
+  return {
+    A: ordenarPorLineaCampo(Object.entries(conteo.A)),
+    B: ordenarPorLineaCampo(Object.entries(conteo.B)),
+  };
+}
+
 async function obtenerFormacion(partidoId, grupoId) {
   const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
@@ -143,7 +162,6 @@ async function obtenerFormacion(partidoId, grupoId) {
   const ocupados = await contarOcupados(partidoId);
   const habilitado = ocupados.titulares >= partido.cupoTitulares;
   const cupoPorEquipo = splitEquipos(partido.cupoTitulares);
-  const lineasEsperadas = { A: generarLineas(cupoPorEquipo.A), B: generarLineas(cupoPorEquipo.B) };
 
   const titulares = await listarTitularesActivos(partidoId);
   const jugadores = await Promise.all(
@@ -160,51 +178,58 @@ async function obtenerFormacion(partidoId, grupoId) {
     })
   );
 
+  const lineasEsperadas = derivarLineasEsperadas(jugadores);
+
   return { habilitado, cupoPorEquipo, lineasEsperadas, jugadores };
 }
 
-function mezclar(lista) {
-  const copia = [...lista];
-  for (let i = copia.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copia[i], copia[j]] = [copia[j], copia[i]];
-  }
-  return copia;
-}
-
-function crearBalanceador(cupoPorEquipo) {
+function crearBalanceadorConCapacidad(cupoPorEquipo, capBroad) {
   const estado = {
-    A: { restante: cupoPorEquipo.A, total: 0 },
-    B: { restante: cupoPorEquipo.B, total: 0 },
+    A: { restante: cupoPorEquipo.A, total: 0, porLinea: {} },
+    B: { restante: cupoPorEquipo.B, total: 0, porLinea: {} },
   };
 
-  function equiposConCupo() {
-    return ['A', 'B'].filter((equipo) => estado[equipo].restante > 0);
+  function tieneCupo(equipo, linea) {
+    return estado[equipo].restante > 0 && (estado[equipo].porLinea[linea] || 0) < capBroad[equipo][linea];
   }
 
-  function equipoMenorCarga() {
-    const disponibles = equiposConCupo();
-    if (disponibles.length === 0) return null;
-    return disponibles.reduce((mejor, equipo) => (estado[equipo].total < estado[mejor].total ? equipo : mejor));
+  function equiposConCupo(linea) {
+    return ['A', 'B'].filter((equipo) => tieneCupo(equipo, linea));
   }
 
-  function registrar(equipo, habilidad) {
+  function registrar(equipo, habilidad, linea) {
     estado[equipo].restante -= 1;
     estado[equipo].total += habilidad;
+    estado[equipo].porLinea[linea] = (estado[equipo].porLinea[linea] || 0) + 1;
   }
 
-  function equipoAleatorioSesgado(sesgo = 0.7) {
-    const disponibles = equiposConCupo();
-    if (disponibles.length <= 1) return disponibles[0] || null;
-    const menor = equipoMenorCarga();
-    const mayor = disponibles.find((equipo) => equipo !== menor);
-    return Math.random() < sesgo ? menor : mayor;
+  // A capacidad igual (o ambos con cupo), desempata por menor habilidad acumulada;
+  // si empata también, al azar. La paridad de cantidad por línea ya la garantiza el
+  // cupo exacto de la formación elegida, así que no hace falta desempatar por conteo.
+  function elegirEquipo(linea) {
+    const disponibles = equiposConCupo(linea);
+    if (disponibles.length === 0) return null;
+    if (disponibles.length === 1) return disponibles[0];
+    const [a, b] = disponibles;
+    if (estado[a].total !== estado[b].total) return estado[a].total < estado[b].total ? a : b;
+    return Math.random() < 0.5 ? a : b;
   }
 
-  return { equiposConCupo, equipoMenorCarga, equipoAleatorioSesgado, registrar };
+  function elegirCualquierEquipoConCupo() {
+    for (const linea of LINEAS) {
+      const disponibles = equiposConCupo(linea);
+      if (disponibles.length > 0) {
+        const equipo = disponibles.sort((x, y) => estado[x].total - estado[y].total)[0];
+        return { equipo, linea };
+      }
+    }
+    throw new Error('No hay cupo disponible en ninguna línea (no debería pasar: la capacidad total siempre iguala al cupo total)');
+  }
+
+  return { elegirEquipo, elegirCualquierEquipoConCupo, registrar };
 }
 
-async function generarFormacionAutomatica(partidoId, grupoId) {
+async function generarFormacionAutomatica(partidoId, grupoId, seleccion = {}) {
   const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
 
@@ -212,6 +237,13 @@ async function generarFormacionAutomatica(partidoId, grupoId) {
   if (ocupados.titulares < partido.cupoTitulares) {
     throw crearError('El cupo de titulares no está completo', 400);
   }
+
+  const cupoPorEquipo = splitEquipos(partido.cupoTitulares);
+  const resuelto = {
+    A: resolverLineas(cupoPorEquipo.A, seleccion.A || { codigo: CODIGO_AUTOMATICO }),
+    B: resolverLineas(cupoPorEquipo.B, seleccion.B || { codigo: CODIGO_AUTOMATICO }),
+  };
+  const capBroad = { A: capacidadBroad(resuelto.A), B: capacidadBroad(resuelto.B) };
 
   const titulares = await listarTitularesActivos(partidoId);
   const jugadores = await Promise.all(
@@ -222,50 +254,67 @@ async function generarFormacionAutomatica(partidoId, grupoId) {
         usuarioId: inscripcion.usuarioId,
         nombre: usuario?.nombre || 'Jugador',
         posicionPrincipal: inscripcion.posicionPrincipal,
-        linea: POSICION_A_LINEA[inscripcion.posicionPrincipal] || 'medio',
+        posicionSecundaria: inscripcion.posicionSecundaria,
+        lineaBroad: POSICION_A_LINEA[inscripcion.posicionPrincipal] || 'medio',
         habilidad,
       };
     })
   );
 
-  const cupoPorEquipo = splitEquipos(partido.cupoTitulares);
-  const balanceador = crearBalanceador(cupoPorEquipo);
+  const balanceador = crearBalanceadorConCapacidad(cupoPorEquipo, capBroad);
   const asignados = [];
 
-  function asignar(jugador, equipo) {
-    balanceador.registrar(equipo, jugador.habilidad);
-    asignados.push({ ...jugador, equipo });
+  function asignar(jugador, equipo, lineaBroad) {
+    balanceador.registrar(equipo, jugador.habilidad, lineaBroad);
+    asignados.push({ ...jugador, equipo, lineaBroad });
   }
 
   const porLinea = { arquero: [], defensa: [], medio: [], delantero: [] };
-  for (const jugador of jugadores) porLinea[jugador.linea].push(jugador);
+  for (const jugador of jugadores) porLinea[jugador.lineaBroad].push(jugador);
   for (const linea of LINEAS) porLinea[linea].sort((a, b) => b.habilidad - a.habilidad);
 
-  const pool = [...porLinea.medio];
-  for (const linea of ['arquero', 'defensa', 'delantero']) {
-    const bucket = porLinea[linea];
-    const disponibles = balanceador.equiposConCupo();
-    if (bucket.length >= 2 && disponibles.length === 2) {
-      const [mejor, segundoMejor] = bucket;
-      const primerEquipo = balanceador.equipoAleatorioSesgado();
-      const segundoEquipo = primerEquipo === 'A' ? 'B' : 'A';
-      asignar(mejor, primerEquipo);
-      asignar(segundoMejor, segundoEquipo);
-      pool.push(...bucket.slice(2));
-    } else {
-      pool.push(...bucket);
+  const sinAsignar = [];
+  for (const linea of LINEAS) {
+    for (const jugador of porLinea[linea]) {
+      const equipo = balanceador.elegirEquipo(linea);
+      if (equipo) asignar(jugador, equipo, linea);
+      else sinAsignar.push(jugador);
     }
   }
 
-  const poolMezclado = mezclar(pool);
-  for (const jugador of poolMezclado) {
-    const equipo = balanceador.equipoMenorCarga();
-    asignar(jugador, equipo);
+  const siguenSinAsignar = [];
+  for (const jugador of sinAsignar) {
+    const lineaSecundaria = POSICION_A_LINEA[jugador.posicionSecundaria] || null;
+    const equipo = lineaSecundaria ? balanceador.elegirEquipo(lineaSecundaria) : null;
+    if (equipo) asignar(jugador, equipo, lineaSecundaria);
+    else siguenSinAsignar.push(jugador);
+  }
+
+  for (const jugador of siguenSinAsignar) {
+    const { equipo, linea } = balanceador.elegirCualquierEquipoConCupo();
+    asignar(jugador, equipo, linea);
+  }
+
+  // Dividir "medio" en medioContencion/medioOfensivo cuando la formación del equipo lo pida.
+  const mediosPorEquipo = { A: [], B: [] };
+  for (const jugador of asignados) {
+    if (jugador.lineaBroad === 'medio') mediosPorEquipo[jugador.equipo].push(jugador);
+  }
+  for (const equipo of ['A', 'B']) {
+    const subLineas = resuelto[equipo].filter((l) => l.key === 'medioContencion' || l.key === 'medioOfensivo');
+    if (subLineas.length === 0) continue;
+    const cantidadContencion = subLineas.find((l) => l.key === 'medioContencion')?.cantidad || 0;
+    mediosPorEquipo[equipo].forEach((jugador, indice) => {
+      jugador.lineaFinal = indice < cantidadContencion ? 'medioContencion' : 'medioOfensivo';
+    });
+  }
+  for (const jugador of asignados) {
+    if (!jugador.lineaFinal) jugador.lineaFinal = jugador.lineaBroad;
   }
 
   const contadorLinea = {};
   const jugadoresFinales = asignados.map((jugador) => {
-    const clave = `${jugador.equipo}-${jugador.linea}`;
+    const clave = `${jugador.equipo}-${jugador.lineaFinal}`;
     const ordenLinea = contadorLinea[clave] || 0;
     contadorLinea[clave] = ordenLinea + 1;
     return {
@@ -273,14 +322,12 @@ async function generarFormacionAutomatica(partidoId, grupoId) {
       nombre: jugador.nombre,
       posicionPrincipal: jugador.posicionPrincipal,
       equipo: jugador.equipo,
-      linea: jugador.linea,
+      linea: jugador.lineaFinal,
       ordenLinea,
     };
   });
 
-  const lineasEsperadas = { A: generarLineas(cupoPorEquipo.A), B: generarLineas(cupoPorEquipo.B) };
-
-  return { habilitado: true, cupoPorEquipo, lineasEsperadas, jugadores: jugadoresFinales };
+  return { habilitado: true, cupoPorEquipo, lineasEsperadas: resuelto, jugadores: jugadoresFinales };
 }
 
 async function guardarFormacion(partidoId, grupoId, asignaciones) {
@@ -316,7 +363,7 @@ async function guardarFormacion(partidoId, grupoId, asignaciones) {
     if (equipo !== 'A' && equipo !== 'B') {
       throw crearError('equipo debe ser "A" o "B"', 400);
     }
-    if (!LINEAS.includes(linea)) {
+    if (!TODAS_LAS_LINEAS.includes(linea)) {
       throw crearError('linea inválida', 400);
     }
     if (!Number.isInteger(ordenLinea) || ordenLinea < 0) {
