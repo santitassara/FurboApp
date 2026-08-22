@@ -73,11 +73,11 @@ function FilaJugador({ jugador, accion, onAccion, deshabilitado, grupoId }) {
         )}
       </div>
       <div className="flex items-center gap-3 pl-11">
-        <span className="text-[11px] text-white/50">
+        <span className="text-[11px] text-white/50 flex-1">
           {ABREVIATURA_POSICION[jugador.posicionPrincipal] || '-'}
           {jugador.posicionSecundaria && ` / ${ABREVIATURA_POSICION[jugador.posicionSecundaria] || '-'}`}
         </span>
-        <span className={`w-10 shrink-0 rounded px-1.5 py-0.5 text-center text-xs font-bold ${colorValoracion(valoracion)}`}>
+        <span className={`shrink-0 rounded px-1.5 py-0.5 text-center text-xs font-bold ${colorValoracion(valoracion)}`}>
           {valoracion}
         </span>
       </div>
