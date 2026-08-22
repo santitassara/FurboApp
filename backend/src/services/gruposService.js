@@ -79,7 +79,7 @@ async function unirseAGrupo({ codigoInvitacion, usuarioId }) {
 async function listarMisGrupos(usuarioId) {
   const filas = db
     .prepare(
-      `SELECT g.id, g.nombre, g.codigoInvitacion, ug.rol, ug.estaSancionado
+      `SELECT g.id, g.nombre, g.codigoInvitacion, g.creadoPor, ug.rol, ug.estaSancionado
        FROM UsuariosGrupos ug JOIN Grupos g ON g.id = ug.grupoId
        WHERE ug.usuarioId = ? ORDER BY g.nombre COLLATE NOCASE ASC`
     )
@@ -90,6 +90,7 @@ async function listarMisGrupos(usuarioId) {
     nombre: fila.nombre,
     rol: fila.rol,
     estaSancionado: Boolean(fila.estaSancionado),
+    creadoPor: fila.creadoPor,
     ...(fila.rol === 'admin' ? { codigoInvitacion: fila.codigoInvitacion } : {}),
   }));
 }
@@ -144,6 +145,39 @@ async function abandonarGrupo(grupoId, usuarioId) {
   abandonar();
 }
 
+async function listarMiembros(grupoId) {
+  return db
+    .prepare(
+      `SELECT u.uid, u.nombre, ug.rol FROM UsuariosGrupos ug
+       JOIN Usuarios u ON u.uid = ug.usuarioId
+       WHERE ug.grupoId = ?
+       ORDER BY u.nombre COLLATE NOCASE ASC`
+    )
+    .all(grupoId);
+}
+
+async function promoverAAdmin(grupoId, usuarioId) {
+  const miembro = obtenerMembresiaSync(grupoId, usuarioId);
+  if (!miembro) throw crearError('El usuario no pertenece a este grupo', 404);
+
+  db.prepare('UPDATE UsuariosGrupos SET rol = ? WHERE grupoId = ? AND usuarioId = ?').run(
+    'admin',
+    grupoId,
+    usuarioId
+  );
+}
+
+async function desporomoverDeAdmin(grupoId, usuarioId) {
+  const miembro = obtenerMembresiaSync(grupoId, usuarioId);
+  if (!miembro) throw crearError('El usuario no pertenece a este grupo', 404);
+
+  db.prepare('UPDATE UsuariosGrupos SET rol = ? WHERE grupoId = ? AND usuarioId = ?').run(
+    'jugador',
+    grupoId,
+    usuarioId
+  );
+}
+
 module.exports = {
   crearGrupo,
   unirseAGrupo,
@@ -153,4 +187,7 @@ module.exports = {
   perdonarSancion,
   listarSancionados,
   abandonarGrupo,
+  listarMiembros,
+  promoverAAdmin,
+  desporomoverDeAdmin,
 };
