@@ -53,38 +53,34 @@ function FilaJugador({ jugador, accion, onAccion, deshabilitado, grupoId }) {
   const { pj, goles, asistencias, valoracion } = stats;
 
   return (
-    <li className="flex items-center gap-3 rounded-lg px-2 py-2 odd:bg-white/[0.03]">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cancha-700 text-xs font-bold text-white/90">
-        {inicial}
-      </div>
-      <div className="min-w-0 flex-1">
-        <Link to={`/jugadores/${jugador.usuarioId}`} className="block truncate text-sm font-medium text-white hover:underline">
+    <li className="flex flex-col gap-1 rounded-lg px-2 py-2 odd:bg-white/[0.03]">
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cancha-700 text-xs font-bold text-white/90">
+          {inicial}
+        </div>
+        <Link to={`/jugadores/${jugador.usuarioId}`} className="block text-sm font-medium text-white hover:underline flex-1">
           {jugador.nombre}
         </Link>
+        {accion && (
+          <Boton
+            variante={accion === 'sancionar' ? 'peligro' : 'ghost'}
+            className="shrink-0 px-2 py-1 text-xs"
+            onClick={() => onAccion(jugador.usuarioId)}
+            disabled={deshabilitado}
+          >
+            {accion === 'sancionar' ? 'Sancionar' : 'Promover'}
+          </Boton>
+        )}
+      </div>
+      <div className="flex items-center gap-3 pl-11">
         <span className="text-[11px] text-white/50">
-          {etiquetaPosicion(jugador.posicionPrincipal)}
-          {jugador.posicionSecundaria && ` / ${etiquetaPosicion(jugador.posicionSecundaria)}`}
+          {ABREVIATURA_POSICION[jugador.posicionPrincipal] || '-'}
+          {jugador.posicionSecundaria && ` / ${ABREVIATURA_POSICION[jugador.posicionSecundaria] || '-'}`}
+        </span>
+        <span className={`w-10 shrink-0 rounded px-1.5 py-0.5 text-center text-xs font-bold ${colorValoracion(valoracion)}`}>
+          {valoracion}
         </span>
       </div>
-      <span className="w-8 shrink-0 text-center text-[10px] font-bold uppercase text-white/60">
-        {ABREVIATURA_POSICION[jugador.posicionPrincipal] || '-'}
-      </span>
-      <span className="w-6 shrink-0 text-center text-xs text-white/70">{pj}</span>
-      <span className="w-6 shrink-0 text-center text-xs text-white/70">{goles}</span>
-      <span className="w-6 shrink-0 text-center text-xs text-white/70">{asistencias}</span>
-      <span className={`w-10 shrink-0 rounded px-1.5 py-0.5 text-center text-xs font-bold ${colorValoracion(valoracion)}`}>
-        {valoracion}
-      </span>
-      {accion && (
-        <Boton
-          variante={accion === 'sancionar' ? 'peligro' : 'ghost'}
-          className="shrink-0 px-2 py-1 text-xs"
-          onClick={() => onAccion(jugador.usuarioId)}
-          disabled={deshabilitado}
-        >
-          {accion === 'sancionar' ? 'Sancionar' : 'Promover'}
-        </Boton>
-      )}
     </li>
   );
 }
@@ -94,10 +90,6 @@ function EncabezadoTabla({ mostrarAccion }) {
     <div className="flex items-center gap-3 px-2 pb-1 text-[10px] font-bold uppercase tracking-wide text-white/40">
       <span className="w-8 shrink-0" />
       <span className="min-w-0 flex-1">Jugador</span>
-      <span className="w-8 shrink-0 text-center">Pos</span>
-      <span className="w-6 shrink-0 text-center">PJ</span>
-      <span className="w-6 shrink-0 text-center">G</span>
-      <span className="w-6 shrink-0 text-center">A</span>
       <span className="w-10 shrink-0 text-center">Val</span>
       {mostrarAccion && <span className="w-16 shrink-0" />}
     </div>
