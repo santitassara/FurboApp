@@ -6,6 +6,7 @@ import { rutaGrupo } from '../utils/rutasGrupo';
 import { formatearFechaPartido } from '../utils/fecha';
 import ResultadoPartido from './ResultadoPartido';
 import ModalVotarValoraciones from './ModalVotarValoraciones';
+import Boton from './Boton';
 
 export default function ItemHistorialPartido({ partido }) {
   const { perfil } = useAuth();
@@ -19,6 +20,8 @@ export default function ItemHistorialPartido({ partido }) {
   const [votosPropios, setVotosPropios] = useState({ valoraciones: [], mvpId: null });
   const [votando, setVotando] = useState(false);
   const [errorVoto, setErrorVoto] = useState('');
+  const [eliminarAbierto, setEliminarAbierto] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
 
   const cantidadJugadores = (partido.ocupados?.titulares || 0) + (partido.ocupados?.suplentes || 0);
   const soyElegible = elegibles.some((j) => j.usuarioId === perfil?.uid);
@@ -74,6 +77,18 @@ export default function ItemHistorialPartido({ partido }) {
     }
   }
 
+  async function confirmarEliminar() {
+    setEliminando(true);
+    try {
+      await api.delete(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}`));
+      setEliminarAbierto(false);
+      window.location.reload();
+    } catch (err) {
+      setError(err.message);
+      setEliminando(false);
+    }
+  }
+
   return (
     <div className="rounded-xl border border-white/10 bg-cancha-800 shadow-lg">
       <button
@@ -107,15 +122,26 @@ export default function ItemHistorialPartido({ partido }) {
           ) : (
             <>
               <ResultadoPartido partido={partido} resultado={resultado} />
-              {soyElegible && (
-                <button
-                  type="button"
-                  onClick={abrirVotacion}
-                  className="mt-3 w-full rounded-lg bg-pasto-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-pasto-500"
-                >
-                  Calificar jugadores
-                </button>
-              )}
+              <div className="mt-3 flex gap-2">
+                {soyElegible && (
+                  <button
+                    type="button"
+                    onClick={abrirVotacion}
+                    className="flex-1 rounded-lg bg-pasto-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-pasto-500"
+                  >
+                    Calificar jugadores
+                  </button>
+                )}
+                {grupoActivo?.rol === 'admin' && (
+                  <button
+                    type="button"
+                    onClick={() => setEliminarAbierto(true)}
+                    className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500"
+                  >
+                    Eliminar
+                  </button>
+                )}
+              </div>
               {errorVoto && !votoAbierto && <p className="mt-2 text-sm text-sancion">{errorVoto}</p>}
             </>
           )}
@@ -135,6 +161,23 @@ export default function ItemHistorialPartido({ partido }) {
           setErrorVoto('');
         }}
       />
+
+      {eliminarAbierto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-sm rounded-xl border border-white/10 bg-cancha-800 p-6 text-center">
+            <h2 className="mb-2 text-lg font-bold text-sancion">Eliminar partido</h2>
+            <p className="mb-6 text-sm text-white/70">Esta acción es irreversible, ¿estás seguro de hacerlo?</p>
+            <div className="flex justify-center gap-3">
+              <Boton variante="ghost" onClick={() => setEliminarAbierto(false)} disabled={eliminando}>
+                Cancelar
+              </Boton>
+              <Boton variante="peligro" onClick={confirmarEliminar} disabled={eliminando}>
+                {eliminando ? 'Eliminando…' : 'Eliminar'}
+              </Boton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

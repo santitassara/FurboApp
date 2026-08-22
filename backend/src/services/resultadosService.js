@@ -25,9 +25,6 @@ async function guardarResultado(partidoId, grupoId, payload = {}) {
   if (partido.estado === 'abierto') throw crearError('El partido todavía no cerró', 400);
 
   const elegibles = await obtenerElegibles(partidoId);
-  if (elegibles.length === 0) {
-    throw crearError('Debés guardar la formación antes de cargar el resultado', 400);
-  }
   const elegiblesSet = new Set(elegibles);
 
   const goles = Array.isArray(payload.goles) ? payload.goles : [];

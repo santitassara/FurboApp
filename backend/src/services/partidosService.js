@@ -59,8 +59,8 @@ function listarPartidosVisibles(grupoId) {
 async function eliminarPartido(partidoId, grupoId, uid) {
   const partido = await obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
-  if (partido.creadoPor !== uid) {
-    throw crearError('Solo el admin que creó el partido puede eliminarlo', 403);
+  if (partido.estado !== 'jugado') {
+    throw crearError('Solo se pueden eliminar partidos que ya fueron jugados', 400);
   }
 
   const resultadosService = require('./resultadosService');
