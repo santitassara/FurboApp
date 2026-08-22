@@ -24,6 +24,7 @@ export default function AdminPanel() {
   const [jugadorASancionar, setJugadorASancionar] = useState(null);
   const [formacionesPorPartido, setFormacionesPorPartido] = useState({});
   const [partidoParaResultado, setPartidoParaResultado] = useState(null);
+  const [miembrosExpandido, setMiembrosExpandido] = useState(false);
 
   const cargarTodo = useCallback(async () => {
     if (!grupoActivo) return;
@@ -209,49 +210,6 @@ export default function AdminPanel() {
       {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
       {mensaje && <p className="rounded-lg bg-pasto-600/20 px-4 py-2 text-sm text-pasto-500">{mensaje}</p>}
 
-      {grupoActivo?.creadoPor === perfil?.uid && (
-        <section className="rounded-xl border border-white/10 bg-cancha-800 p-5">
-          <h2 className="mb-4 text-lg font-bold text-white">Miembros del equipo</h2>
-          {miembros.length === 0 ? (
-            <p className="text-sm text-white/50">No hay miembros en este grupo.</p>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {miembros.map((miembro) => (
-                <li key={miembro.uid} className="flex items-center justify-between rounded-lg bg-cancha-900 px-3 py-2">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium text-white">{miembro.nombre}</span>
-                    <span className="text-xs text-white/50">{miembro.rol === 'admin' ? 'Admin' : 'Jugador'}</span>
-                  </div>
-                  {miembro.uid !== grupoActivo.creadoPor && (
-                    <div className="flex gap-2">
-                      {miembro.rol === 'jugador' ? (
-                        <Boton
-                          variante="ghost"
-                          className="px-3 py-1 text-xs"
-                          onClick={() => promoverAAdmin(miembro.uid)}
-                          disabled={accionEnCurso}
-                        >
-                          Promover a admin
-                        </Boton>
-                      ) : (
-                        <Boton
-                          variante="ghost"
-                          className="px-3 py-1 text-xs text-sancion"
-                          onClick={() => desporomoverDeAdmin(miembro.uid)}
-                          disabled={accionEnCurso}
-                        >
-                          Quitar admin
-                        </Boton>
-                      )}
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
-
       <section className="rounded-xl border border-white/10 bg-cancha-800 p-5">
         <h2 className="mb-4 text-lg font-bold text-white">Crear partido para {grupoActivo.nombre}</h2>
         <form onSubmit={crearPartido} className="flex flex-col gap-4 sm:flex-row sm:items-end">
@@ -372,6 +330,59 @@ export default function AdminPanel() {
           ))
         )}
       </section>
+
+      {grupoActivo?.creadoPor === perfil?.uid && (
+        <section className="rounded-xl border border-white/10 bg-cancha-800">
+          <button
+            onClick={() => setMiembrosExpandido(!miembrosExpandido)}
+            className="w-full px-5 py-4 flex items-center justify-between hover:bg-cancha-700/30 transition-colors"
+          >
+            <h2 className="text-lg font-bold text-white">Miembros del equipo</h2>
+            <span className="text-white/70 text-xl">{miembrosExpandido ? '−' : '+'}</span>
+          </button>
+          {miembrosExpandido && (
+            <div className="border-t border-white/10 px-5 py-4">
+              {miembros.length === 0 ? (
+                <p className="text-sm text-white/50">No hay miembros en este grupo.</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {miembros.map((miembro) => (
+                    <li key={miembro.uid} className="flex items-center justify-between rounded-lg bg-cancha-900 px-3 py-2">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-white">{miembro.nombre}</span>
+                        <span className="text-xs text-white/50">{miembro.rol === 'admin' ? 'Admin' : 'Jugador'}</span>
+                      </div>
+                      {miembro.uid !== grupoActivo.creadoPor && (
+                        <div className="flex gap-2">
+                          {miembro.rol === 'jugador' ? (
+                            <Boton
+                              variante="ghost"
+                              className="px-3 py-1 text-xs"
+                              onClick={() => promoverAAdmin(miembro.uid)}
+                              disabled={accionEnCurso}
+                            >
+                              Promover a admin
+                            </Boton>
+                          ) : (
+                            <Boton
+                              variante="ghost"
+                              className="px-3 py-1 text-xs text-sancion"
+                              onClick={() => desporomoverDeAdmin(miembro.uid)}
+                              disabled={accionEnCurso}
+                            >
+                              Quitar admin
+                            </Boton>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       <ModalConfirmacionSancionAdmin
         abierto={Boolean(jugadorASancionar)}
