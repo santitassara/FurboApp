@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import Boton from './Boton';
 import { etiquetaPosicion } from '../constants/posiciones';
 
@@ -18,12 +20,7 @@ function hashTexto(texto) {
 }
 
 function estadisticasFalsas(usuarioId) {
-  const hash = hashTexto(usuarioId);
-  const pj = 5 + (hash % 30);
-  const goles = (hash >> 3) % 16;
-  const asistencias = (hash >> 6) % 11;
-  const valoracion = (6 + ((hash >> 9) % 25) / 10).toFixed(1);
-  return { pj, goles, asistencias, valoracion };
+  return { pj: 0, goles: 0, asistencias: 0, valoracion: '0.0' };
 }
 
 function colorValoracion(valoracion) {
@@ -33,9 +30,27 @@ function colorValoracion(valoracion) {
   return 'bg-white/10 text-white/70';
 }
 
-function FilaJugador({ jugador, accion, onAccion, deshabilitado }) {
+function FilaJugador({ jugador, accion, onAccion, deshabilitado, grupoId }) {
   const inicial = jugador.nombre?.trim()?.[0]?.toUpperCase() || '?';
-  const { pj, goles, asistencias, valoracion } = estadisticasFalsas(jugador.usuarioId);
+  const [stats, setStats] = useState({ pj: 0, goles: 0, asistencias: 0, valoracion: '0.0' });
+
+  useEffect(() => {
+    if (!grupoId) return;
+    const cargarStats = async () => {
+      try {
+        const token = localStorage.getItem('firebaseToken');
+        const res = await axios.get(`/api/usuarios/${jugador.usuarioId}/estadisticas/${grupoId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setStats(res.data);
+      } catch (err) {
+        console.error('Error cargando estadísticas:', err);
+      }
+    };
+    cargarStats();
+  }, [jugador.usuarioId, grupoId]);
+
+  const { pj, goles, asistencias, valoracion } = stats;
 
   return (
     <li className="flex items-center gap-3 rounded-lg px-2 py-2 odd:bg-white/[0.03]">
@@ -109,7 +124,7 @@ function agruparTitulares(titulares, formacion) {
   return grupos;
 }
 
-export default function ListaJugadores({ jugadores, formacion, onPromover, onSancionar, deshabilitado }) {
+export default function ListaJugadores({ jugadores, formacion, onPromover, onSancionar, deshabilitado, grupoId }) {
   const titulares = jugadores.filter((jugador) => jugador.tipo === 'titular');
   const suplentes = jugadores.filter((jugador) => jugador.tipo === 'suplente');
   const gruposTitulares = agruparTitulares(titulares, formacion);
@@ -139,6 +154,7 @@ export default function ListaJugadores({ jugadores, formacion, onPromover, onSan
                       accion={onSancionar ? 'sancionar' : null}
                       onAccion={onSancionar}
                       deshabilitado={deshabilitado}
+                      grupoId={grupoId}
                     />
                   ))}
                 </ul>
@@ -162,6 +178,7 @@ export default function ListaJugadores({ jugadores, formacion, onPromover, onSan
                   accion={onPromover ? 'promover' : null}
                   onAccion={onPromover}
                   deshabilitado={deshabilitado}
+                  grupoId={grupoId}
                 />
               ))}
             </ul>

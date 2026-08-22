@@ -189,6 +189,7 @@ export default function Home() {
                   onSolicitarBaja={() => solicitarBaja(partido)}
                   jugadores={inscripcionesPorPartido[partido.id] || []}
                   formacion={formacionesPorPartido[partido.id]}
+                  grupoId={grupoActivo.id}
                 />
               </div>
             </PartidoConEstado>

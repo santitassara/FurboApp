@@ -325,6 +325,7 @@ export default function AdminPanel() {
                     : undefined
                 }
                 deshabilitado={accionEnCurso}
+                grupoId={grupoActivo.id}
               />
             </div>
           ))
