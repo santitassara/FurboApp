@@ -24,4 +24,22 @@ async function abandonar(req, res) {
   res.status(204).send();
 }
 
-module.exports = { crear, unirse, listarMios, abandonar };
+async function listarMiembros(req, res) {
+  const { grupoId } = req.params;
+  const miembros = await gruposService.listarMiembros(grupoId);
+  res.json(miembros);
+}
+
+async function promoverAAdmin(req, res) {
+  const { grupoId, uid } = req.params;
+  await gruposService.promoverAAdmin(grupoId, uid);
+  res.json({ mensaje: 'Usuario promovido a admin' });
+}
+
+async function desporomoverDeAdmin(req, res) {
+  const { grupoId, uid } = req.params;
+  await gruposService.desporomoverDeAdmin(grupoId, uid);
+  res.json({ mensaje: 'Admin revocado' });
+}
+
+module.exports = { crear, unirse, listarMios, abandonar, listarMiembros, promoverAAdmin, desporomoverDeAdmin };

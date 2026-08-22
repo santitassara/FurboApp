@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
 import { useGrupo } from '../context/GrupoContext';
+import { useAuth } from '../context/AuthContext';
 import { rutaGrupo } from '../utils/rutasGrupo';
 import Boton from '../components/Boton';
 import ListaJugadores from '../components/ListaJugadores';
@@ -11,9 +12,11 @@ const FORMULARIO_INICIAL = { fecha: '', cupoTitulares: 10, cupoSuplentes: 5 };
 
 export default function AdminPanel() {
   const { grupoActivo } = useGrupo();
+  const { perfil } = useAuth();
   const [partidos, setPartidos] = useState([]);
   const [inscripcionesPorPartido, setInscripcionesPorPartido] = useState({});
   const [sancionados, setSancionados] = useState([]);
+  const [miembros, setMiembros] = useState([]);
   const [formulario, setFormulario] = useState(FORMULARIO_INICIAL);
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
@@ -21,17 +24,20 @@ export default function AdminPanel() {
   const [jugadorASancionar, setJugadorASancionar] = useState(null);
   const [formacionesPorPartido, setFormacionesPorPartido] = useState({});
   const [partidoParaResultado, setPartidoParaResultado] = useState(null);
+  const [miembrosExpandido, setMiembrosExpandido] = useState(false);
 
   const cargarTodo = useCallback(async () => {
     if (!grupoActivo) return;
     setError('');
     try {
-      const [{ data: partidosAbiertos }, { data: sancionadosActuales }] = await Promise.all([
+      const [{ data: partidosAbiertos }, { data: sancionadosActuales }, { data: miembrosActuales }] = await Promise.all([
         api.get(rutaGrupo(grupoActivo.id, '/partidos')),
         api.get(rutaGrupo(grupoActivo.id, '/usuarios/sancionados')),
+        api.get(rutaGrupo(grupoActivo.id, '/miembros')),
       ]);
       setPartidos(partidosAbiertos);
       setSancionados(sancionadosActuales);
+      setMiembros(miembrosActuales);
 
       const entradas = await Promise.all(
         partidosAbiertos.map(async (partido) => {
@@ -88,6 +94,36 @@ export default function AdminPanel() {
     setAccionEnCurso(true);
     try {
       await api.post(rutaGrupo(grupoActivo.id, `/usuarios/${uid}/perdonar`));
+      await cargarTodo();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAccionEnCurso(false);
+    }
+  }
+
+  async function promoverAAdmin(uid) {
+    setError('');
+    setMensaje('');
+    setAccionEnCurso(true);
+    try {
+      await api.post(rutaGrupo(grupoActivo.id, `/usuarios/${uid}/promover`));
+      setMensaje('Usuario promovido a admin.');
+      await cargarTodo();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAccionEnCurso(false);
+    }
+  }
+
+  async function desporomoverDeAdmin(uid) {
+    setError('');
+    setMensaje('');
+    setAccionEnCurso(true);
+    try {
+      await api.post(rutaGrupo(grupoActivo.id, `/usuarios/${uid}/desporomover`));
+      setMensaje('Admin revocado.');
       await cargarTodo();
     } catch (err) {
       setError(err.message);
@@ -294,6 +330,59 @@ export default function AdminPanel() {
           ))
         )}
       </section>
+
+      {grupoActivo?.creadoPor === perfil?.uid && (
+        <section className="rounded-xl border border-white/10 bg-cancha-800">
+          <button
+            onClick={() => setMiembrosExpandido(!miembrosExpandido)}
+            className="w-full px-5 py-4 flex items-center justify-between hover:bg-cancha-700/30 transition-colors"
+          >
+            <h2 className="text-lg font-bold text-white">Miembros del equipo</h2>
+            <span className="text-white/70 text-xl">{miembrosExpandido ? '−' : '+'}</span>
+          </button>
+          {miembrosExpandido && (
+            <div className="border-t border-white/10 px-5 py-4">
+              {miembros.length === 0 ? (
+                <p className="text-sm text-white/50">No hay miembros en este grupo.</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {miembros.map((miembro) => (
+                    <li key={miembro.uid} className="flex items-center justify-between rounded-lg bg-cancha-900 px-3 py-2">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-white">{miembro.nombre}</span>
+                        <span className="text-xs text-white/50">{miembro.rol === 'admin' ? 'Admin' : 'Jugador'}</span>
+                      </div>
+                      {miembro.uid !== grupoActivo.creadoPor && (
+                        <div className="flex gap-2">
+                          {miembro.rol === 'jugador' ? (
+                            <Boton
+                              variante="ghost"
+                              className="px-3 py-1 text-xs"
+                              onClick={() => promoverAAdmin(miembro.uid)}
+                              disabled={accionEnCurso}
+                            >
+                              Promover a admin
+                            </Boton>
+                          ) : (
+                            <Boton
+                              variante="ghost"
+                              className="px-3 py-1 text-xs text-sancion"
+                              onClick={() => desporomoverDeAdmin(miembro.uid)}
+                              disabled={accionEnCurso}
+                            >
+                              Quitar admin
+                            </Boton>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       <ModalConfirmacionSancionAdmin
         abierto={Boolean(jugadorASancionar)}
