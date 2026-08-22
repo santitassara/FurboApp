@@ -84,11 +84,8 @@ export default function Perfil() {
     try {
       const payload = { ...datos };
       for (const { campo } of HABILIDADES) {
-        if (tocado[campo] || perfil?.[campo] != null) {
-          payload[campo] = Number(datos[campo]);
-        } else {
-          delete payload[campo];
-        }
+        const valor = Number(datos[campo]);
+        payload[campo] = Number.isNaN(valor) ? 50 : valor;
       }
       await actualizarMiPerfil(payload);
       setGuardado(true);
