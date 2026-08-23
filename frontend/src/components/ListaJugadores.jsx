@@ -11,6 +11,11 @@ const ABREVIATURA_POSICION = {
   delantero: 'ATA',
 };
 
+const ABREVIATURA_PIERNA = {
+  diestro: 'D',
+  zurdo: 'Z',
+};
+
 function hashTexto(texto) {
   let hash = 0;
   for (let i = 0; i < texto.length; i += 1) {
@@ -76,6 +81,7 @@ function FilaJugador({ jugador, accion, onAccion, deshabilitado, grupoId }) {
         <span className="text-[11px] text-white/50 flex-1">
           {ABREVIATURA_POSICION[jugador.posicionPrincipal] || '-'}
           {jugador.posicionSecundaria && ` / ${ABREVIATURA_POSICION[jugador.posicionSecundaria] || '-'}`}
+          {jugador.piernaHabil && ` • ${ABREVIATURA_PIERNA[jugador.piernaHabil] || ''}`}
         </span>
         <span className={`shrink-0 rounded px-1.5 py-0.5 text-center text-xs font-bold ${colorValoracion(valoracion)}`}>
           {valoracion}

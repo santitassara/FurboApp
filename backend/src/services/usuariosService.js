@@ -23,6 +23,11 @@ function normalizarVacio(valor) {
   return valor === '' || valor === undefined ? null : valor;
 }
 
+function esPiernaHabilValida(valor) {
+  if (valor === null || valor === '') return true;
+  return ['diestro', 'zurdo'].includes(valor);
+}
+
 function esHabilidadValida(valor) {
   return valor === null || (Number.isInteger(valor) && valor >= 0 && valor <= 100);
 }
@@ -105,6 +110,7 @@ async function actualizarPerfil(uid, datos = {}) {
   const { posicionPrincipal, posicionSecundaria } = datos;
   const resistencia = normalizarVacio(datos.resistencia);
   const ritmoJuego = normalizarVacio(datos.ritmoJuego);
+  const piernaHabil = normalizarVacio(datos.piernaHabil);
   const habilidades = {
     velocidad: normalizarVacio(datos.velocidad),
     pegada: normalizarVacio(datos.pegada),
@@ -141,6 +147,11 @@ async function actualizarPerfil(uid, datos = {}) {
     error.status = 400;
     throw error;
   }
+  if (!esPiernaHabilValida(piernaHabil)) {
+    const error = new Error('Pierna hábil inválida');
+    error.status = 400;
+    throw error;
+  }
 
   db.prepare(
     `UPDATE Usuarios SET
@@ -150,6 +161,7 @@ async function actualizarPerfil(uid, datos = {}) {
       posicionSecundaria = @posicionSecundaria,
       resistencia = @resistencia,
       ritmoJuego = @ritmoJuego,
+      piernaHabil = @piernaHabil,
       velocidad = @velocidad,
       pegada = @pegada,
       tocaPase = @tocaPase,
@@ -165,6 +177,7 @@ async function actualizarPerfil(uid, datos = {}) {
     posicionSecundaria,
     resistencia,
     ritmoJuego,
+    piernaHabil,
     ...habilidades,
   });
   return obtenerUsuario(uid);
@@ -186,6 +199,7 @@ async function obtenerPerfilPublico(uid) {
     posicionSecundaria: fila.posicionSecundaria,
     resistencia: fila.resistencia,
     ritmoJuego: fila.ritmoJuego,
+    piernaHabil: fila.piernaHabil,
     velocidad: fila.velocidad,
     pegada: fila.pegada,
     tocaPase: fila.tocaPase,
