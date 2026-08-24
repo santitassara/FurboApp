@@ -9,6 +9,7 @@ import MapaCancha from '../components/MapaCancha';
 import ModalConfirmacionSancion from '../components/ModalConfirmacionSancion';
 import ModalPosicion from '../components/ModalPosicion';
 import PartidoConEstado from '../components/PartidoConEstado';
+import EquiposPosibles from '../components/EquiposPosibles';
 
 export default function Home() {
   const { perfil, actualizarPosicionesPerfil } = useAuth();
@@ -17,6 +18,8 @@ export default function Home() {
   const [partidos, setPartidos] = useState([]);
   const [inscripcionesPorPartido, setInscripcionesPorPartido] = useState({});
   const [formacionesPorPartido, setFormacionesPorPartido] = useState({});
+  const [propuestasPorPartido, setPropuestasPorPartido] = useState({});
+  const [previewPorPartido, setPreviewPorPartido] = useState({});
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const [partidoParaBaja, setPartidoParaBaja] = useState(null);
@@ -54,6 +57,19 @@ export default function Home() {
           })
       );
       setFormacionesPorPartido(Object.fromEntries(entradasFormacion));
+
+      const entradasPropuestas = await Promise.all(
+        partidosAbiertos
+          .filter(
+            (partido) =>
+              partido.estado !== 'jugado' && (partido.ocupados?.titulares || 0) >= partido.cupoTitulares
+          )
+          .map(async (partido) => {
+            const { data } = await api.get(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/formaciones-propuestas`));
+            return [partido.id, data];
+          })
+      );
+      setPropuestasPorPartido(Object.fromEntries(entradasPropuestas));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -178,6 +194,10 @@ export default function Home() {
                     formacion={formacionesPorPartido[partido.id]}
                     esAdmin={grupoActivo?.rol === 'admin'}
                     onGuardado={(data) => setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))}
+                    propuestasInfo={propuestasPorPartido[partido.id]}
+                    previewPropuesta={previewPorPartido[partido.id] || null}
+                    onPropuesto={cargarPartidos}
+                    onSalirPreview={() => setPreviewPorPartido((anterior) => ({ ...anterior, [partido.id]: null }))}
                   />
                 )}
                 <TarjetaPartido
@@ -192,6 +212,22 @@ export default function Home() {
                   grupoId={grupoActivo.id}
                 />
               </div>
+              {propuestasPorPartido[partido.id]?.propuestas?.length > 0 && (
+                <EquiposPosibles
+                  grupoId={grupoActivo.id}
+                  partidoId={partido.id}
+                  datos={propuestasPorPartido[partido.id]}
+                  esAdmin={grupoActivo?.rol === 'admin'}
+                  soyTitular={inscripcionDelUsuario(partido.id)?.tipo === 'titular'}
+                  onActualizado={cargarPartidos}
+                  onVerEnCancha={(propuesta) =>
+                    setPreviewPorPartido((anterior) => ({
+                      ...anterior,
+                      [partido.id]: [...propuesta.equipoA, ...propuesta.equipoB],
+                    }))
+                  }
+                />
+              )}
             </PartidoConEstado>
           ))}
         </div>
