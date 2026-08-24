@@ -52,5 +52,11 @@ router.put(
 
 router.get('/:partidoId/votos/mios', verificarToken, verificarMiembroGrupo(), envolverAsync(votosController.obtenerMios));
 router.post('/:partidoId/votos', verificarToken, verificarMiembroGrupo(), envolverAsync(votosController.guardar));
+router.post(
+  '/:partidoId/cerrar-votacion',
+  verificarToken,
+  verificarMiembroGrupo('admin'),
+  envolverAsync(votosController.cerrarVotacion)
+);
 
 module.exports = router;

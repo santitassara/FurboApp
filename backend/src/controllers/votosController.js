@@ -1,4 +1,5 @@
 const votosService = require('../services/votosService');
+const ratingService = require('../services/ratingService');
 
 async function guardar(req, res) {
   const votos = await votosService.guardarVotos(req.params.partidoId, req.params.grupoId, req.usuario.uid, req.body);
@@ -10,4 +11,9 @@ async function obtenerMios(req, res) {
   res.json(votos);
 }
 
-module.exports = { guardar, obtenerMios };
+async function cerrarVotacion(req, res) {
+  const resumen = await ratingService.cerrarVotacion(req.params.partidoId, req.params.grupoId);
+  res.json(resumen);
+}
+
+module.exports = { guardar, obtenerMios, cerrarVotacion };
