@@ -327,6 +327,8 @@ export default function MapaCancha({
 
   const ubicacionesMostradas = modoPreview ? previewPropuesta : ubicaciones;
 
+  // En modo preview (viendo una propuesta ajena) la estructura se deriva directo de los
+  // asientos de la propuesta, ignorando por completo seleccionA/B y el cupo de la formación.
   // "Automático" no tiene preview antes de generar: si el equipo ya tiene jugadores ubicados
   // (p.ej. tras recargar la página con una formación guardada), se preserva ese layout real.
   // Si no tiene ninguno (p.ej. justo después de cambiar la selección a Automático), se usa un
@@ -446,6 +448,18 @@ export default function MapaCancha({
     setError('');
     setProponiendo(true);
     try {
+      // El backend construye la propuesta a partir de las Inscripciones ya guardadas,
+      // no de lo que está arrastrado en pantalla: hay que guardar primero para que la
+      // propuesta coincida con lo que el admin ve en el tablero.
+      const asignaciones = ubicaciones
+        .filter((jugador) => jugador.equipo)
+        .map((jugador) => ({
+          usuarioId: jugador.usuarioId,
+          equipo: jugador.equipo,
+          linea: jugador.linea,
+          ordenLinea: jugador.ordenLinea,
+        }));
+      await api.put(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/formacion`), { asignaciones });
       await api.post(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/formaciones-propuestas`));
       await onPropuesto?.();
     } catch (err) {
