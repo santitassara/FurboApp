@@ -122,6 +122,20 @@ if (!tieneVotacionCerrada) {
   db.exec('ALTER TABLE Partidos ADD COLUMN votacionCerrada INTEGER NOT NULL DEFAULT 0');
 }
 
+const columnasPartidosVotacionEquipos = db.prepare('PRAGMA table_info(Partidos)').all();
+const tieneVotacionEquiposCerrada = columnasPartidosVotacionEquipos.some(
+  (columna) => columna.name === 'votacionEquiposCerrada'
+);
+if (!tieneVotacionEquiposCerrada) {
+  db.exec('ALTER TABLE Partidos ADD COLUMN votacionEquiposCerrada INTEGER NOT NULL DEFAULT 0');
+}
+const tienePropuestaGanadoraId = columnasPartidosVotacionEquipos.some(
+  (columna) => columna.name === 'propuestaGanadoraId'
+);
+if (!tienePropuestaGanadoraId) {
+  db.exec('ALTER TABLE Partidos ADD COLUMN propuestaGanadoraId TEXT REFERENCES FormacionesPropuestas(id)');
+}
+
 const columnasUsuariosActuales = db.prepare('PRAGMA table_info(Usuarios)').all();
 const tieneEsSuperAdmin = columnasUsuariosActuales.some((columna) => columna.name === 'esSuperAdmin');
 if (!tieneEsSuperAdmin) {
