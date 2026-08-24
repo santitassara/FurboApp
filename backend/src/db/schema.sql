@@ -11,12 +11,12 @@ CREATE TABLE IF NOT EXISTS Usuarios (
   fechaNacimiento TEXT,
   resistencia TEXT,
   ritmoJuego TEXT,
-  velocidad INTEGER,
-  pegada INTEGER,
-  tocaPase INTEGER,
-  gambeta INTEGER,
-  marcaDefensa INTEGER,
-  fisico INTEGER,
+  velocidad REAL,
+  pegada REAL,
+  tocaPase REAL,
+  gambeta REAL,
+  marcaDefensa REAL,
+  fisico REAL,
   suscripcionPush TEXT,
   piernaHabil TEXT
 );
@@ -49,7 +49,8 @@ CREATE TABLE IF NOT EXISTS Partidos (
   cupoTitulares INTEGER NOT NULL,
   cupoSuplentes INTEGER NOT NULL,
   recordatorioEnviado INTEGER NOT NULL DEFAULT 0,
-  recordatorioPostPartidoEnviado INTEGER NOT NULL DEFAULT 0
+  recordatorioPostPartidoEnviado INTEGER NOT NULL DEFAULT 0,
+  votacionCerrada INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS Inscripciones (

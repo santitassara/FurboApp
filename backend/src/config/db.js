@@ -117,6 +117,10 @@ const tieneRecordatorioPostPartidoEnviado = columnasPartidos.some((columna) => c
 if (!tieneRecordatorioPostPartidoEnviado) {
   db.exec('ALTER TABLE Partidos ADD COLUMN recordatorioPostPartidoEnviado INTEGER NOT NULL DEFAULT 0');
 }
+const tieneVotacionCerrada = columnasPartidos.some((columna) => columna.name === 'votacionCerrada');
+if (!tieneVotacionCerrada) {
+  db.exec('ALTER TABLE Partidos ADD COLUMN votacionCerrada INTEGER NOT NULL DEFAULT 0');
+}
 
 const columnasUsuariosActuales = db.prepare('PRAGMA table_info(Usuarios)').all();
 const tieneEsSuperAdmin = columnasUsuariosActuales.some((columna) => columna.name === 'esSuperAdmin');
@@ -183,6 +187,43 @@ if (tieneRolLegado && !yaExisteAlgunGrupo) {
   } catch (error) {
     console.warn('No se pudieron eliminar las columnas legado rol/estaSancionado de Usuarios:', error.message);
   }
+}
+
+const columnasUsuariosParaRebuild = db.prepare('PRAGMA table_info(Usuarios)').all();
+const columnaVelocidad = columnasUsuariosParaRebuild.find((columna) => columna.name === 'velocidad');
+if (columnaVelocidad && columnaVelocidad.type === 'INTEGER') {
+  db.exec(`
+    CREATE TABLE Usuarios_nueva (
+      uid TEXT PRIMARY KEY,
+      nombre TEXT NOT NULL,
+      email TEXT NOT NULL,
+      esSuperAdmin INTEGER NOT NULL DEFAULT 0,
+      fechaCreacion TEXT NOT NULL,
+      passwordHash TEXT,
+      posicionPrincipal TEXT,
+      posicionSecundaria TEXT,
+      nombreCompleto TEXT,
+      fechaNacimiento TEXT,
+      resistencia TEXT,
+      ritmoJuego TEXT,
+      velocidad REAL,
+      pegada REAL,
+      tocaPase REAL,
+      gambeta REAL,
+      marcaDefensa REAL,
+      fisico REAL,
+      suscripcionPush TEXT,
+      piernaHabil TEXT
+    );
+    INSERT INTO Usuarios_nueva SELECT
+      uid, nombre, email, esSuperAdmin, fechaCreacion, passwordHash,
+      posicionPrincipal, posicionSecundaria, nombreCompleto, fechaNacimiento,
+      resistencia, ritmoJuego, velocidad, pegada, tocaPase, gambeta,
+      marcaDefensa, fisico, suscripcionPush, piernaHabil
+    FROM Usuarios;
+    DROP TABLE Usuarios;
+    ALTER TABLE Usuarios_nueva RENAME TO Usuarios;
+  `);
 }
 
 module.exports = { db };
