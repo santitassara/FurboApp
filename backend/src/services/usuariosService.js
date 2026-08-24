@@ -326,4 +326,5 @@ module.exports = {
   autenticarConPassword,
   calcularPromedioHabilidades,
   guardarSuscripcionPush,
+  CAMPOS_HABILIDAD,
 };
