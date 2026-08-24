@@ -22,6 +22,7 @@ export default function ItemHistorialPartido({ partido }) {
   const [errorVoto, setErrorVoto] = useState('');
   const [eliminarAbierto, setEliminarAbierto] = useState(false);
   const [eliminando, setEliminando] = useState(false);
+  const [cerrandoVotacion, setCerrandoVotacion] = useState(false);
 
   const cantidadJugadores = (partido.ocupados?.titulares || 0) + (partido.ocupados?.suplentes || 0);
   const soyElegible = elegibles.some((j) => j.usuarioId === perfil?.uid);
@@ -89,6 +90,23 @@ export default function ItemHistorialPartido({ partido }) {
     }
   }
 
+  async function confirmarCerrarVotacion() {
+    const confirmado = window.confirm(
+      '¿Cerrar la votación y actualizar las habilidades de los jugadores? Esta acción no se puede deshacer.'
+    );
+    if (!confirmado) return;
+
+    setCerrandoVotacion(true);
+    setError('');
+    try {
+      await api.post(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/cerrar-votacion`));
+      window.location.reload();
+    } catch (err) {
+      setError(err.message);
+      setCerrandoVotacion(false);
+    }
+  }
+
   return (
     <div className="rounded-xl border border-white/10 bg-cancha-800 shadow-lg">
       <button
@@ -130,6 +148,16 @@ export default function ItemHistorialPartido({ partido }) {
                     className="flex-1 rounded-lg bg-pasto-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-pasto-500"
                   >
                     Calificar jugadores
+                  </button>
+                )}
+                {grupoActivo?.rol === 'admin' && !partido.votacionCerrada && (
+                  <button
+                    type="button"
+                    onClick={confirmarCerrarVotacion}
+                    disabled={cerrandoVotacion}
+                    className="rounded-lg bg-cancha-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cancha-600 disabled:opacity-50"
+                  >
+                    {cerrandoVotacion ? 'Cerrando…' : 'Cerrar votación'}
                   </button>
                 )}
                 {grupoActivo?.rol === 'admin' && (
