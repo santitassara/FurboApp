@@ -277,7 +277,16 @@ function SelectorFormacion({ etiqueta, cantidadJugadores, seleccion, onCambiar, 
   );
 }
 
-export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }) {
+export default function MapaCancha({
+  partidoId,
+  formacion,
+  esAdmin,
+  onGuardado,
+  propuestasInfo,
+  previewPropuesta,
+  onPropuesto,
+  onSalirPreview,
+}) {
   const { grupoActivo } = useGrupo();
   const jugadoresIniciales = useMemo(() => formacion?.jugadores || [], [formacion]);
   const [ubicaciones, setUbicaciones] = useState(jugadoresIniciales);
@@ -286,6 +295,8 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
   const [guardando, setGuardando] = useState(false);
   const [generando, setGenerando] = useState(false);
   const [error, setError] = useState('');
+  const [proponiendo, setProponiendo] = useState(false);
+  const modoPreview = Boolean(previewPropuesta);
 
   useEffect(() => {
     const jugadoresActuales = formacion?.jugadores || [];
@@ -314,20 +325,26 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
     );
   }
 
+  const ubicacionesMostradas = modoPreview ? previewPropuesta : ubicaciones;
+
+  // En modo preview (viendo una propuesta ajena) la estructura se deriva directo de los
+  // asientos de la propuesta, ignorando por completo seleccionA/B y el cupo de la formación.
   // "Automático" no tiene preview antes de generar: si el equipo ya tiene jugadores ubicados
   // (p.ej. tras recargar la página con una formación guardada), se preserva ese layout real.
   // Si no tiene ninguno (p.ej. justo después de cambiar la selección a Automático), se usa un
   // reparto parejo sintético como preview/borrador para que el tablero no quede sin asientos.
-  const estructuraA =
-    seleccionA.codigo === CODIGO_AUTOMATICO
+  const estructuraA = modoPreview
+    ? estructuraDesdeUbicaciones(ubicacionesMostradas, 'A')
+    : seleccionA.codigo === CODIGO_AUTOMATICO
       ? ubicaciones.some((j) => j.equipo === 'A')
         ? estructuraDesdeUbicaciones(ubicaciones, 'A')
         : ordenarLineas(normalizarAutomatico(formacion.cupoPorEquipo.A))
       : seleccionA.codigo === CODIGO_LIBRE
         ? ordenarLineas(seleccionA.lineas)
         : ordenarLineas(listarFormaciones(formacion.cupoPorEquipo.A).find((f) => f.codigo === seleccionA.codigo)?.lineas || []);
-  const estructuraB =
-    seleccionB.codigo === CODIGO_AUTOMATICO
+  const estructuraB = modoPreview
+    ? estructuraDesdeUbicaciones(ubicacionesMostradas, 'B')
+    : seleccionB.codigo === CODIGO_AUTOMATICO
       ? ubicaciones.some((j) => j.equipo === 'B')
         ? estructuraDesdeUbicaciones(ubicaciones, 'B')
         : ordenarLineas(normalizarAutomatico(formacion.cupoPorEquipo.B))
@@ -427,11 +444,45 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
     }
   }
 
+  async function proponerParaVotacion() {
+    setError('');
+    setProponiendo(true);
+    try {
+      // El backend construye la propuesta a partir de las Inscripciones ya guardadas,
+      // no de lo que está arrastrado en pantalla: hay que guardar primero para que la
+      // propuesta coincida con lo que el admin ve en el tablero.
+      const asignaciones = ubicaciones
+        .filter((jugador) => jugador.equipo)
+        .map((jugador) => ({
+          usuarioId: jugador.usuarioId,
+          equipo: jugador.equipo,
+          linea: jugador.linea,
+          ordenLinea: jugador.ordenLinea,
+        }));
+      await api.put(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/formacion`), { asignaciones });
+      await api.post(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/formaciones-propuestas`));
+      await onPropuesto?.();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setProponiendo(false);
+    }
+  }
+
   const contenido = (
     <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
       <h4 className="mb-3 text-sm font-bold uppercase tracking-wide text-pasto-500">Formación</h4>
 
-      {esAdmin && (
+      {modoPreview && (
+        <div className="mb-3 flex items-center justify-between rounded-lg bg-pasto-600/20 px-3 py-2 text-xs text-white">
+          <span>Vista previa de una propuesta</span>
+          <button type="button" className="underline" onClick={onSalirPreview}>
+            Volver a formación oficial
+          </button>
+        </div>
+      )}
+
+      {esAdmin && !modoPreview && (
         <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <SelectorFormacion
             etiqueta="Equipo 1"
@@ -454,12 +505,12 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
         className="flex aspect-[1.83] w-full overflow-hidden rounded-lg border border-white/10 bg-cover bg-center shadow-inner"
         style={{ backgroundImage: "url('/layout-cancha-futbol.jpeg')" }}
       >
-        <MitadCancha equipo="A" estructura={estructuraA} ubicaciones={ubicaciones} draggable={esAdmin} />
+        <MitadCancha equipo="A" estructura={estructuraA} ubicaciones={ubicacionesMostradas} draggable={esAdmin && !modoPreview} />
         <div className="w-px bg-white/20" />
-        <MitadCancha equipo="B" estructura={estructuraB} ubicaciones={ubicaciones} draggable={esAdmin} />
+        <MitadCancha equipo="B" estructura={estructuraB} ubicaciones={ubicacionesMostradas} draggable={esAdmin && !modoPreview} />
       </div>
 
-      {esAdmin && sinUbicar.length > 0 && (
+      {esAdmin && !modoPreview && sinUbicar.length > 0 && (
         <div className="mt-4">
           <p className="mb-2 text-xs uppercase text-white/40">Sin ubicar</p>
           <div className="flex flex-wrap gap-2">
@@ -470,7 +521,7 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
         </div>
       )}
 
-      {esAdmin && (
+      {esAdmin && !modoPreview && (
         <>
           {error && <p className="mt-3 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
           <Boton
@@ -489,12 +540,22 @@ export default function MapaCancha({ partidoId, formacion, esAdmin, onGuardado }
           >
             {guardando ? 'Guardando…' : 'Guardar formación'}
           </Boton>
+          {!propuestasInfo?.votacionEquiposCerrada && (
+            <Boton
+              variante="ghost"
+              className="mt-2 w-full"
+              onClick={proponerParaVotacion}
+              disabled={proponiendo || guardando || seleccionInvalida || (propuestasInfo?.propuestas?.length || 0) >= 5}
+            >
+              {proponiendo ? 'Proponiendo…' : 'Proponer para votación'}
+            </Boton>
+          )}
         </>
       )}
     </div>
   );
 
-  if (!esAdmin) return contenido;
+  if (!esAdmin || modoPreview) return contenido;
 
   return <DndContext onDragEnd={manejarDragEnd}>{contenido}</DndContext>;
 }

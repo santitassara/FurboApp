@@ -5,6 +5,7 @@ const partidosService = require('./partidosService');
 const gruposService = require('./gruposService');
 const { sonPosicionesValidas } = require('../constants/posiciones');
 const { LINEAS, POSICION_A_LINEA, splitEquipos } = require('../utils/formacion');
+const formacionesPropuestasService = require('./formacionesPropuestasService');
 
 function crearError(mensaje, status) {
   const error = new Error(mensaje);
@@ -92,6 +93,7 @@ async function bajarse(partidoId, grupoId, usuarioId) {
 
   if (inscripcion.tipo === 'titular') {
     await gruposService.sancionar(grupoId, usuarioId);
+    formacionesPropuestasService.manejarBajaDeTitular(partidoId);
   }
 
   return { ...inscripcion, estado: 'dado_de_baja' };
@@ -107,6 +109,7 @@ async function sancionarManualmente(partidoId, grupoId, usuarioId) {
 
   db.prepare("UPDATE Inscripciones SET estado = 'dado_de_baja' WHERE id = ?").run(inscripcion.id);
   await gruposService.sancionar(grupoId, usuarioId);
+  formacionesPropuestasService.manejarBajaDeTitular(partidoId);
 
   return { ...inscripcion, estado: 'dado_de_baja' };
 }
