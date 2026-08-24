@@ -5,6 +5,7 @@ import api, { SERVER_URL } from '../services/api';
 import { etiquetaPosicion } from '../constants/posiciones';
 import { etiquetaResistencia } from '../constants/resistencia';
 import { etiquetaRitmoJuego } from '../constants/ritmoJuego';
+import { etiquetaPiernaHabil } from '../constants/piernaHabil';
 import TarjetaJugadorFIFA from '../components/TarjetaJugadorFIFA';
 import RadarHabilidades from '../components/RadarHabilidades';
 
@@ -57,6 +58,7 @@ export default function PerfilJugador() {
             .filter((p) => p !== 'Sin posición')
             .join(' / ') || 'Sin dato',
         },
+        { etiqueta: 'Pierna hábil', valor: etiquetaPiernaHabil(perfil.piernaHabil) },
         { etiqueta: 'Resistencia', valor: etiquetaResistencia(perfil.resistencia) },
         { etiqueta: 'Ritmo de juego', valor: etiquetaRitmoJuego(perfil.ritmoJuego) },
       ]
