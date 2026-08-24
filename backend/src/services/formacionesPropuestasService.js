@@ -117,13 +117,16 @@ async function eliminarPropuestaAdmin(partidoId, grupoId, propuestaId) {
   if (!partido) throw crearError('Partido no encontrado', 404);
   if (partido.votacionEquiposCerrada) throw crearError('La votación de equipos ya cerró', 400);
 
+  // Check if propuesta belongs to this partido BEFORE transaction
+  const propuesta = db.prepare('SELECT id FROM FormacionesPropuestas WHERE id = ? AND partidoId = ?').get(propuestaId, partidoId);
+  if (!propuesta) throw crearError('Propuesta no encontrada', 404);
+
   const borrar = db.transaction(() => {
     db.prepare('DELETE FROM VotosFormacion WHERE propuestaId = ?').run(propuestaId);
     db.prepare('DELETE FROM FormacionesPropuestasDetalle WHERE propuestaId = ?').run(propuestaId);
-    return db.prepare('DELETE FROM FormacionesPropuestas WHERE id = ? AND partidoId = ?').run(propuestaId, partidoId).changes;
+    db.prepare('DELETE FROM FormacionesPropuestas WHERE id = ? AND partidoId = ?').run(propuestaId, partidoId);
   });
-  const cambios = borrar();
-  if (cambios === 0) throw crearError('Propuesta no encontrada', 404);
+  borrar();
 }
 
 function elegirGanadora(partidoId) {
