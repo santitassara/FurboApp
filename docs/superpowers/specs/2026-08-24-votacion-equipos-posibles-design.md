@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS FormacionesPropuestasDetalle (
   propuestaId TEXT NOT NULL REFERENCES FormacionesPropuestas(id),
   usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
   equipo TEXT NOT NULL CHECK (equipo IN ('A','B')),
-  linea INTEGER,
+  linea TEXT,
   ordenLinea INTEGER,
   lado TEXT
 );
@@ -69,6 +69,8 @@ Todas las rutas nuevas anidan bajo `/api/grupos/:grupoId/partidos/:partidoId/for
 
 ### `POST /formaciones-propuestas` (admin)
 Sin body. Lee la formación actual de `Inscripciones` para ese partido y crea una nueva fila en `FormacionesPropuestas` (siguiente `numero` libre) + su detalle. Errores: 400 si `!habilitado`, 400 si ya hay 5 propuestas, 400 si `votacionEquiposCerrada`.
+
+El frontend garantiza que "lo que hay en `Inscripciones`" y "lo que se ve en pantalla en `MapaCancha`" sean lo mismo en el momento de proponer: antes de llamar a este endpoint, guarda primero la formación actual (mismo `PUT /formacion` que usa el botón "Guardar formación"). Así la propuesta es siempre un snapshot fiel del armado en pantalla, sin perder cambios sin guardar.
 
 ### `GET /formaciones-propuestas` (cualquier miembro)
 ```json
