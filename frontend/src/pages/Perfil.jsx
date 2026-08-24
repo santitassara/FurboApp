@@ -26,6 +26,7 @@ export default function Perfil() {
     fechaNacimiento: perfil?.fechaNacimiento ? perfil.fechaNacimiento.slice(0, 10) : '',
     posicionPrincipal: perfil?.posicionPrincipal || '',
     posicionSecundaria: perfil?.posicionSecundaria || '',
+    piernaHabil: perfil?.piernaHabil || '',
     resistencia: perfil?.resistencia || '',
     ritmoJuego: perfil?.ritmoJuego || '',
     velocidad: perfil?.velocidad ?? 50,
@@ -177,6 +178,34 @@ export default function Perfil() {
                 </option>
               ))}
             </select>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs uppercase text-white/50">Pierna hábil</label>
+          <div className="flex gap-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="piernaHabil"
+                value="diestro"
+                checked={datos.piernaHabil === 'diestro'}
+                onChange={(evento) => actualizarCampo('piernaHabil', evento.target.value)}
+                className="w-4 h-4"
+              />
+              <span className="text-sm text-white">Diestro</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="piernaHabil"
+                value="zurdo"
+                checked={datos.piernaHabil === 'zurdo'}
+                onChange={(evento) => actualizarCampo('piernaHabil', evento.target.value)}
+                className="w-4 h-4"
+              />
+              <span className="text-sm text-white">Zurdo</span>
+            </label>
           </div>
         </div>
         {posicionesIguales && (

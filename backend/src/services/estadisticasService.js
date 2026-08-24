@@ -1,4 +1,4 @@
-const db = require('../config/db');
+const { db } = require('../config/db');
 
 function obtenerEstadisticasJugador(usuarioId, grupoId) {
   const pj = db
@@ -38,4 +38,15 @@ function obtenerEstadisticasJugador(usuarioId, grupoId) {
   return { pj, goles, asistencias, valoracion };
 }
 
-module.exports = { obtenerEstadisticasJugador };
+function obtenerEstadisticasTotalesJugador(usuarioId) {
+  const goles = db
+    .prepare(
+      `SELECT COUNT(*) as total FROM Goles
+       WHERE usuarioId = ?`
+    )
+    .get(usuarioId)?.total || 0;
+
+  return { goles };
+}
+
+module.exports = { obtenerEstadisticasJugador, obtenerEstadisticasTotalesJugador };

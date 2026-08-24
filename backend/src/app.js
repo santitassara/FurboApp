@@ -6,6 +6,7 @@ const usuariosRoutes = require('./routes/usuariosRoutes');
 const partidosRoutes = require('./routes/partidosRoutes');
 const usuariosGrupoRoutes = require('./routes/usuariosGrupoRoutes');
 const gruposRoutes = require('./routes/gruposRoutes');
+const seedRoutes = require('./routes/seedRoutes');
 const manejadorErrores = require('./middlewares/manejadorErrores');
 
 const app = express();
@@ -19,6 +20,7 @@ app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/grupos/:grupoId/partidos', partidosRoutes);
 app.use('/api/grupos/:grupoId/usuarios', usuariosGrupoRoutes);
 app.use('/api/grupos', gruposRoutes);
+app.use('/api/seed', seedRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });

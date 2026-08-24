@@ -174,6 +174,7 @@ async function obtenerFormacion(partidoId, grupoId) {
         equipo: inscripcion.equipo,
         linea: inscripcion.linea,
         ordenLinea: inscripcion.ordenLinea,
+        lado: inscripcion.lado,
       };
     })
   );
@@ -256,6 +257,7 @@ async function generarFormacionAutomatica(partidoId, grupoId, seleccion = {}) {
         posicionPrincipal: inscripcion.posicionPrincipal,
         posicionSecundaria: inscripcion.posicionSecundaria,
         lineaBroad: POSICION_A_LINEA[inscripcion.posicionPrincipal] || 'medio',
+        piernaHabil: usuario?.piernaHabil || null,
         habilidad,
       };
     })
@@ -313,10 +315,25 @@ async function generarFormacionAutomatica(partidoId, grupoId, seleccion = {}) {
   }
 
   const contadorLinea = {};
+  const conteoPiernaLinea = {};
   const jugadoresFinales = asignados.map((jugador) => {
     const clave = `${jugador.equipo}-${jugador.lineaFinal}`;
     const ordenLinea = contadorLinea[clave] || 0;
     contadorLinea[clave] = ordenLinea + 1;
+
+    let lado = null;
+    if (jugador.lineaFinal !== 'arquero') {
+      const claveConteo = `${jugador.equipo}-${jugador.lineaFinal}-${jugador.piernaHabil}`;
+      const conteoActual = conteoPiernaLinea[claveConteo] || 0;
+      conteoPiernaLinea[claveConteo] = conteoActual + 1;
+
+      if (jugador.piernaHabil === 'zurdo') {
+        lado = conteoActual === 0 ? 'izquierda' : 'derecha';
+      } else if (jugador.piernaHabil === 'diestro') {
+        lado = conteoActual === 0 ? 'derecha' : 'izquierda';
+      }
+    }
+
     return {
       usuarioId: jugador.usuarioId,
       nombre: jugador.nombre,
@@ -324,6 +341,7 @@ async function generarFormacionAutomatica(partidoId, grupoId, seleccion = {}) {
       equipo: jugador.equipo,
       linea: jugador.lineaFinal,
       ordenLinea,
+      lado,
     };
   });
 
@@ -388,7 +406,7 @@ async function guardarFormacion(partidoId, grupoId, asignaciones) {
   const actualizar = db.transaction((lista) => {
     for (const asignacion of lista) {
       db.prepare(
-        `UPDATE Inscripciones SET equipo = @equipo, linea = @linea, ordenLinea = @ordenLinea
+        `UPDATE Inscripciones SET equipo = @equipo, linea = @linea, ordenLinea = @ordenLinea, lado = @lado
          WHERE partidoId = @partidoId AND usuarioId = @usuarioId AND estado = 'anotado'`
       ).run({ ...asignacion, partidoId });
     }

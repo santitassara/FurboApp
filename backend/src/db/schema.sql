@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS Usuarios (
   gambeta INTEGER,
   marcaDefensa INTEGER,
   fisico INTEGER,
-  suscripcionPush TEXT
+  suscripcionPush TEXT,
+  piernaHabil TEXT
 );
 
 CREATE TABLE IF NOT EXISTS Grupos (
@@ -63,7 +64,8 @@ CREATE TABLE IF NOT EXISTS Inscripciones (
   posicionSecundaria TEXT,
   equipo TEXT,
   linea TEXT,
-  ordenLinea INTEGER
+  ordenLinea INTEGER,
+  lado TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_inscripciones_partido_estado

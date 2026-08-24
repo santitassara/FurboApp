@@ -58,6 +58,10 @@ const tieneSuscripcionPush = columnasUsuarios.some((columna) => columna.name ===
 if (!tieneSuscripcionPush) {
   db.exec('ALTER TABLE Usuarios ADD COLUMN suscripcionPush TEXT');
 }
+const tienePiernaHabil = columnasUsuarios.some((columna) => columna.name === 'piernaHabil');
+if (!tienePiernaHabil) {
+  db.exec('ALTER TABLE Usuarios ADD COLUMN piernaHabil TEXT');
+}
 
 const columnasInscripciones = db.prepare('PRAGMA table_info(Inscripciones)').all();
 const tienePosicionPrincipalInscripcion = columnasInscripciones.some(
@@ -77,6 +81,7 @@ const columnasFormacion = {
   equipo: 'TEXT',
   linea: 'TEXT',
   ordenLinea: 'INTEGER',
+  lado: 'TEXT',
 };
 for (const [columna, tipo] of Object.entries(columnasFormacion)) {
   const yaExiste = columnasInscripciones.some((c) => c.name === columna);

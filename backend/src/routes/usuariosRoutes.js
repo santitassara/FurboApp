@@ -14,5 +14,6 @@ router.post('/me/foto', verificarToken, subirFoto, envolverAsync(usuariosControl
 router.post('/me/suscripcion', verificarToken, envolverAsync(usuariosController.guardarSuscripcionPush));
 router.get('/:uid/perfil', verificarToken, envolverAsync(usuariosController.obtenerPerfilDeJugador));
 router.get('/:uid/estadisticas/:grupoId', verificarToken, envolverAsync(estadisticasController.obtenerEstadisticas));
+router.get('/:uid/estadisticas', verificarToken, envolverAsync(estadisticasController.obtenerEstadisticasTotales));
 
 module.exports = router;
