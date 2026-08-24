@@ -6,6 +6,7 @@ const partidosController = require('../controllers/partidosController');
 const inscripcionesController = require('../controllers/inscripcionesController');
 const resultadosController = require('../controllers/resultadosController');
 const votosController = require('../controllers/votosController');
+const formacionesPropuestasController = require('../controllers/formacionesPropuestasController');
 
 const router = express.Router({ mergeParams: true });
 
@@ -57,6 +58,37 @@ router.post(
   verificarToken,
   verificarMiembroGrupo('admin'),
   envolverAsync(votosController.cerrarVotacion)
+);
+
+router.post(
+  '/:partidoId/formaciones-propuestas',
+  verificarToken,
+  verificarMiembroGrupo('admin'),
+  envolverAsync(formacionesPropuestasController.crear)
+);
+router.get(
+  '/:partidoId/formaciones-propuestas',
+  verificarToken,
+  verificarMiembroGrupo(),
+  envolverAsync(formacionesPropuestasController.listar)
+);
+router.delete(
+  '/:partidoId/formaciones-propuestas/:propuestaId',
+  verificarToken,
+  verificarMiembroGrupo('admin'),
+  envolverAsync(formacionesPropuestasController.eliminar)
+);
+router.post(
+  '/:partidoId/formaciones-propuestas/:propuestaId/votar',
+  verificarToken,
+  verificarMiembroGrupo(),
+  envolverAsync(formacionesPropuestasController.votar)
+);
+router.post(
+  '/:partidoId/formaciones-propuestas/cerrar',
+  verificarToken,
+  verificarMiembroGrupo('admin'),
+  envolverAsync(formacionesPropuestasController.cerrar)
 );
 
 module.exports = router;
