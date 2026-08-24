@@ -433,6 +433,7 @@ export default function MapaCancha({
           equipo: jugador.equipo,
           linea: jugador.linea,
           ordenLinea: jugador.ordenLinea,
+          lado: jugador.lado ?? null,
         }));
       const { data } = await api.put(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/formacion`), { asignaciones });
       setUbicaciones(data.jugadores);
@@ -458,6 +459,7 @@ export default function MapaCancha({
           equipo: jugador.equipo,
           linea: jugador.linea,
           ordenLinea: jugador.ordenLinea,
+          lado: jugador.lado ?? null,
         }));
       await api.put(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/formacion`), { asignaciones });
       await api.post(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/formaciones-propuestas`));
