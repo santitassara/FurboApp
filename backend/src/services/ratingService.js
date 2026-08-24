@@ -57,7 +57,13 @@ function procesarPartido(partidoId, elegibles) {
          WHERE partidoId = ? AND usuarioId = ? AND estado = 'anotado' AND tipo = 'titular'`
       )
       .get(partidoId, jugadorId);
-    const pesos = PESOS_POSICION[inscripcion.posicionPrincipal];
+    // Hay inscripciones legadas (previas a la validación de posición en anotarse)
+    // con posicionPrincipal NULL: se saltean en vez de romper todo el cierre.
+    const pesos = PESOS_POSICION[inscripcion?.posicionPrincipal];
+    if (!pesos) {
+      saltados.push({ usuarioId: jugadorId, motivo: 'sin_posicion' });
+      continue;
+    }
 
     const mediana = calcularMediana(puntajes);
     const puntajeEscalado = mediana * 10;
@@ -105,7 +111,15 @@ async function cerrarVotacion(partidoId, grupoId) {
 
   let resultadoCrudo;
   const ejecutar = db.transaction(() => {
-    db.prepare('UPDATE Partidos SET votacionCerrada = 1 WHERE id = ?').run(partidoId);
+    // El flip del flag es la fuente de verdad: si otra request concurrente ya lo
+    // cerró, este UPDATE no afecta filas y se aborta antes de aplicar el rating
+    // dos veces. El chequeo de arriba queda solo como fast path.
+    const resultadoUpdate = db
+      .prepare('UPDATE Partidos SET votacionCerrada = 1 WHERE id = ? AND votacionCerrada = 0')
+      .run(partidoId);
+    if (resultadoUpdate.changes === 0) {
+      throw crearError('La votación de este partido ya está cerrada', 400);
+    }
     resultadoCrudo = procesarPartido(partidoId, elegibles);
   });
   ejecutar();
