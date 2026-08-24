@@ -29,7 +29,9 @@ function esPiernaHabilValida(valor) {
 }
 
 function esHabilidadValida(valor) {
-  return valor === null || (Number.isInteger(valor) && valor >= 0 && valor <= 100);
+  // Las habilidades son REAL: el motor de rating acumula progreso fraccionario
+  // (ej: 70.20625), por lo que no se puede exigir que sean enteras.
+  return valor === null || (Number.isFinite(valor) && valor >= 0 && valor <= 100);
 }
 
 function esFechaNacimientoValida(valor) {
@@ -137,7 +139,7 @@ async function actualizarPerfil(uid, datos = {}) {
   }
   for (const [campo, valor] of Object.entries(habilidades)) {
     if (!esHabilidadValida(valor)) {
-      const error = new Error(`La habilidad "${campo}" debe ser un número entero entre 0 y 100`);
+      const error = new Error(`La habilidad "${campo}" debe ser un número entre 0 y 100`);
       error.status = 400;
       throw error;
     }
@@ -326,4 +328,5 @@ module.exports = {
   autenticarConPassword,
   calcularPromedioHabilidades,
   guardarSuscripcionPush,
+  CAMPOS_HABILIDAD,
 };

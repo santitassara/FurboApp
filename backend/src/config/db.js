@@ -117,6 +117,10 @@ const tieneRecordatorioPostPartidoEnviado = columnasPartidos.some((columna) => c
 if (!tieneRecordatorioPostPartidoEnviado) {
   db.exec('ALTER TABLE Partidos ADD COLUMN recordatorioPostPartidoEnviado INTEGER NOT NULL DEFAULT 0');
 }
+const tieneVotacionCerrada = columnasPartidos.some((columna) => columna.name === 'votacionCerrada');
+if (!tieneVotacionCerrada) {
+  db.exec('ALTER TABLE Partidos ADD COLUMN votacionCerrada INTEGER NOT NULL DEFAULT 0');
+}
 
 const columnasUsuariosActuales = db.prepare('PRAGMA table_info(Usuarios)').all();
 const tieneEsSuperAdmin = columnasUsuariosActuales.some((columna) => columna.name === 'esSuperAdmin');
@@ -183,6 +187,35 @@ if (tieneRolLegado && !yaExisteAlgunGrupo) {
   } catch (error) {
     console.warn('No se pudieron eliminar las columnas legado rol/estaSancionado de Usuarios:', error.message);
   }
+}
+
+const columnasUsuariosParaRebuild = db.prepare('PRAGMA table_info(Usuarios)').all();
+const columnaVelocidad = columnasUsuariosParaRebuild.find((columna) => columna.name === 'velocidad');
+if (columnaVelocidad && columnaVelocidad.type === 'INTEGER') {
+  // Las 6 habilidades pasan de INTEGER a REAL para que el motor de rating pueda
+  // acumular progreso fraccionario. El resto de las columnas se derivan de
+  // PRAGMA table_info en el momento de la migración (y no de una lista escrita a
+  // mano) para que ninguna columna agregada vía ALTER TABLE —como fotoUrl— se
+  // pierda al reconstruir la tabla.
+  const HABILIDADES_A_REAL = ['velocidad', 'pegada', 'tocaPase', 'gambeta', 'marcaDefensa', 'fisico'];
+
+  const definiciones = columnasUsuariosParaRebuild.map((columna) => {
+    const tipo = HABILIDADES_A_REAL.includes(columna.name) ? 'REAL' : columna.type;
+    const partes = [`"${columna.name}"`, tipo];
+    if (columna.pk) partes.push('PRIMARY KEY');
+    if (columna.notnull) partes.push('NOT NULL');
+    if (columna.dflt_value !== null) partes.push(`DEFAULT ${columna.dflt_value}`);
+    return `      ${partes.filter(Boolean).join(' ')}`;
+  });
+  const listaColumnas = columnasUsuariosParaRebuild.map((columna) => `"${columna.name}"`).join(', ');
+
+  const reconstruirUsuarios = db.transaction(() => {
+    db.exec(`CREATE TABLE Usuarios_nueva (\n${definiciones.join(',\n')}\n    )`);
+    db.exec(`INSERT INTO Usuarios_nueva (${listaColumnas}) SELECT ${listaColumnas} FROM Usuarios`);
+    db.exec('DROP TABLE Usuarios');
+    db.exec('ALTER TABLE Usuarios_nueva RENAME TO Usuarios');
+  });
+  reconstruirUsuarios();
 }
 
 module.exports = { db };

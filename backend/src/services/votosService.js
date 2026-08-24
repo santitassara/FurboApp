@@ -15,6 +15,9 @@ async function guardarVotos(partidoId, grupoId, votanteId, payload = {}) {
   if (partido.estado !== 'jugado') {
     throw crearError('El partido todavía no tiene resultado cargado', 400);
   }
+  if (partido.votacionCerrada) {
+    throw crearError('La votación de este partido está cerrada', 400);
+  }
 
   const elegibles = await resultadosService.obtenerElegibles(partidoId);
   const elegiblesSet = new Set(elegibles);
