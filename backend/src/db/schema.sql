@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS Usuarios (
   gambeta REAL,
   marcaDefensa REAL,
   fisico REAL,
+  fotoUrl TEXT,
   suscripcionPush TEXT,
   piernaHabil TEXT
 );
