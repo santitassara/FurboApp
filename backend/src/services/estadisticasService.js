@@ -5,7 +5,8 @@ function obtenerEstadisticasJugador(usuarioId, grupoId) {
     .prepare(
       `SELECT COUNT(*) as total FROM Inscripciones i
        JOIN Partidos p ON i.partidoId = p.id
-       WHERE i.usuarioId = ? AND p.grupoId = ? AND i.estado = 'anotado'`
+       WHERE i.usuarioId = ? AND p.grupoId = ? AND i.estado = 'anotado'
+         AND i.tipo = 'titular' AND i.equipo IS NOT NULL AND p.estado = 'jugado'`
     )
     .get(usuarioId, grupoId)?.total || 0;
 
