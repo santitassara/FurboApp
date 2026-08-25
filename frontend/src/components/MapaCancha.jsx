@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FaComment } from 'react-icons/fa';
 import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
 import api from '../services/api';
 import Boton from './Boton';
@@ -10,6 +12,7 @@ import {
   listarFormaciones,
   normalizarAutomatico,
 } from '../utils/formaciones';
+import { useAuth } from '../context/AuthContext';
 import { useGrupo } from '../context/GrupoContext';
 import { rutaGrupo } from '../utils/rutasGrupo';
 
@@ -288,6 +291,8 @@ export default function MapaCancha({
   onSalirPreview,
 }) {
   const { grupoActivo } = useGrupo();
+  const { perfil } = useAuth();
+  const navigate = useNavigate();
   const jugadoresIniciales = useMemo(() => formacion?.jugadores || [], [formacion]);
   const [ubicaciones, setUbicaciones] = useState(jugadoresIniciales);
   const [seleccionA, setSeleccionA] = useState({ codigo: CODIGO_AUTOMATICO, lineas: [] });
@@ -471,9 +476,24 @@ export default function MapaCancha({
     }
   }
 
+  const miEquipo = formacion.jugadores.find((jugador) => jugador.usuarioId === perfil?.uid)?.equipo;
+  const puedeVerMiEquipo = Boolean(propuestasInfo?.votacionEquiposCerrada && miEquipo && !modoPreview);
+
   const contenido = (
     <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
-      <h4 className="mb-3 text-sm font-bold uppercase tracking-wide text-pasto-500">Formación</h4>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h4 className="text-sm font-bold uppercase tracking-wide text-pasto-500">Formación</h4>
+        {puedeVerMiEquipo && (
+          <button
+            type="button"
+            onClick={() => navigate(`/mi-equipo/${partidoId}`)}
+            className="flex items-center gap-1.5 rounded-lg bg-pasto-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-pasto-500"
+          >
+            <FaComment />
+            Mi equipo
+          </button>
+        )}
+      </div>
 
       {modoPreview && (
         <div className="mb-3 flex items-center justify-between rounded-lg bg-pasto-600/20 px-3 py-2 text-xs text-white">
