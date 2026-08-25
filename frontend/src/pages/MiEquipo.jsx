@@ -42,11 +42,17 @@ export default function MiEquipo() {
       }
 
       if (cancelado) return;
-      const token = await obtenerTokenActual();
       socket = io(SERVER_URL);
-      socket.emit('unirse', { grupoId: grupoActivo.id, partidoId, token });
+      socket.on('connect', async () => {
+        const tokenActual = await obtenerTokenActual();
+        if (cancelado) return;
+        socket.emit('unirse', { grupoId: grupoActivo.id, partidoId, token: tokenActual });
+      });
       socket.on('nuevoMensaje', (mensaje) => {
-        setMensajes((anteriores) => [...anteriores, mensaje]);
+        setMensajes((anteriores) => {
+          if (anteriores.some((m) => m.id === mensaje.id)) return anteriores;
+          return [...anteriores, mensaje];
+        });
       });
       socket.on('error', ({ mensaje }) => {
         if (!cancelado) setError(mensaje);
