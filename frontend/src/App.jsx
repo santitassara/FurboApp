@@ -10,6 +10,7 @@ import PerfilJugador from './pages/PerfilJugador';
 import Jugadores from './pages/Jugadores';
 import UltimosPartidos from './pages/UltimosPartidos';
 import AdminPanel from './pages/AdminPanel';
+import MiEquipo from './pages/MiEquipo';
 import RutaPrivada from './components/RutaPrivada';
 import RutaAdmin from './components/RutaAdmin';
 import Layout from './components/Layout';
@@ -99,6 +100,16 @@ export default function App() {
           <RutaPrivada>
             <Layout>
               <UltimosPartidos />
+            </Layout>
+          </RutaPrivada>
+        }
+      />
+      <Route
+        path="/mi-equipo/:partidoId"
+        element={
+          <RutaPrivada>
+            <Layout>
+              <MiEquipo />
             </Layout>
           </RutaPrivada>
         }

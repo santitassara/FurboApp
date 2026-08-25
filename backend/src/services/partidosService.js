@@ -66,10 +66,12 @@ async function eliminarPartido(partidoId, grupoId, uid) {
   const resultadosService = require('./resultadosService');
   const inscripcionesService = require('./inscripcionesService');
   const formacionesPropuestasService = require('./formacionesPropuestasService');
+  const miEquipoService = require('./miEquipoService');
   const eliminar = db.transaction(() => {
     resultadosService.eliminarPorPartido(partidoId);
     inscripcionesService.eliminarPorPartido(partidoId);
     formacionesPropuestasService.eliminarPorPartido(partidoId);
+    miEquipoService.eliminarPorPartido(partidoId);
     db.prepare('DELETE FROM Partidos WHERE id = ?').run(partidoId);
   });
   eliminar();
