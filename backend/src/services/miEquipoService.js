@@ -43,10 +43,12 @@ async function obtenerMiEquipo(partidoId, grupoId, usuarioId) {
 
   const mensajesFilas = db
     .prepare(
-      `SELECT id, usuarioId, texto, fechaEnvio FROM MensajesEquipo
-       WHERE partidoId = ? AND equipo = ?
-       ORDER BY fechaEnvio ASC
-       LIMIT 50`
+      `SELECT * FROM (
+         SELECT id, usuarioId, texto, fechaEnvio FROM MensajesEquipo
+         WHERE partidoId = ? AND equipo = ?
+         ORDER BY fechaEnvio DESC, id DESC
+         LIMIT 50
+       ) ORDER BY fechaEnvio ASC, id ASC`
     )
     .all(partidoId, acceso.equipo);
   const mensajes = await Promise.all(
@@ -84,4 +86,8 @@ async function enviarMensaje(partidoId, grupoId, usuarioId, texto) {
   return { ...mensaje, nombre: usuario?.nombre || 'Jugador' };
 }
 
-module.exports = { obtenerAccesoEquipo, obtenerMiEquipo, enviarMensaje };
+function eliminarPorPartido(partidoId) {
+  db.prepare('DELETE FROM MensajesEquipo WHERE partidoId = ?').run(partidoId);
+}
+
+module.exports = { obtenerAccesoEquipo, obtenerMiEquipo, enviarMensaje, eliminarPorPartido };
