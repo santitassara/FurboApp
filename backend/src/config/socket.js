@@ -8,8 +8,9 @@ function configurarSocket(servidorHttp) {
   const io = new Server(servidorHttp, { cors: { origin: '*' } });
 
   io.on('connection', (socket) => {
-    socket.on('unirse', async ({ grupoId, partidoId, token } = {}) => {
+    socket.on('unirse', async (payload) => {
       try {
+        const { grupoId, partidoId, token } = payload || {};
         const usuario = await verificarTokenValor(token);
         if (!usuario) throw new Error('Token inválido');
 
