@@ -24,6 +24,13 @@ export default function MiEquipo() {
   const [enviando, setEnviando] = useState(false);
   const listaRef = useRef(null);
 
+  function agregarMensaje(mensaje) {
+    setMensajes((anteriores) => {
+      if (anteriores.some((m) => m.id === mensaje.id)) return anteriores;
+      return [...anteriores, mensaje];
+    });
+  }
+
   useEffect(() => {
     if (!grupoActivo) return undefined;
     let cancelado = false;
@@ -48,12 +55,7 @@ export default function MiEquipo() {
         if (cancelado) return;
         socket.emit('unirse', { grupoId: grupoActivo.id, partidoId, token: tokenActual });
       });
-      socket.on('nuevoMensaje', (mensaje) => {
-        setMensajes((anteriores) => {
-          if (anteriores.some((m) => m.id === mensaje.id)) return anteriores;
-          return [...anteriores, mensaje];
-        });
-      });
+      socket.on('nuevoMensaje', agregarMensaje);
       socket.on('error', ({ mensaje }) => {
         if (!cancelado) setError(mensaje);
       });
@@ -78,7 +80,10 @@ export default function MiEquipo() {
     setEnviando(true);
     setError('');
     try {
-      await api.post(`/grupos/${grupoActivo.id}/partidos/${partidoId}/mi-equipo/mensajes`, { texto: textoLimpio });
+      const { data } = await api.post(`/grupos/${grupoActivo.id}/partidos/${partidoId}/mi-equipo/mensajes`, {
+        texto: textoLimpio,
+      });
+      agregarMensaje(data);
       setTexto('');
     } catch (err) {
       setError(err.message);
