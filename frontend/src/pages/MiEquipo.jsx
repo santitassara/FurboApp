@@ -41,6 +41,7 @@ export default function MiEquipo() {
         if (!cancelado) setCargando(false);
       }
 
+      if (cancelado) return;
       const token = await obtenerTokenActual();
       socket = io(SERVER_URL);
       socket.emit('unirse', { grupoId: grupoActivo.id, partidoId, token });
