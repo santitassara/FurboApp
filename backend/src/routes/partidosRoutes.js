@@ -7,6 +7,7 @@ const inscripcionesController = require('../controllers/inscripcionesController'
 const resultadosController = require('../controllers/resultadosController');
 const votosController = require('../controllers/votosController');
 const formacionesPropuestasController = require('../controllers/formacionesPropuestasController');
+const miEquipoController = require('../controllers/miEquipoController');
 
 const router = express.Router({ mergeParams: true });
 
@@ -89,6 +90,19 @@ router.post(
   verificarToken,
   verificarMiembroGrupo('admin'),
   envolverAsync(formacionesPropuestasController.cerrar)
+);
+
+router.get(
+  '/:partidoId/mi-equipo',
+  verificarToken,
+  verificarMiembroGrupo(),
+  envolverAsync(miEquipoController.obtener)
+);
+router.post(
+  '/:partidoId/mi-equipo/mensajes',
+  verificarToken,
+  verificarMiembroGrupo(),
+  envolverAsync(miEquipoController.enviarMensaje)
 );
 
 module.exports = router;
