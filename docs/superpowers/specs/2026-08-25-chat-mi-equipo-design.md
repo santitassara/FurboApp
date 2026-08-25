@@ -101,7 +101,7 @@ Click navega con `react-router-dom` (`useNavigate`) a `/mi-equipo/${partido.id}`
   1. `GET .../mi-equipo` (vía `api.js`, mismo interceptor de auth existente) para bootstrap: `equipo`, `companeros`, `mensajes` iniciales.
   2. Conecta `socket.io-client` contra el mismo host del backend, emite `unirse` con `{ grupoId, partidoId, token }` (mismo token que usa el interceptor de axios: Firebase `getIdToken()` o JWT propio de `localStorage`).
   3. Escucha `nuevoMensaje` → apenda al estado de mensajes.
-- UI: lista de compañeros arriba (nombre), debajo lista de mensajes (autor + texto + hora) con auto-scroll al último, e input + botón enviar que hace `POST .../mi-equipo/mensajes` y limpia el input (el mensaje propio se agrega al llegar por socket, no de forma optimista, para mantener una sola fuente de verdad).
+- UI: lista de compañeros arriba (nombre), debajo lista de mensajes (autor + texto + hora) con auto-scroll al último, e input + botón enviar que hace `POST .../mi-equipo/mensajes` y limpia el input. **Corrección post-QA:** el mensaje propio se agrega directo desde la respuesta del POST (deduplicado por `id` contra lo que llegue por socket), no solo al recibirlo por socket. Con login Google, `getIdToken()` es una llamada async real (a veces con red de por medio) que puede tardar más que el `unirse` al room; si el usuario manda un mensaje antes de que el join termine, el broadcast ya salió y se pierde (sin replay de sala) — quedaba invisible hasta refrescar. Usar la respuesta del POST (mismo shape que `nuevoMensaje`, ya persistida) cierra esa carrera sin reintroducir un append optimista real: solo se agrega tras confirmación del server.
 - Al desmontar: `socket.disconnect()`.
 
 ### 5.3 Error/edge cases
