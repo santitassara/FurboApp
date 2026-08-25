@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useGrupo } from '../context/GrupoContext';
@@ -10,11 +11,13 @@ import ModalConfirmacionSancion from '../components/ModalConfirmacionSancion';
 import ModalPosicion from '../components/ModalPosicion';
 import PartidoConEstado from '../components/PartidoConEstado';
 import EquiposPosibles from '../components/EquiposPosibles';
+import Boton from '../components/Boton';
 
 export default function Home() {
   const { perfil, actualizarPosicionesPerfil } = useAuth();
   const { grupoActivo, refrescarGrupos } = useGrupo();
   const { canInstall, triggerInstall } = useInstallPrompt();
+  const navigate = useNavigate();
   const [partidos, setPartidos] = useState([]);
   const [inscripcionesPorPartido, setInscripcionesPorPartido] = useState({});
   const [formacionesPorPartido, setFormacionesPorPartido] = useState({});
@@ -84,6 +87,13 @@ export default function Home() {
   function inscripcionDelUsuario(partidoId) {
     const jugadores = inscripcionesPorPartido[partidoId] || [];
     return jugadores.find((jugador) => jugador.usuarioId === perfil?.uid) || null;
+  }
+
+  function miEquipoAsignado(partidoId) {
+    const inscripcion = inscripcionDelUsuario(partidoId);
+    if (inscripcion?.tipo !== 'titular') return null;
+    const jugador = formacionesPorPartido[partidoId]?.jugadores?.find((j) => j.usuarioId === perfil?.uid);
+    return jugador?.equipo || null;
   }
 
   async function anotarse(partidoId, posicionPrincipal, posicionSecundaria) {
@@ -212,6 +222,11 @@ export default function Home() {
                   grupoId={grupoActivo.id}
                 />
               </div>
+              {propuestasPorPartido[partido.id]?.votacionEquiposCerrada && miEquipoAsignado(partido.id) && (
+                <Boton variante="ghost" onClick={() => navigate(`/mi-equipo/${partido.id}`)}>
+                  Mi equipo
+                </Boton>
+              )}
               {propuestasPorPartido[partido.id]?.propuestas?.length > 0 && (
                 <EquiposPosibles
                   grupoId={grupoActivo.id}
