@@ -12,8 +12,8 @@ Cuando la votación de formaciones de un partido cierra (`Partidos.votacionEquip
 ## 2. Alcance
 
 - Chat por partido: cada partido tiene su propio chat de equipo (no persiste entre partidos aunque se repita la misma gente).
-- Participan titulares + suplentes con `equipo` asignado (no solo titulares).
-- Botón/sección visibles solo cuando la votación de formaciones está cerrada (`votacionEquiposCerrada = 1`) y el usuario tiene inscripción `anotado` con `equipo` no nulo en ese partido.
+- Participan solo titulares. **Corrección post-exploración de código:** el sistema actual de formación/votación (`guardarFormacion`, `generarFormacionAutomatica`, `aplicarGanadora` en `formacionesPropuestasService.js`) solo asigna la columna `equipo` a titulares — los suplentes nunca la reciben. Extender esa asignación a suplentes es un cambio de alcance mayor (toca tres flujos existentes) y queda fuera de este spec; puede evaluarse como proyecto aparte si se necesita después.
+- Botón/sección visibles solo cuando la votación de formaciones está cerrada (`votacionEquiposCerrada = 1`) y el usuario tiene inscripción `anotado`, `tipo = 'titular'` y `equipo` no nulo en ese partido.
 - Mensajes persistidos en SQLite (historial completo, sobrevive reinicio del backend).
 - Actualización en tiempo real vía WebSocket (socket.io).
 - Miembros del chat se calculan en vivo desde `Inscripciones` (no hay snapshot congelado) — si cambia el roster después del cierre, el chat refleja el estado actual.
@@ -57,7 +57,7 @@ Anidadas en `backend/src/routes/partidosRoutes.js` (mismo router con `mergeParam
 
 - `GET /:partidoId/mi-equipo`
   - 403 si `obtenerAccesoEquipo` devuelve null.
-  - Devuelve `{ equipo, companeros: [{ uid, nombre, tipo }], mensajes: [...últimos 50, orden ascendente] }`.
+  - Devuelve `{ equipo, companeros: [{ uid, nombre }], mensajes: [...últimos 50, orden ascendente] }` (todos titulares, ya que solo ellos tienen `equipo` asignado).
   - `companeros` = jugadores de `Inscripciones` con mismo `partidoId` y `equipo`, join `Usuarios` para `nombre`.
 
 - `POST /:partidoId/mi-equipo/mensajes` — body `{ texto }`
@@ -99,7 +99,7 @@ Click navega con `react-router-dom` a `rutaGrupo(grupoActivo.id, `/partidos/${pa
   1. `GET .../mi-equipo` (vía `api.js`, mismo interceptor de auth existente) para bootstrap: `equipo`, `companeros`, `mensajes` iniciales.
   2. Conecta `socket.io-client` contra el mismo host del backend, emite `unirse` con `{ grupoId, partidoId, token }` (mismo token que usa el interceptor de axios: Firebase `getIdToken()` o JWT propio de `localStorage`).
   3. Escucha `nuevoMensaje` → apenda al estado de mensajes.
-- UI: lista de compañeros arriba (nombre + tipo titular/suplente), debajo lista de mensajes (autor + texto + hora) con auto-scroll al último, e input + botón enviar que hace `POST .../mi-equipo/mensajes` y limpia el input (el mensaje propio se agrega al llegar por socket, no de forma optimista, para mantener una sola fuente de verdad).
+- UI: lista de compañeros arriba (nombre), debajo lista de mensajes (autor + texto + hora) con auto-scroll al último, e input + botón enviar que hace `POST .../mi-equipo/mensajes` y limpia el input (el mensaje propio se agrega al llegar por socket, no de forma optimista, para mantener una sola fuente de verdad).
 - Al desmontar: `socket.disconnect()`.
 
 ### 5.3 Error/edge cases
