@@ -13,7 +13,9 @@ async function enviarMensaje(req, res) {
     req.body.texto
   );
   const io = req.app.get('io');
-  io.to(`equipo:${req.params.partidoId}:${mensaje.equipo}`).emit('nuevoMensaje', mensaje);
+  if (io) {
+    io.to(`equipo:${req.params.partidoId}:${mensaje.equipo}`).emit('nuevoMensaje', mensaje);
+  }
   res.status(201).json(mensaje);
 }
 
