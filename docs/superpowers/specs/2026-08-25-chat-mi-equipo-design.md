@@ -87,14 +87,16 @@ Anidadas en `backend/src/routes/partidosRoutes.js` (mismo router con `mergeParam
 ### 5.1 Botón en Home
 
 `frontend/src/pages/Home.jsx`, junto al bloque donde hoy se renderiza `MapaCancha`/`EquiposPosibles` (líneas ~183-221): agregar botón "Mi equipo" visible cuando:
-- `partido.votacionEquiposCerrada === 1` (dato ya disponible en el partido o se agrega al payload existente de partidos/formación), y
-- la inscripción del usuario actual en ese partido tiene `equipo` asignado (se puede derivar del `GET .../formacion` ya cargado en `formacionesPorPartido`, filtrando por `perfil.uid`).
+- `propuestasPorPartido[partido.id]?.votacionEquiposCerrada` es true (ya viene en el payload de `GET .../formaciones-propuestas`, cargado en `propuestasPorPartido`), y
+- la inscripción del usuario actual en ese partido es titular y tiene `equipo` asignado (se deriva de `formacionesPorPartido[partido.id].jugadores`, filtrando por `perfil.uid` — ese array ya solo contiene titulares).
 
-Click navega con `react-router-dom` a `rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/mi-equipo`)`.
+Click navega con `react-router-dom` (`useNavigate`) a `/mi-equipo/${partido.id}`.
 
 ### 5.2 Ruta y página nueva
 
-- Nueva ruta en el router principal: `/grupos/:grupoId/partidos/:partidoId/mi-equipo` → `frontend/src/pages/MiEquipo.jsx`.
+**Corrección post-exploración de código:** el router del frontend (`App.jsx`) no anida rutas bajo `/grupos/:grupoId/...` — el grupo activo siempre sale del contexto `useGrupo()`, nunca de la URL (mismo patrón que `/jugadores/:uid` con `PerfilJugador.jsx`). La ruta nueva sigue esa convención:
+
+- Nueva ruta en el router principal: `/mi-equipo/:partidoId` → `frontend/src/pages/MiEquipo.jsx`, que obtiene `grupoId` de `useGrupo().grupoActivo.id` y `partidoId` de `useParams()`.
 - Al montar:
   1. `GET .../mi-equipo` (vía `api.js`, mismo interceptor de auth existente) para bootstrap: `equipo`, `companeros`, `mensajes` iniciales.
   2. Conecta `socket.io-client` contra el mismo host del backend, emite `unirse` con `{ grupoId, partidoId, token }` (mismo token que usa el interceptor de axios: Firebase `getIdToken()` o JWT propio de `localStorage`).
