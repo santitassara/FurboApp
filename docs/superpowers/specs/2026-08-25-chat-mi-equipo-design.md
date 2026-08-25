@@ -57,7 +57,7 @@ Anidadas en `backend/src/routes/partidosRoutes.js` (mismo router con `mergeParam
 
 - `GET /:partidoId/mi-equipo`
   - 403 si `obtenerAccesoEquipo` devuelve null.
-  - Devuelve `{ equipo, companeros: [{ uid, nombre }], mensajes: [...últimos 50, orden ascendente] }` (todos titulares, ya que solo ellos tienen `equipo` asignado).
+  - Devuelve `{ equipo, companeros: [{ uid, nombre }], mensajes: [...] }` — los últimos 50 mensajes (los más recientes, no los primeros 50 insertados), devueltos en orden ascendente para mostrar (todos titulares, ya que solo ellos tienen `equipo` asignado).
   - `companeros` = jugadores de `Inscripciones` con mismo `partidoId` y `equipo`, join `Usuarios` para `nombre`.
 
 - `POST /:partidoId/mi-equipo/mensajes` — body `{ texto }`
@@ -107,7 +107,7 @@ Click navega con `react-router-dom` (`useNavigate`) a `/mi-equipo/${partido.id}`
 ### 5.3 Error/edge cases
 
 - Si `GET .../mi-equipo` devuelve 403 (por ejemplo, el usuario navegó a la URL directamente sin cumplir condiciones): mostrar mensaje "No tenés acceso a este chat" y botón volver al Home.
-- Si el socket se desconecta (ej. reconexión de red), `socket.io-client` reintenta solo; no requiere lógica adicional.
+- Si el socket se desconecta (ej. reconexión de red), `socket.io-client` reconecta el transporte solo, pero la membresía al room (`socket.join`) no sobrevive la reconexión: el cliente debe volver a emitir `unirse` en cada evento `connect` (incluyendo reconexiones), no solo una vez al montar, para restaurar el acceso al chat. Además, como el token de Firebase expira, conviene obtener uno fresco en cada `connect` en lugar de reusar el capturado al montar.
 
 ## 6. Testing
 
