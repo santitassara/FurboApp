@@ -7,6 +7,7 @@ function iniciarScheduler() {
     try {
       await notificacionesService.enviarNotificacionesPrePartido();
       await notificacionesService.enviarNotificacionesPostPartido();
+      await notificacionesService.enviarRecordatoriosVotacion();
     } catch (error) {
       console.error('Error en scheduler de notificaciones:', error.message);
     }

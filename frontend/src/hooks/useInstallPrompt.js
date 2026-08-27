@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 
 export function useInstallPrompt() {
   const [canInstall, setCanInstall] = useState(false);
 
   useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      setCanInstall(false);
+      return;
+    }
+
     const checkInstalled = () => {
       // Detecta si está en iOS
       const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
