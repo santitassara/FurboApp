@@ -51,6 +51,19 @@ export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, so
     }
   }
 
+  async function reiniciarVotacion() {
+    setError('');
+    setProcesando('reiniciar');
+    try {
+      await api.post(rutaGrupo(grupoId, `/partidos/${partidoId}/formaciones-propuestas/reiniciar`));
+      await onActualizado();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setProcesando(null);
+    }
+  }
+
   return (
     <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
       <div className="mb-3 flex items-center justify-between">
@@ -58,6 +71,11 @@ export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, so
         {esAdmin && !votacionEquiposCerrada && (
           <Boton variante="ghost" onClick={cerrarVotacion} disabled={procesando === 'cerrar'}>
             {procesando === 'cerrar' ? 'Cerrando…' : 'Cerrar votación'}
+          </Boton>
+        )}
+        {esAdmin && votacionEquiposCerrada && (
+          <Boton variante="ghost" onClick={reiniciarVotacion} disabled={procesando === 'reiniciar'}>
+            {procesando === 'reiniciar' ? 'Reiniciando…' : 'Nueva votación'}
           </Boton>
         )}
       </div>

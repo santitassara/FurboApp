@@ -289,6 +289,8 @@ export default function MapaCancha({
   previewPropuesta,
   onPropuesto,
   onSalirPreview,
+  jugadores,
+  onPromovido,
 }) {
   const { grupoActivo } = useGrupo();
   const { perfil } = useAuth();
@@ -301,6 +303,7 @@ export default function MapaCancha({
   const [generando, setGenerando] = useState(false);
   const [error, setError] = useState('');
   const [proponiendo, setProponiendo] = useState(false);
+  const [promoviendoId, setPromoviendoId] = useState(null);
   const modoPreview = Boolean(previewPropuesta);
 
   useEffect(() => {
@@ -476,6 +479,23 @@ export default function MapaCancha({
     }
   }
 
+  const totalCupoTitulares = formacion.cupoPorEquipo.A + formacion.cupoPorEquipo.B;
+  const haySlotDeTitularLibre = ubicaciones.length < totalCupoTitulares;
+  const suplentes = (jugadores || []).filter((jugador) => jugador.tipo === 'suplente');
+
+  async function promoverSuplente(usuarioId) {
+    setError('');
+    setPromoviendoId(usuarioId);
+    try {
+      await api.post(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/promover/${usuarioId}`));
+      await onPromovido?.();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setPromoviendoId(null);
+    }
+  }
+
   const miEquipo = formacion.jugadores.find((jugador) => jugador.usuarioId === perfil?.uid)?.equipo;
   const puedeVerMiEquipo = Boolean(propuestasInfo?.votacionEquiposCerrada && miEquipo && !modoPreview);
 
@@ -540,6 +560,30 @@ export default function MapaCancha({
               <Jugador key={jugador.usuarioId} usuarioId={jugador.usuarioId} nombre={jugador.nombre} draggable />
             ))}
           </div>
+        </div>
+      )}
+
+      {esAdmin && !modoPreview && suplentes.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-2 text-xs uppercase text-white/40">Suplentes</p>
+          <ul className="flex flex-col gap-1.5">
+            {suplentes.map((suplente) => (
+              <li
+                key={suplente.usuarioId}
+                className="flex items-center justify-between gap-2 rounded-lg bg-cancha-700 px-3 py-2"
+              >
+                <span className="text-sm text-white">{suplente.nombre}</span>
+                <Boton
+                  variante="ghost"
+                  className="shrink-0 px-2 py-1 text-xs"
+                  onClick={() => promoverSuplente(suplente.usuarioId)}
+                  disabled={!haySlotDeTitularLibre || promoviendoId === suplente.usuarioId}
+                >
+                  {promoviendoId === suplente.usuarioId ? 'Poniendo…' : 'Poner de titular'}
+                </Boton>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

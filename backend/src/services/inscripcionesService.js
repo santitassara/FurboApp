@@ -163,7 +163,7 @@ async function obtenerFormacion(partidoId, grupoId) {
   if (!partido) throw crearError('Partido no encontrado', 404);
 
   const ocupados = await contarOcupados(partidoId);
-  const habilitado = ocupados.titulares >= partido.cupoTitulares;
+  const habilitado = ocupados.titulares + ocupados.suplentes >= partido.cupoTitulares;
   const cupoPorEquipo = splitEquipos(partido.cupoTitulares);
 
   const titulares = await listarTitularesActivos(partidoId);
@@ -185,6 +185,19 @@ async function obtenerFormacion(partidoId, grupoId) {
   const lineasEsperadas = derivarLineasEsperadas(jugadores);
 
   return { habilitado, cupoPorEquipo, lineasEsperadas, jugadores };
+}
+
+// Diferencia de habilidad acumulada por debajo de la cual dos equipos se consideran
+// "empatados": permite que el balanceador varíe entre corridas sin romper la paridad.
+const MARGEN_EMPATE_HABILIDAD = 5;
+
+function barajar(lista) {
+  const copia = [...lista];
+  for (let i = copia.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia;
 }
 
 function crearBalanceadorConCapacidad(cupoPorEquipo, capBroad) {
@@ -215,7 +228,8 @@ function crearBalanceadorConCapacidad(cupoPorEquipo, capBroad) {
     if (disponibles.length === 0) return null;
     if (disponibles.length === 1) return disponibles[0];
     const [a, b] = disponibles;
-    if (estado[a].total !== estado[b].total) return estado[a].total < estado[b].total ? a : b;
+    const diferencia = Math.abs(estado[a].total - estado[b].total);
+    if (diferencia > MARGEN_EMPATE_HABILIDAD) return estado[a].total < estado[b].total ? a : b;
     return Math.random() < 0.5 ? a : b;
   }
 
@@ -223,7 +237,9 @@ function crearBalanceadorConCapacidad(cupoPorEquipo, capBroad) {
     for (const linea of LINEAS) {
       const disponibles = equiposConCupo(linea);
       if (disponibles.length > 0) {
-        const equipo = disponibles.sort((x, y) => estado[x].total - estado[y].total)[0];
+        const minimo = Math.min(...disponibles.map((equipo) => estado[equipo].total));
+        const empatados = disponibles.filter((equipo) => estado[equipo].total - minimo <= MARGEN_EMPATE_HABILIDAD);
+        const equipo = empatados[Math.floor(Math.random() * empatados.length)];
         return { equipo, linea };
       }
     }
@@ -276,7 +292,9 @@ async function generarFormacionAutomatica(partidoId, grupoId, seleccion = {}) {
 
   const porLinea = { arquero: [], defensa: [], medio: [], delantero: [] };
   for (const jugador of jugadores) porLinea[jugador.lineaBroad].push(jugador);
-  for (const linea of LINEAS) porLinea[linea].sort((a, b) => b.habilidad - a.habilidad);
+  // Barajar antes de ordenar: con stable sort, empates de habilidad quedan en
+  // orden aleatorio en vez de repetir siempre el mismo orden de la consulta a la BD.
+  for (const linea of LINEAS) porLinea[linea] = barajar(porLinea[linea]).sort((a, b) => b.habilidad - a.habilidad);
 
   const sinAsignar = [];
   for (const linea of LINEAS) {

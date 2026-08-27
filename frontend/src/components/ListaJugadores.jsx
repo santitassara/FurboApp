@@ -102,8 +102,8 @@ function EncabezadoTabla({ mostrarAccion }) {
   );
 }
 
-function agruparTitulares(titulares, formacion) {
-  if (!formacion) {
+function agruparTitulares(titulares, formacion, equiposDefinidos) {
+  if (!formacion || !equiposDefinidos) {
     return [{ clave: 'titulares', titulo: 'Titulares', color: 'text-pasto-500', jugadores: titulares }];
   }
 
@@ -122,10 +122,10 @@ function agruparTitulares(titulares, formacion) {
   return grupos;
 }
 
-export default function ListaJugadores({ jugadores, formacion, onPromover, onSancionar, deshabilitado, grupoId }) {
+export default function ListaJugadores({ jugadores, formacion, equiposDefinidos, onPromover, onSancionar, deshabilitado, grupoId }) {
   const titulares = jugadores.filter((jugador) => jugador.tipo === 'titular');
   const suplentes = jugadores.filter((jugador) => jugador.tipo === 'suplente');
-  const gruposTitulares = agruparTitulares(titulares, formacion);
+  const gruposTitulares = agruparTitulares(titulares, formacion, equiposDefinidos);
 
   return (
     <div className="flex flex-col gap-4">

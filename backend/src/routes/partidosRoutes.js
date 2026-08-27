@@ -91,6 +91,12 @@ router.post(
   verificarMiembroGrupo('admin'),
   envolverAsync(formacionesPropuestasController.cerrar)
 );
+router.post(
+  '/:partidoId/formaciones-propuestas/reiniciar',
+  verificarToken,
+  verificarMiembroGrupo('admin'),
+  envolverAsync(formacionesPropuestasController.reiniciar)
+);
 
 router.get(
   '/:partidoId/mi-equipo',
