@@ -316,6 +316,10 @@ async function guardarSuscripcionPush(uid, suscripcion) {
   );
 }
 
+async function guardarFcmToken(uid, fcmToken) {
+  db.prepare('UPDATE Usuarios SET fcmToken = ? WHERE uid = ?').run(fcmToken, uid);
+}
+
 module.exports = {
   sincronizarUsuario,
   obtenerUsuario,
@@ -328,5 +332,6 @@ module.exports = {
   autenticarConPassword,
   calcularPromedioHabilidades,
   guardarSuscripcionPush,
+  guardarFcmToken,
   CAMPOS_HABILIDAD,
 };
