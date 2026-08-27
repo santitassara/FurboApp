@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 const { db } = require('../config/db');
 const partidosService = require('./partidosService');
 const usuariosService = require('./usuariosService');
+const notificacionesService = require('./notificacionesService');
 
 function crearError(mensaje, status) {
   const error = new Error(mensaje);
@@ -65,6 +66,12 @@ async function crearPropuesta(partidoId, grupoId, creadoPor) {
     }
   });
   crear();
+
+  if (numero === 5) {
+    notificacionesService.enviarNotificacionVotacionAbierta(partidoId).catch((error) => {
+      console.error('Error enviando notificación de votación abierta:', error.message);
+    });
+  }
 }
 
 async function listarPropuestas(partidoId, grupoId, usuarioId) {

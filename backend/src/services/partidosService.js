@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
 const { db } = require('../config/db');
+const notificacionesService = require('./notificacionesService');
 
 function crearErrorValidacion(mensaje) {
   const error = new Error(mensaje);
@@ -39,6 +40,11 @@ async function crearPartido({ fecha, cupoTitulares, cupoSuplentes, creadoPor, gr
     `INSERT INTO Partidos (id, fecha, estado, creadoPor, grupoId, cupoTitulares, cupoSuplentes)
      VALUES (@id, @fecha, @estado, @creadoPor, @grupoId, @cupoTitulares, @cupoSuplentes)`
   ).run(nuevoPartido);
+
+  notificacionesService.enviarNotificacionNuevoPartido(nuevoPartido.id).catch((error) => {
+    console.error('Error enviando notificación de nuevo partido:', error.message);
+  });
+
   return nuevoPartido;
 }
 

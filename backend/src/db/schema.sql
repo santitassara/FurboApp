@@ -146,6 +146,16 @@ CREATE INDEX IF NOT EXISTS idx_formaciones_propuestas_detalle_propuesta ON Forma
 CREATE UNIQUE INDEX IF NOT EXISTS idx_votos_formacion_unico ON VotosFormacion (partidoId, usuarioId);
 CREATE INDEX IF NOT EXISTS idx_votos_formacion_propuesta ON VotosFormacion (propuestaId);
 
+CREATE TABLE IF NOT EXISTS RecordatoriosVotacionEnviados (
+  id TEXT PRIMARY KEY,
+  partidoId TEXT NOT NULL REFERENCES Partidos(id),
+  usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
+  ventana INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_recordatorios_votacion_unico
+  ON RecordatoriosVotacionEnviados (partidoId, usuarioId, ventana);
+
 CREATE TABLE IF NOT EXISTS MensajesEquipo (
   id TEXT PRIMARY KEY,
   partidoId TEXT NOT NULL REFERENCES Partidos(id),
