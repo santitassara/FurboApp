@@ -12,6 +12,7 @@ export default function TarjetaPartido({
   onSolicitarBaja,
   jugadores,
   formacion,
+  equiposDefinidos,
   grupoId,
 }) {
   const ocupados = partido.ocupados || { titulares: 0, suplentes: 0 };
@@ -35,7 +36,12 @@ export default function TarjetaPartido({
 
       {jugadores && (
         <div className="mb-4">
-          <ListaJugadores jugadores={jugadores} formacion={formacion} grupoId={grupoId} />
+          <ListaJugadores
+            jugadores={jugadores}
+            formacion={formacion}
+            equiposDefinidos={equiposDefinidos}
+            grupoId={grupoId}
+          />
         </div>
       )}
 

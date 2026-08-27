@@ -47,6 +47,20 @@ const JUGADORES = [
   { nombre: 'Xavier Díaz', nombreCompleto: 'Xavier Antonio Díaz', posicionPrincipal: 'arquero', posicionSecundaria: 'defensor' },
   { nombre: 'Yuri Sánchez', nombreCompleto: 'Yuri Roberto Sánchez', posicionPrincipal: 'defensor', posicionSecundaria: 'mediocampista' },
   { nombre: 'Zenón Flores', nombreCompleto: 'Zenón Patricio Flores', posicionPrincipal: 'mediocampista', posicionSecundaria: 'delantero' },
+  { nombre: 'Bernardo Salinas', nombreCompleto: 'Bernardo Ignacio Salinas', posicionPrincipal: 'arquero', posicionSecundaria: 'defensor' },
+  { nombre: 'Cristian Núñez', nombreCompleto: 'Cristian Manuel Núñez', posicionPrincipal: 'defensor', posicionSecundaria: 'mediocampista' },
+  { nombre: 'Damián Ibarra', nombreCompleto: 'Damián Andrés Ibarra', posicionPrincipal: 'defensor', posicionSecundaria: 'delantero' },
+  { nombre: 'Emiliano Cortés', nombreCompleto: 'Emiliano Rodrigo Cortés', posicionPrincipal: 'mediocampista', posicionSecundaria: 'defensor' },
+  { nombre: 'Franco Herrera', nombreCompleto: 'Franco Sebastián Herrera', posicionPrincipal: 'mediocampista', posicionSecundaria: 'delantero' },
+  { nombre: 'Gabriel Molina', nombreCompleto: 'Gabriel Ezequiel Molina', posicionPrincipal: 'delantero', posicionSecundaria: 'mediocampista' },
+  { nombre: 'Hernán Aguirre', nombreCompleto: 'Hernán Facundo Aguirre', posicionPrincipal: 'delantero', posicionSecundaria: 'defensor' },
+  { nombre: 'Iván Espinoza', nombreCompleto: 'Iván Emanuel Espinoza', posicionPrincipal: 'defensor', posicionSecundaria: 'mediocampista' },
+  { nombre: 'Joaquín Cabrera', nombreCompleto: 'Joaquín Nicolás Cabrera', posicionPrincipal: 'mediocampista', posicionSecundaria: 'defensor' },
+  { nombre: 'Kevin Serrano', nombreCompleto: 'Kevin Maximiliano Serrano', posicionPrincipal: 'mediocampista', posicionSecundaria: 'delantero' },
+  { nombre: 'Leandro Bravo', nombreCompleto: 'Leandro Agustín Bravo', posicionPrincipal: 'delantero', posicionSecundaria: 'mediocampista' },
+  { nombre: 'Mauricio Ríos', nombreCompleto: 'Mauricio Tomás Ríos', posicionPrincipal: 'delantero', posicionSecundaria: 'defensor' },
+  { nombre: 'Nicolás Peña', nombreCompleto: 'Nicolás Gastón Peña', posicionPrincipal: 'arquero', posicionSecundaria: 'defensor' },
+  { nombre: 'Osvaldo Contreras', nombreCompleto: 'Osvaldo Ariel Contreras', posicionPrincipal: 'defensor', posicionSecundaria: 'mediocampista' },
 ];
 
 function generarPerfil() {
@@ -74,7 +88,11 @@ router.post('/seed-matches', (req, res) => {
       const grupoId = crypto.randomUUID();
       const sufijo = crypto.randomBytes(3).toString('hex').toUpperCase().slice(0, 4);
 
-      const primerAdmin = db.prepare('SELECT uid FROM Usuarios LIMIT 1').get();
+      const primerAdmin = db.prepare(
+        "SELECT uid FROM Usuarios WHERE esSuperAdmin = 1 AND email NOT LIKE '%@test.com' AND email NOT LIKE '%@furboapp.local' LIMIT 1"
+      ).get()
+        || db.prepare('SELECT uid FROM Usuarios WHERE esSuperAdmin = 1 LIMIT 1').get()
+        || db.prepare('SELECT uid FROM Usuarios LIMIT 1').get();
       let creadoPor = primerAdmin?.uid;
 
       if (!creadoPor) {
@@ -91,6 +109,17 @@ router.post('/seed-matches', (req, res) => {
         `INSERT INTO Grupos (id, nombre, codigoInvitacion, creadoPor, fechaCreacion)
          VALUES (?, ?, ?, ?, ?)`
       ).run(grupoId, 'Grupo Test', `TEST-${sufijo}`, creadoPor, new Date().toISOString());
+
+      // Agregar al admin como miembro del grupo (si no lo es ya)
+      const yaEsMiembro = db
+        .prepare('SELECT id FROM UsuariosGrupos WHERE grupoId = ? AND usuarioId = ?')
+        .get(grupoId, creadoPor);
+      if (!yaEsMiembro) {
+        db.prepare(
+          `INSERT INTO UsuariosGrupos (id, grupoId, usuarioId, rol, estaSancionado, fechaIngreso)
+           VALUES (?, ?, ?, 'admin', 0, ?)`
+        ).run(crypto.randomUUID(), grupoId, creadoPor, new Date().toISOString());
+      }
 
       const usuariosIds = [];
       for (let i = 0; i < JUGADORES.length; i++) {
@@ -133,13 +162,13 @@ router.post('/seed-matches', (req, res) => {
 
         db.prepare(
           `INSERT INTO Partidos (id, fecha, estado, creadoPor, grupoId, cupoTitulares, cupoSuplentes)
-           VALUES (?, ?, 'abierto', ?, ?, 7, 7)`
+           VALUES (?, ?, 'abierto', ?, ?, 14, 6)`
         ).run(partidoId, fecha, creadoPor, grupoId);
 
-        for (let j = 0; j < 14; j++) {
-          const usuarioId = usuariosIds[(p * 14 + j) % usuariosIds.length];
-          const tipo = j < 7 ? 'titular' : 'suplente';
-          const orden = j < 7 ? j + 1 : j - 6;
+        for (let j = 0; j < 20; j++) {
+          const usuarioId = usuariosIds[(p * 20 + j) % usuariosIds.length];
+          const tipo = j < 14 ? 'titular' : 'suplente';
+          const orden = j < 14 ? j + 1 : j - 13;
 
           db.prepare(
             `INSERT INTO Inscripciones (id, partidoId, usuarioId, estado, tipo, orden, fechaInscripcion)

@@ -29,4 +29,10 @@ async function cerrar(req, res) {
   res.json(propuestas);
 }
 
-module.exports = { crear, listar, eliminar, votar, cerrar };
+async function reiniciar(req, res) {
+  await formacionesPropuestasService.reiniciarVotacion(req.params.partidoId, req.params.grupoId);
+  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  res.json(propuestas);
+}
+
+module.exports = { crear, listar, eliminar, votar, cerrar, reiniciar };

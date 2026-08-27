@@ -49,7 +49,8 @@ export default function Home() {
         partidosAbiertos
           .filter(
             (partido) =>
-              partido.estado !== 'jugado' && (partido.ocupados?.titulares || 0) >= partido.cupoTitulares
+              partido.estado !== 'jugado' &&
+              (partido.ocupados?.titulares || 0) + (partido.ocupados?.suplentes || 0) >= partido.cupoTitulares
           )
           .map(async (partido) => {
             const { data } = await api.get(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/formacion`));
@@ -62,7 +63,8 @@ export default function Home() {
         partidosAbiertos
           .filter(
             (partido) =>
-              partido.estado !== 'jugado' && (partido.ocupados?.titulares || 0) >= partido.cupoTitulares
+              partido.estado !== 'jugado' &&
+              (partido.ocupados?.titulares || 0) + (partido.ocupados?.suplentes || 0) >= partido.cupoTitulares
           )
           .map(async (partido) => {
             const { data } = await api.get(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/formaciones-propuestas`));
@@ -189,6 +191,7 @@ export default function Home() {
                 className={formacionesPorPartido[partido.id] ? 'grid grid-cols-1 gap-4 md:grid-cols-2' : ''}
               >
                 {formacionesPorPartido[partido.id] && (
+                  <div id={`mapa-cancha-${partido.id}`}>
                   <MapaCancha
                     partidoId={partido.id}
                     formacion={formacionesPorPartido[partido.id]}
@@ -198,7 +201,10 @@ export default function Home() {
                     previewPropuesta={previewPorPartido[partido.id] || null}
                     onPropuesto={cargarPartidos}
                     onSalirPreview={() => setPreviewPorPartido((anterior) => ({ ...anterior, [partido.id]: null }))}
+                    jugadores={inscripcionesPorPartido[partido.id] || []}
+                    onPromovido={cargarPartidos}
                   />
+                  </div>
                 )}
                 <TarjetaPartido
                   partido={partido}
@@ -209,6 +215,7 @@ export default function Home() {
                   onSolicitarBaja={() => solicitarBaja(partido)}
                   jugadores={inscripcionesPorPartido[partido.id] || []}
                   formacion={formacionesPorPartido[partido.id]}
+                  equiposDefinidos={Boolean(propuestasPorPartido[partido.id]?.votacionEquiposCerrada)}
                   grupoId={grupoActivo.id}
                 />
               </div>
@@ -220,12 +227,15 @@ export default function Home() {
                   esAdmin={grupoActivo?.rol === 'admin'}
                   soyTitular={inscripcionDelUsuario(partido.id)?.tipo === 'titular'}
                   onActualizado={cargarPartidos}
-                  onVerEnCancha={(propuesta) =>
+                  onVerEnCancha={(propuesta) => {
                     setPreviewPorPartido((anterior) => ({
                       ...anterior,
                       [partido.id]: [...propuesta.equipoA, ...propuesta.equipoB],
-                    }))
-                  }
+                    }));
+                    document
+                      .getElementById(`mapa-cancha-${partido.id}`)
+                      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
                 />
               )}
             </PartidoConEstado>
