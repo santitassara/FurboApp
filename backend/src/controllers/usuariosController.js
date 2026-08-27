@@ -45,6 +45,12 @@ async function guardarSuscripcionPush(req, res) {
   res.json({ mensaje: 'Suscripción guardada' });
 }
 
+async function guardarFcmToken(req, res) {
+  const { fcmToken } = req.body;
+  await usuariosService.guardarFcmToken(req.usuario.uid, fcmToken);
+  res.json({ mensaje: 'Token FCM guardado' });
+}
+
 module.exports = {
   listarSancionados,
   perdonar,
@@ -54,4 +60,5 @@ module.exports = {
   obtenerPerfilDeJugador,
   listarUsuarios,
   guardarSuscripcionPush,
+  guardarFcmToken,
 };

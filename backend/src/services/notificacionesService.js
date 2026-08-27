@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const webpush = require('web-push');
 const { db } = require('../config/db');
+const { admin } = require('../config/firebase');
 
 const VENTANAS_RECORDATORIO_VOTACION_HORAS = [72, 48, 24];
 
@@ -24,7 +25,7 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 
 async function enviarNotificacion(suscripcionJson, titulo, opciones = {}) {
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
-    console.warn('VAPID keys no configurados. Notificaciones deshabilitadas.');
+    console.warn('VAPID keys no configurados. Notificaciones web deshabilitadas.');
     return;
   }
 
@@ -35,14 +36,43 @@ async function enviarNotificacion(suscripcionJson, titulo, opciones = {}) {
       ...opciones,
     }));
   } catch (error) {
-    console.error('Error enviando notificación:', error.message);
+    console.error('Error enviando notificación web:', error.message);
+  }
+}
+
+async function enviarNotificacionFcm(fcmToken, titulo, opciones = {}) {
+  try {
+    await admin.messaging().send({
+      token: fcmToken,
+      notification: {
+        title: titulo,
+        body: opciones.body,
+      },
+      data: Object.fromEntries(
+        Object.entries(opciones.data || {}).map(([clave, valor]) => [clave, String(valor)])
+      ),
+    });
+  } catch (error) {
+    if (error.code === 'messaging/registration-token-not-registered') {
+      db.prepare('UPDATE Usuarios SET fcmToken = NULL WHERE fcmToken = ?').run(fcmToken);
+    } else {
+      console.error('Error enviando notificación FCM:', error.message);
+    }
+  }
+}
+
+async function notificarUsuario(usuario, titulo, opciones = {}) {
+  if (usuario.suscripcionPush) {
+    await enviarNotificacion(usuario.suscripcionPush, titulo, opciones);
+  }
+  if (usuario.fcmToken) {
+    await enviarNotificacionFcm(usuario.fcmToken, titulo, opciones);
   }
 }
 
 async function enviarNotificacionesPrePartido() {
   // Buscar partidos que son en 1 hora, abiertos, sin recordatorio enviado
   const ahora = new Date();
-  const en1Hora = new Date(ahora.getTime() + 60 * 60 * 1000);
 
   // Ventana: partidos entre ahora+59min y ahora+61min
   const desde = new Date(ahora.getTime() + 59 * 60 * 1000).toISOString();
@@ -60,13 +90,13 @@ async function enviarNotificacionesPrePartido() {
   for (const partido of partidos) {
     // Buscar titulares del partido
     const titulares = db.prepare(`
-      SELECT u.uid, u.suscripcionPush
+      SELECT u.uid, u.suscripcionPush, u.fcmToken
       FROM Inscripciones i
       JOIN Usuarios u ON i.usuarioId = u.uid
       WHERE i.partidoId = ?
         AND i.tipo = 'titular'
         AND i.estado = 'anotado'
-        AND u.suscripcionPush IS NOT NULL
+        AND (u.suscripcionPush IS NOT NULL OR u.fcmToken IS NOT NULL)
     `).all(partido.id);
 
     const horarioPartido = new Date(partido.fecha).toLocaleTimeString('es-AR', {
@@ -86,7 +116,7 @@ async function enviarNotificacionesPrePartido() {
     };
 
     for (const titular of titulares) {
-      await enviarNotificacion(titular.suscripcionPush, titulo, opciones);
+      await notificarUsuario(titular, titulo, opciones);
     }
 
     // Marcar como enviado
@@ -116,12 +146,12 @@ async function enviarNotificacionesPostPartido() {
   for (const partido of partidos) {
     // Buscar jugadores que se anotaron en el partido
     const jugadores = db.prepare(`
-      SELECT u.uid, u.suscripcionPush
+      SELECT u.uid, u.suscripcionPush, u.fcmToken
       FROM Inscripciones i
       JOIN Usuarios u ON i.usuarioId = u.uid
       WHERE i.partidoId = ?
         AND i.estado = 'anotado'
-        AND u.suscripcionPush IS NOT NULL
+        AND (u.suscripcionPush IS NOT NULL OR u.fcmToken IS NOT NULL)
     `).all(partido.id);
 
     const titulo = 'Puntuá el partido';
@@ -136,7 +166,7 @@ async function enviarNotificacionesPostPartido() {
     };
 
     for (const jugador of jugadores) {
-      await enviarNotificacion(jugador.suscripcionPush, titulo, opciones);
+      await notificarUsuario(jugador, titulo, opciones);
     }
 
     // Marcar como enviado
@@ -154,10 +184,10 @@ async function enviarNotificacionNuevoPartido(partidoId) {
   if (!partido) return;
 
   const miembros = db.prepare(`
-    SELECT u.uid, u.suscripcionPush
+    SELECT u.uid, u.suscripcionPush, u.fcmToken
     FROM UsuariosGrupos ug
     JOIN Usuarios u ON u.uid = ug.usuarioId
-    WHERE ug.grupoId = ? AND u.suscripcionPush IS NOT NULL
+    WHERE ug.grupoId = ? AND (u.suscripcionPush IS NOT NULL OR u.fcmToken IS NOT NULL)
   `).all(partido.grupoId);
 
   const titulo = 'Nuevo partido disponible';
@@ -172,7 +202,7 @@ async function enviarNotificacionNuevoPartido(partidoId) {
   };
 
   for (const miembro of miembros) {
-    await enviarNotificacion(miembro.suscripcionPush, titulo, opciones);
+    await notificarUsuario(miembro, titulo, opciones);
   }
 }
 
@@ -186,13 +216,13 @@ async function enviarNotificacionVotacionAbierta(partidoId) {
   if (!partido) return;
 
   const titulares = db.prepare(`
-    SELECT u.uid, u.suscripcionPush
+    SELECT u.uid, u.suscripcionPush, u.fcmToken
     FROM Inscripciones i
     JOIN Usuarios u ON i.usuarioId = u.uid
     WHERE i.partidoId = ?
       AND i.tipo = 'titular'
       AND i.estado = 'anotado'
-      AND u.suscripcionPush IS NOT NULL
+      AND (u.suscripcionPush IS NOT NULL OR u.fcmToken IS NOT NULL)
   `).all(partido.id);
 
   const titulo = 'Ya podés votar los equipos';
@@ -207,7 +237,7 @@ async function enviarNotificacionVotacionAbierta(partidoId) {
   };
 
   for (const titular of titulares) {
-    await enviarNotificacion(titular.suscripcionPush, titulo, opciones);
+    await notificarUsuario(titular, titulo, opciones);
   }
 }
 
@@ -230,13 +260,13 @@ async function enviarRecordatoriosVotacion() {
 
     for (const partido of partidos) {
       const titularesSinVoto = db.prepare(`
-        SELECT u.uid, u.suscripcionPush
+        SELECT u.uid, u.suscripcionPush, u.fcmToken
         FROM Inscripciones i
         JOIN Usuarios u ON i.usuarioId = u.uid
         WHERE i.partidoId = ?
           AND i.tipo = 'titular'
           AND i.estado = 'anotado'
-          AND u.suscripcionPush IS NOT NULL
+          AND (u.suscripcionPush IS NOT NULL OR u.fcmToken IS NOT NULL)
           AND NOT EXISTS (
             SELECT 1 FROM VotosFormacion v WHERE v.partidoId = i.partidoId AND v.usuarioId = i.usuarioId
           )
@@ -258,7 +288,7 @@ async function enviarRecordatoriosVotacion() {
       };
 
       for (const titular of titularesSinVoto) {
-        await enviarNotificacion(titular.suscripcionPush, titulo, opciones);
+        await notificarUsuario(titular, titulo, opciones);
         db.prepare(
           `INSERT INTO RecordatoriosVotacionEnviados (id, partidoId, usuarioId, ventana) VALUES (?, ?, ?, ?)`
         ).run(crypto.randomUUID(), partido.id, titular.uid, ventana);

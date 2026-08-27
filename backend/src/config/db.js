@@ -62,6 +62,10 @@ const tienePiernaHabil = columnasUsuarios.some((columna) => columna.name === 'pi
 if (!tienePiernaHabil) {
   db.exec('ALTER TABLE Usuarios ADD COLUMN piernaHabil TEXT');
 }
+const tieneFcmToken = columnasUsuarios.some((columna) => columna.name === 'fcmToken');
+if (!tieneFcmToken) {
+  db.exec('ALTER TABLE Usuarios ADD COLUMN fcmToken TEXT');
+}
 
 const columnasInscripciones = db.prepare('PRAGMA table_info(Inscripciones)').all();
 const tienePosicionPrincipalInscripcion = columnasInscripciones.some(

@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS Usuarios (
   fisico REAL,
   fotoUrl TEXT,
   suscripcionPush TEXT,
-  piernaHabil TEXT
+  piernaHabil TEXT,
+  fcmToken TEXT
 );
 
 CREATE TABLE IF NOT EXISTS Grupos (

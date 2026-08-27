@@ -1,6 +1,14 @@
+import { Capacitor } from '@capacitor/core';
+import { FirebaseMessaging } from '@capacitor-firebase/messaging';
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 async function registrarSuscripcionPush(token) {
+  if (Capacitor.isNativePlatform()) {
+    await registrarTokenFcm(token);
+    return;
+  }
+
   // Registrar Service Worker
   if ('serviceWorker' in navigator) {
     try {
@@ -55,6 +63,30 @@ async function registrarSuscripcionPush(token) {
     } catch (error) {
       console.error('Error con push notifications:', error);
     }
+  }
+}
+
+async function registrarTokenFcm(token) {
+  try {
+    const permiso = await FirebaseMessaging.requestPermissions();
+    if (permiso.receive !== 'granted') return;
+
+    const { token: fcmToken } = await FirebaseMessaging.getToken();
+
+    const response = await fetch(`${API_URL}/api/usuarios/me/fcm-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ fcmToken }),
+    });
+
+    if (!response.ok) {
+      console.error('Error guardando token FCM:', response.statusText);
+    }
+  } catch (error) {
+    console.error('Error con notificaciones FCM:', error);
   }
 }
 
