@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signInWithCredential, signInWithPopup, signOut, GoogleAuthProvider } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { auth, googleProvider } from '../config/firebase';
 import api from '../services/api';
 import { registrarSuscripcionPush } from '../services/notificacionesService';
@@ -70,7 +72,16 @@ export function AuthProvider({ children }) {
   }
 
   async function iniciarSesion() {
-    if (!auth || !googleProvider) {
+    if (!auth) {
+      throw new Error('Firebase no está configurado. Completá frontend/.env con tus credenciales.');
+    }
+    if (Capacitor.isNativePlatform()) {
+      const resultado = await FirebaseAuthentication.signInWithGoogle({ useCredentialManager: false });
+      const credencial = GoogleAuthProvider.credential(resultado.credential?.idToken);
+      await signInWithCredential(auth, credencial);
+      return;
+    }
+    if (!googleProvider) {
       throw new Error('Firebase no está configurado. Completá frontend/.env con tus credenciales.');
     }
     await signInWithPopup(auth, googleProvider);
@@ -111,6 +122,9 @@ export function AuthProvider({ children }) {
 
   async function cerrarSesion() {
     localStorage.removeItem(TOKEN_KEY);
+    if (Capacitor.isNativePlatform()) {
+      await FirebaseAuthentication.signOut();
+    }
     if (auth && usuarioFirebase) {
       await signOut(auth);
     } else {
