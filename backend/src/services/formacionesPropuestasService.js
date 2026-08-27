@@ -190,8 +190,17 @@ async function cerrarManual(partidoId, grupoId) {
   if (partido.votacionEquiposCerrada) throw crearError('La votación de equipos ya cerró', 400);
 
   const ganadora = elegirGanadora(partidoId);
-  if (!ganadora || ganadora.votos === 0) throw crearError('No hay votos para determinar una ganadora', 400);
+  if (!ganadora) throw crearError('No hay propuestas para determinar una ganadora', 400);
   aplicarGanadora(partidoId, ganadora.id);
+}
+
+async function reiniciarVotacion(partidoId, grupoId) {
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
+  if (!partido) throw crearError('Partido no encontrado', 404);
+  if (!partido.votacionEquiposCerrada) throw crearError('La votación de equipos no está cerrada', 400);
+
+  borrarPropuestasYVotos(partidoId);
+  db.prepare('UPDATE Partidos SET votacionEquiposCerrada = 0, propuestaGanadoraId = NULL WHERE id = ?').run(partidoId);
 }
 
 function borrarPropuestasYVotos(partidoId) {
@@ -208,8 +217,11 @@ function borrarPropuestasYVotos(partidoId) {
 
 function manejarBajaDeTitular(partidoId) {
   const partido = db.prepare('SELECT votacionEquiposCerrada FROM Partidos WHERE id = ?').get(partidoId);
-  if (!partido || partido.votacionEquiposCerrada) return;
+  if (!partido) return;
   borrarPropuestasYVotos(partidoId);
+  if (partido.votacionEquiposCerrada) {
+    db.prepare('UPDATE Partidos SET votacionEquiposCerrada = 0, propuestaGanadoraId = NULL WHERE id = ?').run(partidoId);
+  }
 }
 
 function eliminarPorPartido(partidoId) {
@@ -222,6 +234,7 @@ module.exports = {
   eliminarPropuestaAdmin,
   votar,
   cerrarManual,
+  reiniciarVotacion,
   manejarBajaDeTitular,
   eliminarPorPartido,
 };
