@@ -242,16 +242,24 @@ function calcularPromedioHabilidades(fila) {
   return valores.reduce((suma, valor) => suma + valor, 0) / valores.length;
 }
 
-async function listarUsuarios() {
-  return db
-    .prepare('SELECT * FROM Usuarios ORDER BY nombre COLLATE NOCASE ASC')
-    .all()
-    .map((fila) => ({
-      uid: fila.uid,
-      nombre: fila.nombre,
-      edad: calcularEdad(fila.fechaNacimiento),
-      promedioHabilidades: calcularPromedioHabilidades(fila),
-    }));
+async function listarUsuarios(grupoId) {
+  const filas = grupoId
+    ? db
+        .prepare(
+          `SELECT u.* FROM Usuarios u
+           JOIN UsuariosGrupos ug ON ug.usuarioId = u.uid
+           WHERE ug.grupoId = ?
+           ORDER BY u.nombre COLLATE NOCASE ASC`
+        )
+        .all(grupoId)
+    : db.prepare('SELECT * FROM Usuarios ORDER BY nombre COLLATE NOCASE ASC').all();
+
+  return filas.map((fila) => ({
+    uid: fila.uid,
+    nombre: fila.nombre,
+    edad: calcularEdad(fila.fechaNacimiento),
+    promedioHabilidades: calcularPromedioHabilidades(fila),
+  }));
 }
 
 async function registrarConPassword({ nombre, email, password }) {
