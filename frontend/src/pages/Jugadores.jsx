@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
+import { useGrupo } from '../context/GrupoContext';
+import { rutaGrupo } from '../utils/rutasGrupo';
 
 const OPCIONES_ORDEN = [
   { valor: 'alfabetico', etiqueta: 'Orden alfabético' },
@@ -10,6 +12,7 @@ const OPCIONES_ORDEN = [
 ];
 
 export default function Jugadores() {
+  const { grupoActivo } = useGrupo();
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -17,11 +20,16 @@ export default function Jugadores() {
   const [orden, setOrden] = useState('alfabetico');
 
   useEffect(() => {
+    if (!grupoActivo) {
+      setUsuarios([]);
+      setCargando(false);
+      return;
+    }
     let activo = true;
     setCargando(true);
     setError('');
     api
-      .get('/usuarios')
+      .get(rutaGrupo(grupoActivo.id, '/usuarios'))
       .then(({ data }) => {
         if (activo) setUsuarios(data);
       })
@@ -34,7 +42,7 @@ export default function Jugadores() {
     return () => {
       activo = false;
     };
-  }, []);
+  }, [grupoActivo]);
 
   const usuariosFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();

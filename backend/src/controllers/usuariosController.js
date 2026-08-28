@@ -39,6 +39,11 @@ async function listarUsuarios(req, res) {
   res.json(usuarios);
 }
 
+async function listarUsuariosDeGrupo(req, res) {
+  const usuarios = await usuariosService.listarUsuarios(req.params.grupoId);
+  res.json(usuarios);
+}
+
 async function guardarSuscripcionPush(req, res) {
   const suscripcion = req.body;
   await usuariosService.guardarSuscripcionPush(req.usuario.uid, suscripcion);
@@ -59,6 +64,7 @@ module.exports = {
   subirMiFoto,
   obtenerPerfilDeJugador,
   listarUsuarios,
+  listarUsuariosDeGrupo,
   guardarSuscripcionPush,
   guardarFcmToken,
 };
