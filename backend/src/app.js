@@ -8,6 +8,7 @@ const usuariosGrupoRoutes = require('./routes/usuariosGrupoRoutes');
 const gruposRoutes = require('./routes/gruposRoutes');
 const seedRoutes = require('./routes/seedRoutes');
 const manejadorErrores = require('./middlewares/manejadorErrores');
+const emitirActualizacionGrupo = require('./middlewares/emitirActualizacionGrupo');
 
 const app = express();
 
@@ -17,8 +18,8 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuariosRoutes);
-app.use('/api/grupos/:grupoId/partidos', partidosRoutes);
-app.use('/api/grupos/:grupoId/usuarios', usuariosGrupoRoutes);
+app.use('/api/grupos/:grupoId/partidos', emitirActualizacionGrupo, partidosRoutes);
+app.use('/api/grupos/:grupoId/usuarios', emitirActualizacionGrupo, usuariosGrupoRoutes);
 app.use('/api/grupos', gruposRoutes);
 app.use('/api/seed', seedRoutes);
 

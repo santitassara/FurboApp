@@ -17,7 +17,8 @@ const INTERVALO_RECORDATORIOS_MS = 5 * 60_000;
 
 function cerrarPartidosVencidosSeguro() {
   try {
-    partidosService.cerrarPartidosVencidos();
+    const grupoIdsAfectados = partidosService.cerrarPartidosVencidos();
+    grupoIdsAfectados.forEach((grupoId) => io.to(`grupo:${grupoId}`).emit('grupoActualizado'));
   } catch (error) {
     console.error('Error cerrando partidos vencidos:', error);
   }
@@ -39,6 +40,10 @@ async function enviarRecordatoriosSeguro() {
 
 mailer.verificarConfigSmtp();
 
+const servidorHttp = http.createServer(app);
+const io = configurarSocket(servidorHttp);
+app.set('io', io);
+
 cerrarPartidosVencidosSeguro();
 setInterval(cerrarPartidosVencidosSeguro, INTERVALO_CIERRE_MS);
 
@@ -46,10 +51,6 @@ enviarRecordatoriosSeguro();
 setInterval(enviarRecordatoriosSeguro, INTERVALO_RECORDATORIOS_MS);
 
 iniciarScheduler();
-
-const servidorHttp = http.createServer(app);
-const io = configurarSocket(servidorHttp);
-app.set('io', io);
 
 servidorHttp.listen(PORT, () => {
   console.log(`FurboApp backend escuchando en el puerto ${PORT}`);
