@@ -8,6 +8,24 @@ function configurarSocket(servidorHttp) {
   const io = new Server(servidorHttp, { cors: { origin: '*' } });
 
   io.on('connection', (socket) => {
+    socket.on('unirseGrupo', async (payload) => {
+      try {
+        const { grupoId, token } = payload || {};
+        const usuario = await verificarTokenValor(token);
+        if (!usuario) throw new Error('Token inválido');
+
+        const perfil = await usuariosService.obtenerUsuario(usuario.uid);
+        if (!perfil?.esSuperAdmin) {
+          const membresia = await gruposService.obtenerMembresia(grupoId, usuario.uid);
+          if (!membresia) throw new Error('No pertenecés a este grupo');
+        }
+
+        socket.join(`grupo:${grupoId}`);
+      } catch (error) {
+        socket.emit('error', { mensaje: error.message });
+      }
+    });
+
     socket.on('unirse', async (payload) => {
       try {
         const { grupoId, partidoId, token } = payload || {};

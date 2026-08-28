@@ -84,9 +84,13 @@ async function eliminarPartido(partidoId, grupoId, uid) {
 }
 
 function cerrarPartidosVencidos() {
+  const vencidos = db
+    .prepare("SELECT DISTINCT grupoId FROM Partidos WHERE estado = 'abierto' AND fecha <= ?")
+    .all(new Date().toISOString());
   db.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE estado = 'abierto' AND fecha <= ?").run(
     new Date().toISOString()
   );
+  return vencidos.map((fila) => fila.grupoId);
 }
 
 function listarPartidosJugados(grupoId) {

@@ -1,5 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import api from '../services/api';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { io } from 'socket.io-client';
+import api, { SERVER_URL } from '../services/api';
+import obtenerTokenActual from '../utils/obtenerTokenActual';
 import { useAuth } from './AuthContext';
 
 const GrupoContext = createContext(null);
@@ -33,6 +35,46 @@ export function GrupoProvider({ children }) {
   useEffect(() => {
     refrescarGrupos();
   }, [refrescarGrupos]);
+
+  const socketRef = useRef(null);
+  const gruposUnidosRef = useRef(new Set());
+
+  const unirseATodosLosGrupos = useCallback(async (grupos) => {
+    const socket = socketRef.current;
+    if (!socket || !socket.connected) return;
+    const token = await obtenerTokenActual();
+    grupos.forEach((grupo) => {
+      if (gruposUnidosRef.current.has(grupo.id)) return;
+      socket.emit('unirseGrupo', { grupoId: grupo.id, token });
+      gruposUnidosRef.current.add(grupo.id);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!perfil) {
+      socketRef.current?.disconnect();
+      socketRef.current = null;
+      return undefined;
+    }
+    const socket = io(SERVER_URL);
+    socketRef.current = socket;
+    socket.on('connect', () => {
+      gruposUnidosRef.current = new Set();
+      unirseATodosLosGrupos(misGrupos);
+    });
+    socket.on('grupoActualizado', () => {
+      refrescarGrupos();
+    });
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [perfil]);
+
+  useEffect(() => {
+    unirseATodosLosGrupos(misGrupos);
+  }, [misGrupos, unirseATodosLosGrupos]);
 
   useEffect(() => {
     if (cargandoGrupos) return;

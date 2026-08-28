@@ -2,15 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import api, { SERVER_URL } from '../services/api';
-import { auth } from '../config/firebase';
-import { TOKEN_KEY } from '../context/AuthContext';
 import { useGrupo } from '../context/GrupoContext';
+import obtenerTokenActual from '../utils/obtenerTokenActual';
 import Boton from '../components/Boton';
-
-async function obtenerTokenActual() {
-  if (auth?.currentUser) return auth.currentUser.getIdToken();
-  return localStorage.getItem(TOKEN_KEY);
-}
 
 export default function MiEquipo() {
   const { partidoId } = useParams();
