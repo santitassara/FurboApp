@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const { db } = require('../config/db');
 const { generarCodigoInvitacion } = require('../utils/codigoInvitacion');
+const notificacionesService = require('./notificacionesService');
 
 function crearError(mensaje, status) {
   const error = new Error(mensaje);
@@ -114,6 +115,10 @@ async function perdonarSancion(grupoId, usuarioId) {
     grupoId,
     usuarioId
   );
+
+  notificacionesService.enviarNotificacionPerdonSancion(usuarioId).catch((error) => {
+    console.error('Error enviando notificación de perdón de sanción:', error.message);
+  });
 }
 
 async function listarSancionados(grupoId) {

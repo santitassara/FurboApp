@@ -297,10 +297,31 @@ async function enviarRecordatoriosVotacion() {
   }
 }
 
+async function enviarNotificacionPerdonSancion(usuarioId) {
+  const usuario = db
+    .prepare('SELECT uid, suscripcionPush, fcmToken FROM Usuarios WHERE uid = ?')
+    .get(usuarioId);
+  if (!usuario || (!usuario.suscripcionPush && !usuario.fcmToken)) return;
+
+  const titulo = 'Sanción revocada';
+  const opciones = {
+    body: 'El admin evaluó tu caso y fuiste perdonado',
+    icon: '/favicon.svg',
+    badge: '/favicon.svg',
+    tag: `perdon-sancion-${usuarioId}`,
+    data: {
+      url: '/inicio',
+    },
+  };
+
+  await notificarUsuario(usuario, titulo, opciones);
+}
+
 module.exports = {
   enviarNotificacionesPrePartido,
   enviarNotificacionesPostPartido,
   enviarNotificacionNuevoPartido,
   enviarNotificacionVotacionAbierta,
   enviarRecordatoriosVotacion,
+  enviarNotificacionPerdonSancion,
 };
