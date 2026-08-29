@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import Boton from './Boton';
+import api from '../services/api';
+import { useGrupo } from '../context/GrupoContext';
+import { rutaGrupo } from '../utils/rutasGrupo';
 import { formatearFechaPartido } from '../utils/fecha';
 
 function golVacio() {
@@ -19,14 +22,50 @@ export default function ModalCargarResultado({
   onConfirmar,
   onCancelar,
 }) {
+  const { grupoActivo } = useGrupo();
   const [goles, setGoles] = useState([]);
   const [sanciones, setSanciones] = useState([]);
+  const [cargandoExistente, setCargandoExistente] = useState(false);
 
   useEffect(() => {
     if (!abierto) return;
-    setGoles([]);
-    setSanciones([]);
-  }, [abierto]);
+
+    if (partido.estado !== 'jugado') {
+      setGoles([]);
+      setSanciones([]);
+      return;
+    }
+
+    let cancelado = false;
+    setCargandoExistente(true);
+    api
+      .get(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/resultado`))
+      .then(({ data }) => {
+        if (cancelado) return;
+        setGoles(
+          (data.goles || []).map((gol) => ({
+            usuarioId: gol.usuarioId,
+            equipo: gol.equipo,
+            minuto: String(gol.minuto),
+            asistenciaUsuarioId: gol.asistenciaUsuarioId || '',
+          }))
+        );
+        setSanciones(
+          (data.sanciones || []).map((sancion) => ({
+            usuarioId: sancion.usuarioId,
+            motivo: sancion.motivo,
+          }))
+        );
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelado) setCargandoExistente(false);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [abierto, partido, grupoActivo]);
 
   if (!abierto) return null;
 
@@ -67,8 +106,10 @@ export default function ModalCargarResultado({
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 px-4 py-8">
       <div className="w-full max-w-2xl rounded-xl border border-white/10 bg-cancha-800 p-6">
         <h2 className="mb-4 text-lg font-bold capitalize text-white">
-          Cargar resultado — {formatearFechaPartido(partido.fecha)}
+          {partido.estado === 'jugado' ? 'Editar resultado' : 'Cargar resultado'} — {formatearFechaPartido(partido.fecha)}
         </h2>
+
+        {cargandoExistente && <p className="mb-4 text-sm text-white/50">Cargando resultado actual…</p>}
 
         {elegibles.length === 0 && (
           <p className="mb-6 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">
@@ -188,7 +229,7 @@ export default function ModalCargarResultado({
           <Boton variante="ghost" onClick={onCancelar} disabled={procesando}>
             Cancelar
           </Boton>
-          <Boton variante="primario" onClick={confirmar} disabled={procesando}>
+          <Boton variante="primario" onClick={confirmar} disabled={procesando || cargandoExistente}>
             {procesando ? 'Guardando…' : 'Guardar resultado'}
           </Boton>
         </div>
