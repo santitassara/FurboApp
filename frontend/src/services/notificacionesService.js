@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { FirebaseMessaging } from '@capacitor-firebase/messaging';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 async function registrarSuscripcionPush(token) {
   if (Capacitor.isNativePlatform()) {
@@ -48,7 +48,7 @@ async function registrarSuscripcionPush(token) {
       });
 
       // Guardar suscripción en backend
-      const response = await fetch(`${API_URL}/api/usuarios/me/suscripcion`, {
+      const response = await fetch(`${API_URL}/usuarios/me/suscripcion`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ async function registrarTokenFcm(token) {
 
     const { token: fcmToken } = await FirebaseMessaging.getToken();
 
-    const response = await fetch(`${API_URL}/api/usuarios/me/fcm-token`, {
+    const response = await fetch(`${API_URL}/usuarios/me/fcm-token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
