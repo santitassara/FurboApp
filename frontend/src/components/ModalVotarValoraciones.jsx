@@ -15,6 +15,11 @@ export default function ModalVotarValoraciones({
   const [puntajes, setPuntajes] = useState({});
   const [mvpId, setMvpId] = useState('');
 
+  const faltanCalificar = elegibles.some((jugador) => {
+    const puntaje = puntajes[jugador.usuarioId];
+    return puntaje === '' || puntaje === null || puntaje === undefined;
+  });
+
   useEffect(() => {
     if (!abierto) return;
     const previos = Object.fromEntries((votosPropios.valoraciones || []).map((v) => [v.jugadorId, v.puntaje]));
@@ -80,13 +85,16 @@ export default function ModalVotarValoraciones({
           </select>
         </section>
 
+        {faltanCalificar && (
+          <p className="mb-4 text-sm text-white/50">Tenés que calificar a todos los jugadores para guardar.</p>
+        )}
         {error && <p className="mb-4 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
 
         <div className="flex justify-end gap-3">
           <Boton variante="ghost" onClick={onCancelar} disabled={procesando}>
             Cancelar
           </Boton>
-          <Boton variante="primario" onClick={confirmar} disabled={procesando}>
+          <Boton variante="primario" onClick={confirmar} disabled={procesando || faltanCalificar}>
             {procesando ? 'Guardando…' : 'Guardar mi voto'}
           </Boton>
         </div>

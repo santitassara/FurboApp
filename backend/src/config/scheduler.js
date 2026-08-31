@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const notificacionesService = require('../services/notificacionesService');
+const ratingService = require('../services/ratingService');
 
 function iniciarScheduler() {
   // Ejecutar cada minuto
@@ -10,6 +11,12 @@ function iniciarScheduler() {
       await notificacionesService.enviarRecordatoriosVotacion();
     } catch (error) {
       console.error('Error en scheduler de notificaciones:', error.message);
+    }
+
+    try {
+      await ratingService.cerrarVotacionesVencidas();
+    } catch (error) {
+      console.error('Error en scheduler de cierre de votación:', error.message);
     }
   });
 
