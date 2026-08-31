@@ -48,6 +48,8 @@ export default function Perfil() {
   const [error, setError] = useState('');
   const [guardado, setGuardado] = useState(false);
 
+  const habilidadesBloqueadas = Boolean(perfil?.habilidadesEditadas);
+
   const posicionesIguales =
     datos.posicionPrincipal && datos.posicionSecundaria && datos.posicionPrincipal === datos.posicionSecundaria;
   const posicionesSinElegir = !datos.posicionPrincipal || !datos.posicionSecundaria;
@@ -253,6 +255,11 @@ export default function Perfil() {
 
         <div className="flex flex-col gap-4">
           <h2 className="text-sm font-bold uppercase tracking-wide text-pasto-500">Habilidades</h2>
+          {habilidadesBloqueadas && (
+            <p className="text-sm text-white/50">
+              Ya cargaste tus habilidades una vez, no se pueden volver a editar.
+            </p>
+          )}
           {HABILIDADES.map(({ campo, etiqueta }) => (
             <div key={campo} className="flex flex-col gap-1">
               <div className="flex items-center justify-between text-xs uppercase text-white/50">
@@ -265,7 +272,8 @@ export default function Perfil() {
                 max="100"
                 value={datos[campo]}
                 onChange={(evento) => actualizarHabilidad(campo, evento.target.value)}
-                className="w-full"
+                disabled={habilidadesBloqueadas}
+                className="w-full disabled:opacity-40"
               />
             </div>
           ))}
