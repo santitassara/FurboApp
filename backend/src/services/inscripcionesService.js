@@ -13,6 +13,12 @@ function crearError(mensaje, status) {
   return error;
 }
 
+const DOS_DIAS_MS = 2 * 24 * 60 * 60 * 1000;
+
+function faltaMenosDeDosDias(fechaPartido) {
+  return new Date(fechaPartido).getTime() - Date.now() < DOS_DIAS_MS;
+}
+
 async function obtenerInscripcionActiva(partidoId, usuarioId) {
   return (
     db
@@ -92,7 +98,9 @@ async function bajarse(partidoId, grupoId, usuarioId) {
   db.prepare("UPDATE Inscripciones SET estado = 'dado_de_baja' WHERE id = ?").run(inscripcion.id);
 
   if (inscripcion.tipo === 'titular') {
-    await gruposService.sancionar(grupoId, usuarioId);
+    if (faltaMenosDeDosDias(partido.fecha)) {
+      await gruposService.sancionar(grupoId, usuarioId);
+    }
     formacionesPropuestasService.manejarBajaDeTitular(partidoId);
   }
 

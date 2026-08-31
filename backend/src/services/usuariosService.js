@@ -107,20 +107,35 @@ async function actualizarPosiciones(uid, { posicionPrincipal, posicionSecundaria
 }
 
 async function actualizarPerfil(uid, datos = {}) {
+  const usuarioActual = db.prepare('SELECT * FROM Usuarios WHERE uid = ?').get(uid);
   const nombreCompleto = normalizarVacio(datos.nombreCompleto);
   const fechaNacimiento = normalizarVacio(datos.fechaNacimiento);
   const { posicionPrincipal, posicionSecundaria } = datos;
   const resistencia = normalizarVacio(datos.resistencia);
   const ritmoJuego = normalizarVacio(datos.ritmoJuego);
   const piernaHabil = normalizarVacio(datos.piernaHabil);
-  const habilidades = {
-    velocidad: normalizarVacio(datos.velocidad),
-    pegada: normalizarVacio(datos.pegada),
-    tocaPase: normalizarVacio(datos.tocaPase),
-    gambeta: normalizarVacio(datos.gambeta),
-    marcaDefensa: normalizarVacio(datos.marcaDefensa),
-    fisico: normalizarVacio(datos.fisico),
-  };
+  // Las habilidades solo se pueden cargar la primera vez que el usuario edita su
+  // perfil: una vez guardadas (habilidadesEditadas = 1), se ignora lo que venga
+  // en el payload y se conservan los valores existentes (el motor de rating sigue
+  // pudiendo modificarlos desde ratingService).
+  const habilidadesBloqueadas = Boolean(usuarioActual?.habilidadesEditadas);
+  const habilidades = habilidadesBloqueadas
+    ? {
+        velocidad: usuarioActual.velocidad,
+        pegada: usuarioActual.pegada,
+        tocaPase: usuarioActual.tocaPase,
+        gambeta: usuarioActual.gambeta,
+        marcaDefensa: usuarioActual.marcaDefensa,
+        fisico: usuarioActual.fisico,
+      }
+    : {
+        velocidad: normalizarVacio(datos.velocidad),
+        pegada: normalizarVacio(datos.pegada),
+        tocaPase: normalizarVacio(datos.tocaPase),
+        gambeta: normalizarVacio(datos.gambeta),
+        marcaDefensa: normalizarVacio(datos.marcaDefensa),
+        fisico: normalizarVacio(datos.fisico),
+      };
 
   if (!sonPosicionesValidas(posicionPrincipal, posicionSecundaria)) {
     const error = new Error('Posiciones inválidas');
@@ -169,7 +184,8 @@ async function actualizarPerfil(uid, datos = {}) {
       tocaPase = @tocaPase,
       gambeta = @gambeta,
       marcaDefensa = @marcaDefensa,
-      fisico = @fisico
+      fisico = @fisico,
+      habilidadesEditadas = 1
      WHERE uid = @uid`
   ).run({
     uid,

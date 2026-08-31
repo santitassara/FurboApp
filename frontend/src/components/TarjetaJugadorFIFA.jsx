@@ -22,12 +22,24 @@ const MARCO_CARTA = '/tarjeta-marco.png';
 
 const MASCARA_FOTO = 'linear-gradient(to bottom, black 65%, transparent 100%)';
 
+// Redondeo a entero: el decimal solo sube si supera 0.5 (80.5 -> 80, 80.6 -> 81).
+function redondearEntero(valor) {
+  const base = Math.floor(valor);
+  const decimal = valor - base;
+  return decimal > 0.5 ? base + 1 : base;
+}
+
 function calcularRating(habilidades) {
   const valores = ATRIBUTOS.map(({ campo }) => habilidades[campo]).filter(
     (valor) => valor !== null && valor !== undefined
   );
   if (valores.length === 0) return null;
-  return Math.round(valores.reduce((suma, valor) => suma + Number(valor), 0) / valores.length);
+  return redondearEntero(valores.reduce((suma, valor) => suma + Number(valor), 0) / valores.length);
+}
+
+function formatearAtributo(valor) {
+  if (valor === null || valor === undefined) return '–';
+  return redondearEntero(Number(valor));
 }
 
 function iniciales(nombre) {
@@ -92,7 +104,7 @@ export default function TarjetaJugadorFIFA({ nombre, posicion, habilidades = {},
             <div className="flex flex-col gap-1 pr-2">
               {ATRIBUTOS.slice(0, 3).map(({ campo, etiqueta }) => (
                 <div key={campo} className="flex items-center justify-between font-display text-lg drop-shadow-sm">
-                  <span className="w-1/2 pr-2 text-right font-bold">{habilidades[campo] ?? '–'}</span>
+                  <span className="w-1/2 pr-2 text-right font-bold">{formatearAtributo(habilidades[campo])}</span>
                   <span className="w-1/2 text-left font-normal">{etiqueta}</span>
                 </div>
               ))}
@@ -101,7 +113,7 @@ export default function TarjetaJugadorFIFA({ nombre, posicion, habilidades = {},
             <div className="flex flex-col gap-1 pl-2">
               {ATRIBUTOS.slice(3, 6).map(({ campo, etiqueta }) => (
                 <div key={campo} className="flex items-center justify-between font-display text-lg drop-shadow-sm">
-                  <span className="w-1/2 pr-2 text-right font-bold">{habilidades[campo] ?? '–'}</span>
+                  <span className="w-1/2 pr-2 text-right font-bold">{formatearAtributo(habilidades[campo])}</span>
                   <span className="w-1/2 text-left font-normal">{etiqueta}</span>
                 </div>
               ))}

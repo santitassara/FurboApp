@@ -66,6 +66,10 @@ const tieneFcmToken = columnasUsuarios.some((columna) => columna.name === 'fcmTo
 if (!tieneFcmToken) {
   db.exec('ALTER TABLE Usuarios ADD COLUMN fcmToken TEXT');
 }
+const tieneHabilidadesEditadas = columnasUsuarios.some((columna) => columna.name === 'habilidadesEditadas');
+if (!tieneHabilidadesEditadas) {
+  db.exec('ALTER TABLE Usuarios ADD COLUMN habilidadesEditadas INTEGER NOT NULL DEFAULT 0');
+}
 
 const columnasInscripciones = db.prepare('PRAGMA table_info(Inscripciones)').all();
 const tienePosicionPrincipalInscripcion = columnasInscripciones.some(
