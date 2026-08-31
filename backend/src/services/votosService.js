@@ -39,6 +39,14 @@ async function guardarVotos(partidoId, grupoId, votanteId, payload = {}) {
       throw crearError('puntaje debe ser un entero entre 1 y 10', 400);
     }
   }
+
+  const otrosElegibles = elegibles.filter((id) => id !== votanteId);
+  const calificados = new Set(valoraciones.map((valoracion) => valoracion.jugadorId));
+  const faltantes = otrosElegibles.filter((id) => !calificados.has(id));
+  if (faltantes.length > 0) {
+    throw crearError('Tenés que calificar a todos los jugadores del partido', 400);
+  }
+
   if (mvpId) {
     if (!elegiblesSet.has(mvpId)) throw crearError('Jugador no elegible para MVP', 400);
     if (mvpId === votanteId) throw crearError('No podés elegirte a vos mismo como MVP', 400);

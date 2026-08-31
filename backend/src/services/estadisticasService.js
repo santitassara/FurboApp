@@ -28,7 +28,16 @@ function obtenerEstadisticasJugador(usuarioId, grupoId) {
 
   const resultado = db
     .prepare(
-      `SELECT AVG(puntaje) as promedio FROM RendimientosJugador r
+      `SELECT AVG(
+         CASE
+           WHEN p.votacionCerrada = 1 AND NOT EXISTS (
+             SELECT 1 FROM RendimientosJugador v
+             WHERE v.partidoId = r.partidoId AND v.votanteId = r.jugadorId
+           ) THEN r.puntaje / 2.0
+           ELSE r.puntaje
+         END
+       ) as promedio
+       FROM RendimientosJugador r
        JOIN Partidos p ON r.partidoId = p.id
        WHERE r.jugadorId = ? AND p.grupoId = ?`
     )

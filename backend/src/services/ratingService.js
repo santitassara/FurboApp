@@ -28,6 +28,13 @@ function procesarPartido(partidoId, elegibles) {
   const procesados = [];
   const saltados = [];
 
+  const votantes = new Set(
+    db
+      .prepare('SELECT DISTINCT votanteId FROM RendimientosJugador WHERE partidoId = ?')
+      .all(partidoId)
+      .map((fila) => fila.votanteId)
+  );
+
   for (const jugadorId of elegibles) {
     const puntajes = db
       .prepare('SELECT puntaje FROM RendimientosJugador WHERE partidoId = ? AND jugadorId = ?')
@@ -66,7 +73,9 @@ function procesarPartido(partidoId, elegibles) {
     }
 
     const mediana = calcularMediana(puntajes);
-    const puntajeEscalado = mediana * 10;
+    // Jugador no votó a nadie en este partido: recibe la mitad de los puntos de valoración.
+    const medianaAjustada = votantes.has(jugadorId) ? mediana : mediana / 2;
+    const puntajeEscalado = medianaAjustada * 10;
     const ovrPrevio =
       CAMPOS_HABILIDAD.reduce((suma, campo) => suma + usuario[campo], 0) / CAMPOS_HABILIDAD.length;
 
@@ -135,4 +144,38 @@ async function cerrarVotacion(partidoId, grupoId) {
   return { procesados, saltados };
 }
 
-module.exports = { calcularMediana, cerrarVotacion };
+const VENTANA_VOTACION_MS = 72 * 60 * 60 * 1000;
+
+async function cerrarVotacionesVencidas() {
+  const pendientes = db
+    .prepare(
+      `SELECT p.id as partidoId, p.grupoId, r.fechaCarga
+       FROM Partidos p JOIN Resultados r ON r.partidoId = p.id
+       WHERE p.estado = 'jugado' AND p.votacionCerrada = 0`
+    )
+    .all();
+
+  const ahora = Date.now();
+  for (const fila of pendientes) {
+    const vencidoPorTiempo = ahora - new Date(fila.fechaCarga).getTime() >= VENTANA_VOTACION_MS;
+
+    const elegibles = await resultadosService.obtenerElegibles(fila.partidoId);
+    const votantes = new Set(
+      db
+        .prepare('SELECT DISTINCT votanteId FROM RendimientosJugador WHERE partidoId = ?')
+        .all(fila.partidoId)
+        .map((v) => v.votanteId)
+    );
+    const votaronTodos = elegibles.length > 0 && elegibles.every((id) => votantes.has(id));
+
+    if (!vencidoPorTiempo && !votaronTodos) continue;
+
+    try {
+      await cerrarVotacion(fila.partidoId, fila.grupoId);
+    } catch (error) {
+      console.error(`Error cerrando votación vencida del partido ${fila.partidoId}:`, error.message);
+    }
+  }
+}
+
+module.exports = { calcularMediana, cerrarVotacion, cerrarVotacionesVencidas };
