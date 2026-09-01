@@ -13,6 +13,11 @@ router.patch('/me/perfil', verificarToken, envolverAsync(usuariosController.actu
 router.post('/me/foto', verificarToken, subirFoto, envolverAsync(usuariosController.subirMiFoto));
 router.post('/me/suscripcion', verificarToken, envolverAsync(usuariosController.guardarSuscripcionPush));
 router.post('/me/fcm-token', verificarToken, envolverAsync(usuariosController.guardarFcmToken));
+router.get(
+  '/me/notificaciones/pendientes',
+  verificarToken,
+  envolverAsync(usuariosController.obtenerNotificacionesPendientes)
+);
 router.get('/:uid/perfil', verificarToken, envolverAsync(usuariosController.obtenerPerfilDeJugador));
 router.get('/:uid/estadisticas/:grupoId', verificarToken, envolverAsync(estadisticasController.obtenerEstadisticas));
 router.get('/:uid/estadisticas', verificarToken, envolverAsync(estadisticasController.obtenerEstadisticasTotales));

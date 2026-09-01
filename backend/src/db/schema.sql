@@ -157,6 +157,19 @@ CREATE TABLE IF NOT EXISTS RecordatoriosVotacionEnviados (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_recordatorios_votacion_unico
   ON RecordatoriosVotacionEnviados (partidoId, usuarioId, ventana);
 
+CREATE TABLE IF NOT EXISTS Notificaciones (
+  id TEXT PRIMARY KEY,
+  usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
+  tipo TEXT NOT NULL,
+  grupoId TEXT NOT NULL REFERENCES Grupos(id),
+  partidoId TEXT NOT NULL REFERENCES Partidos(id),
+  leida INTEGER NOT NULL DEFAULT 0,
+  fechaCreacion TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario_leida
+  ON Notificaciones (usuarioId, tipo, leida);
+
 CREATE TABLE IF NOT EXISTS MensajesEquipo (
   id TEXT PRIMARY KEY,
   partidoId TEXT NOT NULL REFERENCES Partidos(id),

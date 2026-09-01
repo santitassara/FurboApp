@@ -282,8 +282,8 @@ export default function Perfil() {
         {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
         {guardado && !error && <p className="text-sm text-pasto-500">Perfil guardado.</p>}
 
-        <Boton type="submit" disabled={!puedeGuardar}>
-          {guardando ? 'Guardando…' : 'Guardar perfil'}
+        <Boton type="submit" disabled={habilidadesBloqueadas || !puedeGuardar}>
+          {habilidadesBloqueadas ? 'Perfil guardado' : guardando ? 'Guardando…' : 'Guardar perfil'}
         </Boton>
         </form>
       </div>
