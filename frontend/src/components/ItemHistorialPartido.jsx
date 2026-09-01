@@ -141,7 +141,7 @@ export default function ItemHistorialPartido({ partido }) {
             <>
               <ResultadoPartido partido={partido} resultado={resultado} />
               <div className="mt-3 flex gap-2">
-                {soyElegible && (
+                {soyElegible && !partido.votacionCerrada && (
                   <button
                     type="button"
                     onClick={abrirVotacion}

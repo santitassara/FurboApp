@@ -69,6 +69,13 @@ if (!tieneFcmToken) {
 const tieneHabilidadesEditadas = columnasUsuarios.some((columna) => columna.name === 'habilidadesEditadas');
 if (!tieneHabilidadesEditadas) {
   db.exec('ALTER TABLE Usuarios ADD COLUMN habilidadesEditadas INTEGER NOT NULL DEFAULT 0');
+  // Backfill: quien ya tiene posición cargada ya completó el perfil alguna vez
+  // (posicionPrincipal es obligatorio para guardar), así que sus habilidades
+  // quedan bloqueadas de entrada en vez de habilitarse de nuevo por este fix.
+  db.exec(
+    `UPDATE Usuarios SET habilidadesEditadas = 1
+     WHERE posicionPrincipal IS NOT NULL AND posicionSecundaria IS NOT NULL`
+  );
 }
 
 const columnasInscripciones = db.prepare('PRAGMA table_info(Inscripciones)').all();

@@ -2,6 +2,7 @@ const { db } = require('../config/db');
 const partidosService = require('./partidosService');
 const resultadosService = require('./resultadosService');
 const usuariosService = require('./usuariosService');
+const notificacionesInternasService = require('./notificacionesInternasService');
 const { CAMPOS_HABILIDAD } = usuariosService;
 const { K_RATING, PESOS_POSICION } = require('../constants/pesosPosicion');
 
@@ -132,6 +133,7 @@ async function cerrarVotacion(partidoId, grupoId) {
     resultadoCrudo = procesarPartido(partidoId, elegibles);
   });
   ejecutar();
+  notificacionesInternasService.crearPorVotacionCerrada(partidoId, grupoId);
 
   const conNombre = async (item) => {
     const usuario = await usuariosService.obtenerUsuario(item.usuarioId);

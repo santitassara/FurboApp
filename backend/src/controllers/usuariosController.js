@@ -1,5 +1,6 @@
 const usuariosService = require('../services/usuariosService');
 const gruposService = require('../services/gruposService');
+const notificacionesInternasService = require('../services/notificacionesInternasService');
 
 async function listarSancionados(req, res) {
   const sancionados = await gruposService.listarSancionados(req.params.grupoId);
@@ -56,6 +57,11 @@ async function guardarFcmToken(req, res) {
   res.json({ mensaje: 'Token FCM guardado' });
 }
 
+async function obtenerNotificacionesPendientes(req, res) {
+  const resultado = notificacionesInternasService.obtenerYMarcarPendientes(req.usuario.uid);
+  res.json(resultado);
+}
+
 module.exports = {
   listarSancionados,
   perdonar,
@@ -67,4 +73,5 @@ module.exports = {
   listarUsuariosDeGrupo,
   guardarSuscripcionPush,
   guardarFcmToken,
+  obtenerNotificacionesPendientes,
 };
