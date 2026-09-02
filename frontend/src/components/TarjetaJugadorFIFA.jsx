@@ -29,7 +29,7 @@ function redondearEntero(valor) {
   return decimal > 0.5 ? base + 1 : base;
 }
 
-function calcularRating(habilidades) {
+export function calcularRating(habilidades) {
   const valores = ATRIBUTOS.map(({ campo }) => habilidades[campo]).filter(
     (valor) => valor !== null && valor !== undefined
   );
