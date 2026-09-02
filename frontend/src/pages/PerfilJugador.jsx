@@ -54,9 +54,11 @@ export default function PerfilJugador() {
         { etiqueta: 'Edad', valor: perfil.edad != null ? `${perfil.edad} años` : 'Sin dato' },
         {
           etiqueta: 'Posición',
-          valor: [etiquetaPosicion(perfil.posicionPrincipal), etiquetaPosicion(perfil.posicionSecundaria)]
-            .filter((p) => p !== 'Sin posición')
-            .join(' / ') || 'Sin dato',
+          valor:
+            [etiquetaPosicion(perfil.posicionPrincipal), etiquetaPosicion(perfil.posicionSecundaria)]
+              .filter((p) => p !== 'Sin posición')
+              .join(' / ') || 'Sin dato',
+          ancha: Boolean(perfil.posicionPrincipal && perfil.posicionSecundaria),
         },
         { etiqueta: 'Pierna hábil', valor: etiquetaPiernaHabil(perfil.piernaHabil) },
         { etiqueta: 'Resistencia', valor: etiquetaResistencia(perfil.resistencia) },
@@ -87,7 +89,12 @@ export default function PerfilJugador() {
               <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-pasto-500">Resumen</h2>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 {tiles.map((tile) => (
-                  <div key={tile.etiqueta} className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
+                  <div
+                    key={tile.etiqueta}
+                    className={`min-w-0 rounded-xl border border-white/10 bg-cancha-900 p-4 text-center ${
+                      tile.ancha ? 'col-span-2' : ''
+                    }`}
+                  >
                     <p className="text-[11px] uppercase tracking-wide text-white/50">{tile.etiqueta}</p>
                     <p className="mt-1 text-sm font-semibold text-white">{tile.valor}</p>
                   </div>
@@ -117,14 +124,18 @@ export default function PerfilJugador() {
                     <p className="text-[11px] uppercase tracking-wide text-white/50">Valoración</p>
                     <p className="mt-1 text-2xl font-semibold text-white">{estadisticas.valoracion}</p>
                   </div>
+                  <div className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
+                    <p className="text-[11px] uppercase tracking-wide text-white/50">MVPs</p>
+                    <p className="mt-1 text-2xl font-semibold text-white">{estadisticas.mvps}</p>
+                  </div>
                 </div>
               </div>
             )}
 
             {estadisticasTotales && (
               <div className="rounded-2xl border border-white/10 bg-cancha-800/60 p-6">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-pasto-500">Goles Totales</h2>
-                <div className="grid grid-cols-2 gap-4">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-pasto-500">Totales</h2>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                   <div className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
                     <p className="text-[11px] uppercase tracking-wide text-white/50">
                       Goles en grupo {grupoActivo?.nombre}
@@ -134,6 +145,16 @@ export default function PerfilJugador() {
                   <div className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
                     <p className="text-[11px] uppercase tracking-wide text-white/50">Goles Totales</p>
                     <p className="mt-1 text-2xl font-semibold text-white">{estadisticasTotales.goles}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
+                    <p className="text-[11px] uppercase tracking-wide text-white/50">
+                      MVPs en grupo {grupoActivo?.nombre}
+                    </p>
+                    <p className="mt-1 text-2xl font-semibold text-white">{estadisticas?.mvps || 0}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
+                    <p className="text-[11px] uppercase tracking-wide text-white/50">MVPs Totales</p>
+                    <p className="mt-1 text-2xl font-semibold text-white">{estadisticasTotales.mvps}</p>
                   </div>
                 </div>
               </div>

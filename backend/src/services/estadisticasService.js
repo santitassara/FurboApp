@@ -45,7 +45,21 @@ function obtenerEstadisticasJugador(usuarioId, grupoId) {
 
   const valoracion = resultado?.promedio ? parseFloat(resultado.promedio).toFixed(1) : '0.0';
 
-  return { pj, goles, asistencias, valoracion };
+  const mvps = db
+    .prepare(
+      `SELECT COUNT(*) as total FROM (
+         SELECT v.partidoId, v.jugadorId, COUNT(*) as votos,
+                MAX(COUNT(*)) OVER (PARTITION BY v.partidoId) as maxVotos
+         FROM VotosMvp v
+         JOIN Partidos p ON v.partidoId = p.id
+         WHERE p.grupoId = ?
+         GROUP BY v.partidoId, v.jugadorId
+       ) t
+       WHERE t.jugadorId = ? AND t.votos = t.maxVotos`
+    )
+    .get(grupoId, usuarioId)?.total || 0;
+
+  return { pj, goles, asistencias, valoracion, mvps };
 }
 
 function obtenerEstadisticasTotalesJugador(usuarioId) {
@@ -56,7 +70,19 @@ function obtenerEstadisticasTotalesJugador(usuarioId) {
     )
     .get(usuarioId)?.total || 0;
 
-  return { goles };
+  const mvps = db
+    .prepare(
+      `SELECT COUNT(*) as total FROM (
+         SELECT partidoId, jugadorId, COUNT(*) as votos,
+                MAX(COUNT(*)) OVER (PARTITION BY partidoId) as maxVotos
+         FROM VotosMvp
+         GROUP BY partidoId, jugadorId
+       ) t
+       WHERE t.jugadorId = ? AND t.votos = t.maxVotos`
+    )
+    .get(usuarioId)?.total || 0;
+
+  return { goles, mvps };
 }
 
 module.exports = { obtenerEstadisticasJugador, obtenerEstadisticasTotalesJugador };
