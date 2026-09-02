@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -108,6 +109,12 @@ export default function Login() {
       <button type="button" onClick={alternarModo} className="text-sm text-white/60 underline">
         {modo === 'registro' ? '¿Ya tenés cuenta? Ingresá' : '¿No tenés cuenta? Registrate'}
       </button>
+
+      {modo === 'login' && (
+        <Link to="/olvide-password" className="text-sm text-white/60 underline">
+          ¿Olvidaste tu contraseña?
+        </Link>
+      )}
 
       {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
     </div>

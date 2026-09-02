@@ -70,6 +70,9 @@ export default function Layout({ children }) {
   if (grupoActivo?.rol === 'admin') {
     items.push({ to: '/admin', etiqueta: 'Panel Admin', icono: 'admin' });
   }
+  if (perfil?.esSuperAdmin) {
+    items.push({ to: '/admin/usuarios', etiqueta: 'Usuarios', icono: 'jugadores' });
+  }
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">

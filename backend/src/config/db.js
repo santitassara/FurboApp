@@ -247,4 +247,18 @@ if (columnaVelocidad && columnaVelocidad.type === 'INTEGER') {
   reconstruirUsuarios();
 }
 
+const columnasUsuariosResetPassword = db.prepare('PRAGMA table_info(Usuarios)').all();
+const tienePasswordResetTokenHash = columnasUsuariosResetPassword.some(
+  (columna) => columna.name === 'passwordResetTokenHash'
+);
+if (!tienePasswordResetTokenHash) {
+  db.exec('ALTER TABLE Usuarios ADD COLUMN passwordResetTokenHash TEXT');
+}
+const tienePasswordResetExpira = columnasUsuariosResetPassword.some(
+  (columna) => columna.name === 'passwordResetExpira'
+);
+if (!tienePasswordResetExpira) {
+  db.exec('ALTER TABLE Usuarios ADD COLUMN passwordResetExpira TEXT');
+}
+
 module.exports = { db };

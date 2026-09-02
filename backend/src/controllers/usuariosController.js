@@ -62,6 +62,17 @@ async function obtenerNotificacionesPendientes(req, res) {
   res.json(resultado);
 }
 
+async function listarUsuariosAdmin(req, res) {
+  const usuarios = await usuariosService.listarUsuariosConEmail();
+  res.json(usuarios);
+}
+
+async function resetearPassword(req, res) {
+  const { password } = req.body;
+  await usuariosService.establecerPassword(req.params.uid, password);
+  res.json({ mensaje: 'Contraseña actualizada' });
+}
+
 module.exports = {
   listarSancionados,
   perdonar,
@@ -74,4 +85,6 @@ module.exports = {
   guardarSuscripcionPush,
   guardarFcmToken,
   obtenerNotificacionesPendientes,
+  listarUsuariosAdmin,
+  resetearPassword,
 };

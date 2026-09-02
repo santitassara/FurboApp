@@ -7,8 +7,10 @@ const { sonPosicionesValidas } = require('../constants/posiciones');
 const { esResistenciaValida } = require('../constants/resistencia');
 const { esRitmoJuegoValido } = require('../constants/ritmoJuego');
 const { TIPOS_PERMITIDOS } = require('../middlewares/subirFoto');
+const { enviarMail } = require('../utils/mailer');
 
 const DIRECTORIO_FOTOS = path.join(__dirname, '../../uploads/perfiles');
+const RESET_PASSWORD_VIGENCIA_MS = 60 * 60 * 1000;
 
 // Dummy hash for timing consistency in autenticarConPassword (prevents email enumeration)
 const dummyPasswordHash = bcrypt.hashSync('dummy', 10);
@@ -333,6 +335,94 @@ async function autenticarConPassword({ email, password }) {
   return filaAUsuario(usuario);
 }
 
+async function listarUsuariosConEmail() {
+  const filas = db.prepare('SELECT uid, nombre, email FROM Usuarios ORDER BY nombre COLLATE NOCASE ASC').all();
+  return filas;
+}
+
+async function establecerPassword(uid, password) {
+  if (!password || String(password).length < 6) {
+    const error = new Error('La contraseña debe tener al menos 6 caracteres');
+    error.status = 400;
+    throw error;
+  }
+  if (String(password).length > 72) {
+    const error = new Error('La contraseña no puede tener más de 72 caracteres');
+    error.status = 400;
+    throw error;
+  }
+
+  const usuario = db.prepare('SELECT uid FROM Usuarios WHERE uid = ?').get(uid);
+  if (!usuario) {
+    const error = new Error('Usuario no encontrado');
+    error.status = 404;
+    throw error;
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  db.prepare('UPDATE Usuarios SET passwordHash = ? WHERE uid = ?').run(passwordHash, uid);
+}
+
+function escaparHtml(texto) {
+  return String(texto).replace(/[&<>"']/g, (caracter) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[caracter]));
+}
+
+async function solicitarResetPassword(email) {
+  const emailNormalizado = String(email).trim().toLowerCase();
+  const usuario = db.prepare('SELECT * FROM Usuarios WHERE email = ?').get(emailNormalizado);
+
+  // No revela si el email existe ni si la cuenta es de Google (esas no tienen
+  // passwordHash): en ambos casos no se genera token ni se manda mail, pero el
+  // controlador responde siempre el mismo mensaje genérico.
+  if (!usuario || !usuario.passwordHash) return;
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const expira = new Date(Date.now() + RESET_PASSWORD_VIGENCIA_MS).toISOString();
+
+  db.prepare('UPDATE Usuarios SET passwordResetTokenHash = ?, passwordResetExpira = ? WHERE uid = ?').run(
+    tokenHash,
+    expira,
+    usuario.uid
+  );
+
+  const link = `${process.env.FRONTEND_URL}/restablecer-password?token=${token}`;
+  await enviarMail({
+    to: usuario.email,
+    subject: 'Restablecer tu contraseña de FurboApp',
+    html: [
+      `<p>Hola ${escaparHtml(usuario.nombre)},</p>`,
+      '<p>Pediste restablecer tu contraseña. Entrá al siguiente link (válido por 1 hora):</p>',
+      `<p><a href="${link}">${link}</a></p>`,
+      '<p>Si no fuiste vos, ignorá este mail.</p>',
+    ].join('\n'),
+  });
+}
+
+async function restablecerPasswordConToken(token, password) {
+  const tokenHash = crypto.createHash('sha256').update(String(token || '')).digest('hex');
+  const usuario = db
+    .prepare('SELECT uid, passwordResetExpira FROM Usuarios WHERE passwordResetTokenHash = ?')
+    .get(tokenHash);
+
+  if (!usuario || !usuario.passwordResetExpira || new Date(usuario.passwordResetExpira).getTime() < Date.now()) {
+    const error = new Error('El link para restablecer la contraseña es inválido o venció');
+    error.status = 400;
+    throw error;
+  }
+
+  await establecerPassword(usuario.uid, password);
+  db.prepare('UPDATE Usuarios SET passwordResetTokenHash = NULL, passwordResetExpira = NULL WHERE uid = ?').run(
+    usuario.uid
+  );
+}
+
 async function guardarSuscripcionPush(uid, suscripcion) {
   db.prepare('UPDATE Usuarios SET suscripcionPush = ? WHERE uid = ?').run(
     JSON.stringify(suscripcion),
@@ -352,6 +442,10 @@ module.exports = {
   obtenerPerfilPublico,
   guardarFoto,
   listarUsuarios,
+  listarUsuariosConEmail,
+  establecerPassword,
+  solicitarResetPassword,
+  restablecerPasswordConToken,
   registrarConPassword,
   autenticarConPassword,
   calcularPromedioHabilidades,
