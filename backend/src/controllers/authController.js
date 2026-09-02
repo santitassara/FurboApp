@@ -40,4 +40,25 @@ async function login(req, res) {
   res.json({ token, usuario });
 }
 
-module.exports = { sync, register, login };
+async function olvidePassword(req, res) {
+  const { email } = req.body;
+
+  if (!validarEmail(email)) lanzarError(400, 'El email no es válido');
+
+  await usuariosService.solicitarResetPassword(email);
+  // Mensaje genérico siempre, exista o no el email, para no filtrar cuentas registradas.
+  res.json({ mensaje: 'Si el email está registrado, vas a recibir un link para restablecer tu contraseña.' });
+}
+
+async function restablecerPassword(req, res) {
+  const { token, password } = req.body;
+
+  if (!token) lanzarError(400, 'El token es obligatorio');
+  if (!password || String(password).length < 6) lanzarError(400, 'La contraseña debe tener al menos 6 caracteres');
+  if (String(password).length > 72) lanzarError(400, 'La contraseña no puede tener más de 72 caracteres');
+
+  await usuariosService.restablecerPasswordConToken(token, password);
+  res.json({ mensaje: 'Contraseña actualizada' });
+}
+
+module.exports = { sync, register, login, olvidePassword, restablecerPassword };
