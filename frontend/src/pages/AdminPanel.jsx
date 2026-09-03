@@ -300,16 +300,14 @@ export default function AdminPanel() {
                       {partido.estado === 'jugado' ? 'Editar resultado' : 'Cargar resultado'}
                     </Boton>
                   )}
-                  {partido.estado === 'abierto' && (
-                    <Boton
-                      variante="ghost"
-                      className="px-3 py-1 text-xs text-sancion"
-                      onClick={() => eliminarPartido(partido.id)}
-                      disabled={accionEnCurso}
-                    >
-                      Eliminar
-                    </Boton>
-                  )}
+                  <Boton
+                    variante="ghost"
+                    className="px-3 py-1 text-xs text-sancion"
+                    onClick={() => eliminarPartido(partido.id)}
+                    disabled={accionEnCurso}
+                  >
+                    Eliminar
+                  </Boton>
                 </div>
               </div>
               <ListaJugadores
