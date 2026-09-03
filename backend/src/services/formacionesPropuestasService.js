@@ -165,6 +165,10 @@ function aplicarGanadora(partidoId, ganadoraId) {
     db.prepare('UPDATE Partidos SET votacionEquiposCerrada = 1, propuestaGanadoraId = ? WHERE id = ?').run(ganadoraId, partidoId);
   });
   cerrar();
+
+  notificacionesService.enviarNotificacionVotacionCerrada(partidoId).catch((error) => {
+    console.error('Error enviando notificación de votación cerrada:', error.message);
+  });
 }
 
 async function votar(partidoId, grupoId, propuestaId, usuarioId) {
