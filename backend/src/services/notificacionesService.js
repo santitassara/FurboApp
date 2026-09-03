@@ -241,6 +241,41 @@ async function enviarNotificacionVotacionAbierta(partidoId) {
   }
 }
 
+async function enviarNotificacionVotacionCerrada(partidoId) {
+  const partido = db.prepare(`
+    SELECT p.id, p.fecha, p.grupoId, g.nombre as nombreGrupo
+    FROM Partidos p
+    JOIN Grupos g ON p.grupoId = g.id
+    WHERE p.id = ?
+  `).get(partidoId);
+  if (!partido) return;
+
+  const titulares = db.prepare(`
+    SELECT u.uid, u.suscripcionPush, u.fcmToken
+    FROM Inscripciones i
+    JOIN Usuarios u ON i.usuarioId = u.uid
+    WHERE i.partidoId = ?
+      AND i.tipo = 'titular'
+      AND i.estado = 'anotado'
+      AND (u.suscripcionPush IS NOT NULL OR u.fcmToken IS NOT NULL)
+  `).all(partido.id);
+
+  const titulo = 'Los equipos ya están definidos';
+  const opciones = {
+    body: `Se cerró la votación de equipos del partido de tu grupo "${partido.nombreGrupo}", ${formatearFechaHora(partido.fecha)}. Mirá en qué equipo quedaste`,
+    icon: '/favicon.svg',
+    badge: '/favicon.svg',
+    tag: `votacion-cerrada-${partido.id}`,
+    data: {
+      url: '/inicio',
+    },
+  };
+
+  for (const titular of titulares) {
+    await notificarUsuario(titular, titulo, opciones);
+  }
+}
+
 async function enviarRecordatoriosVotacion() {
   const ahora = new Date();
 
@@ -322,6 +357,7 @@ module.exports = {
   enviarNotificacionesPostPartido,
   enviarNotificacionNuevoPartido,
   enviarNotificacionVotacionAbierta,
+  enviarNotificacionVotacionCerrada,
   enviarRecordatoriosVotacion,
   enviarNotificacionPerdonSancion,
 };
