@@ -280,6 +280,47 @@ function SelectorFormacion({ etiqueta, cantidadJugadores, seleccion, onCambiar, 
   );
 }
 
+const CODIGO_ACTUAL = 'actual';
+
+// Dropdown puramente visual: no cambia la formación real (ya definida por la votación),
+// sólo reagrupa a los mismos jugadores en las líneas de la formación elegida para mostrarla.
+function SelectorFormacionVisual({ etiqueta, cantidadJugadores, valor, onCambiar }) {
+  const opciones = listarFormaciones(cantidadJugadores);
+  return (
+    <div className="mb-2 flex flex-col gap-2">
+      <label className="text-xs uppercase text-white/40">{etiqueta}</label>
+      <select
+        className="rounded-lg bg-cancha-700 px-2 py-1 text-sm text-white"
+        value={valor}
+        onChange={(evento) => onCambiar(evento.target.value)}
+      >
+        <option value={CODIGO_ACTUAL}>Como quedó</option>
+        {opciones.map((formacion) => (
+          <option key={formacion.codigo} value={formacion.codigo}>
+            {formacion.codigo} — {formacion.nombre}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+// Reordena los jugadores de campo de un equipo (ya fijados por la votación) en las líneas
+// de la formación visual elegida. Sólo cambia linea/ordenLinea para el render; no toca equipo.
+function reflowVisual(jugadoresDeCampoOrdenados, lineasNuevas) {
+  const resultado = [];
+  let indice = 0;
+  for (const { key, cantidad } of ordenarLineas(lineasNuevas)) {
+    for (let i = 0; i < cantidad; i += 1) {
+      const jugador = jugadoresDeCampoOrdenados[indice];
+      if (!jugador) break;
+      resultado.push({ ...jugador, linea: key, ordenLinea: i });
+      indice += 1;
+    }
+  }
+  return resultado;
+}
+
 export default function MapaCancha({
   partidoId,
   formacion,
@@ -304,7 +345,10 @@ export default function MapaCancha({
   const [error, setError] = useState('');
   const [proponiendo, setProponiendo] = useState(false);
   const [promoviendoId, setPromoviendoId] = useState(null);
+  const [formacionVisualA, setFormacionVisualA] = useState(CODIGO_ACTUAL);
+  const [formacionVisualB, setFormacionVisualB] = useState(CODIGO_ACTUAL);
   const modoPreview = Boolean(previewPropuesta);
+  const votacionCerrada = Boolean(propuestasInfo?.votacionEquiposCerrada);
 
   useEffect(() => {
     const jugadoresActuales = formacion?.jugadores || [];
@@ -333,7 +377,36 @@ export default function MapaCancha({
     );
   }
 
-  const ubicacionesMostradas = modoPreview ? previewPropuesta : ubicaciones;
+  // Una vez cerrada la votación, el equipo real ya no se edita: el dropdown de formación
+  // pasa a ser meramente visual (reordena a los mismos jugadores en otras líneas para mostrar).
+  function jugadoresDeCampoOrdenados(equipo) {
+    return ubicaciones
+      .filter((j) => j.equipo === equipo && j.linea && j.linea !== 'arquero')
+      .sort(
+        (a, b) =>
+          ORDEN_LINEAS_CAMPO.indexOf(a.linea) - ORDEN_LINEAS_CAMPO.indexOf(b.linea) || a.ordenLinea - b.ordenLinea
+      );
+  }
+
+  function lineasVisual(equipo, codigoVisual) {
+    if (codigoVisual === CODIGO_ACTUAL) return null;
+    return listarFormaciones(formacion.cupoPorEquipo[equipo]).find((f) => f.codigo === codigoVisual)?.lineas || [];
+  }
+
+  const lineasVisualA = votacionCerrada && !modoPreview ? lineasVisual('A', formacionVisualA) : null;
+  const lineasVisualB = votacionCerrada && !modoPreview ? lineasVisual('B', formacionVisualB) : null;
+  const reflowA = lineasVisualA ? reflowVisual(jugadoresDeCampoOrdenados('A'), lineasVisualA) : null;
+  const reflowB = lineasVisualB ? reflowVisual(jugadoresDeCampoOrdenados('B'), lineasVisualB) : null;
+
+  const ubicacionesMostradas = modoPreview
+    ? previewPropuesta
+    : reflowA || reflowB
+      ? ubicaciones.map((jugador) => {
+          if (jugador.equipo === 'A' && reflowA) return reflowA.find((r) => r.usuarioId === jugador.usuarioId) || jugador;
+          if (jugador.equipo === 'B' && reflowB) return reflowB.find((r) => r.usuarioId === jugador.usuarioId) || jugador;
+          return jugador;
+        })
+      : ubicaciones;
 
   // En modo preview (viendo una propuesta ajena) la estructura se deriva directo de los
   // asientos de la propuesta, ignorando por completo seleccionA/B y el cupo de la formación.
@@ -343,22 +416,30 @@ export default function MapaCancha({
   // reparto parejo sintético como preview/borrador para que el tablero no quede sin asientos.
   const estructuraA = modoPreview
     ? estructuraDesdeUbicaciones(ubicacionesMostradas, 'A')
-    : seleccionA.codigo === CODIGO_AUTOMATICO
-      ? ubicaciones.some((j) => j.equipo === 'A')
-        ? estructuraDesdeUbicaciones(ubicaciones, 'A')
-        : ordenarLineas(normalizarAutomatico(formacion.cupoPorEquipo.A))
-      : seleccionA.codigo === CODIGO_LIBRE
-        ? ordenarLineas(seleccionA.lineas)
-        : ordenarLineas(listarFormaciones(formacion.cupoPorEquipo.A).find((f) => f.codigo === seleccionA.codigo)?.lineas || []);
+    : votacionCerrada
+      ? lineasVisualA
+        ? ordenarLineas(lineasVisualA)
+        : estructuraDesdeUbicaciones(ubicaciones, 'A')
+      : seleccionA.codigo === CODIGO_AUTOMATICO
+        ? ubicaciones.some((j) => j.equipo === 'A')
+          ? estructuraDesdeUbicaciones(ubicaciones, 'A')
+          : ordenarLineas(normalizarAutomatico(formacion.cupoPorEquipo.A))
+        : seleccionA.codigo === CODIGO_LIBRE
+          ? ordenarLineas(seleccionA.lineas)
+          : ordenarLineas(listarFormaciones(formacion.cupoPorEquipo.A).find((f) => f.codigo === seleccionA.codigo)?.lineas || []);
   const estructuraB = modoPreview
     ? estructuraDesdeUbicaciones(ubicacionesMostradas, 'B')
-    : seleccionB.codigo === CODIGO_AUTOMATICO
-      ? ubicaciones.some((j) => j.equipo === 'B')
-        ? estructuraDesdeUbicaciones(ubicaciones, 'B')
-        : ordenarLineas(normalizarAutomatico(formacion.cupoPorEquipo.B))
-      : seleccionB.codigo === CODIGO_LIBRE
-        ? ordenarLineas(seleccionB.lineas)
-        : ordenarLineas(listarFormaciones(formacion.cupoPorEquipo.B).find((f) => f.codigo === seleccionB.codigo)?.lineas || []);
+    : votacionCerrada
+      ? lineasVisualB
+        ? ordenarLineas(lineasVisualB)
+        : estructuraDesdeUbicaciones(ubicaciones, 'B')
+      : seleccionB.codigo === CODIGO_AUTOMATICO
+        ? ubicaciones.some((j) => j.equipo === 'B')
+          ? estructuraDesdeUbicaciones(ubicaciones, 'B')
+          : ordenarLineas(normalizarAutomatico(formacion.cupoPorEquipo.B))
+        : seleccionB.codigo === CODIGO_LIBRE
+          ? ordenarLineas(seleccionB.lineas)
+          : ordenarLineas(listarFormaciones(formacion.cupoPorEquipo.B).find((f) => f.codigo === seleccionB.codigo)?.lineas || []);
 
   const sinUbicar = ubicaciones.filter((jugador) => !jugador.equipo);
 
@@ -524,7 +605,7 @@ export default function MapaCancha({
         </div>
       )}
 
-      {esAdmin && !modoPreview && (
+      {esAdmin && !modoPreview && !votacionCerrada && (
         <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <SelectorFormacion
             etiqueta="Equipo 1"
@@ -543,16 +624,43 @@ export default function MapaCancha({
         </div>
       )}
 
+      {!modoPreview && votacionCerrada && (
+        <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <SelectorFormacionVisual
+            etiqueta="Equipo 1"
+            cantidadJugadores={formacion.cupoPorEquipo.A}
+            valor={formacionVisualA}
+            onCambiar={setFormacionVisualA}
+          />
+          <SelectorFormacionVisual
+            etiqueta="Equipo 2"
+            cantidadJugadores={formacion.cupoPorEquipo.B}
+            valor={formacionVisualB}
+            onCambiar={setFormacionVisualB}
+          />
+        </div>
+      )}
+
       <div
         className="flex aspect-[1.83] w-full overflow-hidden rounded-lg border border-white/10 bg-cover bg-center shadow-inner"
         style={{ backgroundImage: "url('/layout-cancha-futbol.jpeg')" }}
       >
-        <MitadCancha equipo="A" estructura={estructuraA} ubicaciones={ubicacionesMostradas} draggable={esAdmin && !modoPreview} />
+        <MitadCancha
+          equipo="A"
+          estructura={estructuraA}
+          ubicaciones={ubicacionesMostradas}
+          draggable={esAdmin && !modoPreview && !votacionCerrada}
+        />
         <div className="w-px bg-white/20" />
-        <MitadCancha equipo="B" estructura={estructuraB} ubicaciones={ubicacionesMostradas} draggable={esAdmin && !modoPreview} />
+        <MitadCancha
+          equipo="B"
+          estructura={estructuraB}
+          ubicaciones={ubicacionesMostradas}
+          draggable={esAdmin && !modoPreview && !votacionCerrada}
+        />
       </div>
 
-      {esAdmin && !modoPreview && sinUbicar.length > 0 && (
+      {esAdmin && !modoPreview && !votacionCerrada && sinUbicar.length > 0 && (
         <div className="mt-4">
           <p className="mb-2 text-xs uppercase text-white/40">Sin ubicar</p>
           <div className="flex flex-wrap gap-2">
@@ -563,7 +671,7 @@ export default function MapaCancha({
         </div>
       )}
 
-      {esAdmin && !modoPreview && suplentes.length > 0 && (
+      {esAdmin && !modoPreview && !votacionCerrada && suplentes.length > 0 && (
         <div className="mt-4">
           <p className="mb-2 text-xs uppercase text-white/40">Suplentes</p>
           <ul className="flex flex-col gap-1.5">
@@ -590,23 +698,25 @@ export default function MapaCancha({
       {esAdmin && !modoPreview && (
         <>
           {error && <p className="mt-3 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
-          <Boton
-            variante="ghost"
-            className="mt-4 w-full"
-            onClick={generarAutomaticamente}
-            disabled={generando || guardando || seleccionInvalida}
-          >
-            {generando ? 'Generando…' : 'Generar equipos automáticos'}
-          </Boton>
+          {!votacionCerrada && (
+            <Boton
+              variante="ghost"
+              className="mt-4 w-full"
+              onClick={generarAutomaticamente}
+              disabled={generando || guardando || seleccionInvalida}
+            >
+              {generando ? 'Generando…' : 'Generar equipos automáticos'}
+            </Boton>
+          )}
           <Boton
             variante="primario"
             className="mt-2 w-full"
             onClick={guardar}
-            disabled={guardando || seleccionInvalida}
+            disabled={guardando || seleccionInvalida || votacionCerrada}
           >
             {guardando ? 'Guardando…' : 'Guardar formación'}
           </Boton>
-          {!propuestasInfo?.votacionEquiposCerrada && (
+          {!votacionCerrada && (
             <Boton
               variante="ghost"
               className="mt-2 w-full"
@@ -621,7 +731,7 @@ export default function MapaCancha({
     </div>
   );
 
-  if (!esAdmin || modoPreview) return contenido;
+  if (!esAdmin || modoPreview || votacionCerrada) return contenido;
 
   return <DndContext onDragEnd={manejarDragEnd}>{contenido}</DndContext>;
 }
