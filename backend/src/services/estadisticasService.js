@@ -14,7 +14,7 @@ function obtenerEstadisticasJugador(usuarioId, grupoId) {
     .prepare(
       `SELECT COUNT(*) as total FROM Goles g
        JOIN Partidos p ON g.partidoId = p.id
-       WHERE g.usuarioId = ? AND p.grupoId = ?`
+       WHERE g.usuarioId = ? AND p.grupoId = ? AND g.enContra = 0`
     )
     .get(usuarioId, grupoId)?.total || 0;
 
@@ -66,7 +66,7 @@ function obtenerEstadisticasTotalesJugador(usuarioId) {
   const goles = db
     .prepare(
       `SELECT COUNT(*) as total FROM Goles
-       WHERE usuarioId = ?`
+       WHERE usuarioId = ? AND enContra = 0`
     )
     .get(usuarioId)?.total || 0;
 

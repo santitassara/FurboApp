@@ -6,7 +6,7 @@ import { rutaGrupo } from '../utils/rutasGrupo';
 import { formatearFechaPartido } from '../utils/fecha';
 
 function golVacio() {
-  return { usuarioId: '', equipo: 'A', minuto: '', asistenciaUsuarioId: '' };
+  return { usuarioId: '', equipo: 'A', minuto: '', asistenciaUsuarioId: '', enContra: false };
 }
 
 function sancionVacia() {
@@ -48,6 +48,7 @@ export default function ModalCargarResultado({
             equipo: gol.equipo,
             minuto: String(gol.minuto),
             asistenciaUsuarioId: gol.asistenciaUsuarioId || '',
+            enContra: !!gol.enContra,
           }))
         );
         setSanciones(
@@ -77,6 +78,10 @@ export default function ModalCargarResultado({
         if (campo === 'usuarioId' && actualizado.asistenciaUsuarioId === valor) {
           actualizado.asistenciaUsuarioId = '';
         }
+        // Un gol en contra no lleva asistencia (nadie "asiste" un autogol)
+        if (campo === 'enContra' && valor) {
+          actualizado.asistenciaUsuarioId = '';
+        }
         return actualizado;
       }
       return gol;
@@ -95,7 +100,8 @@ export default function ModalCargarResultado({
           usuarioId: gol.usuarioId,
           equipo: gol.equipo,
           minuto: Number(gol.minuto),
-          asistenciaUsuarioId: gol.asistenciaUsuarioId || null,
+          asistenciaUsuarioId: gol.enContra ? null : gol.asistenciaUsuarioId || null,
+          enContra: gol.enContra,
         })),
       sanciones: sanciones.filter((sancion) => sancion.usuarioId && sancion.motivo.trim()),
     };
@@ -158,7 +164,8 @@ export default function ModalCargarResultado({
               <select
                 value={gol.asistenciaUsuarioId}
                 onChange={(e) => actualizarGol(indice, 'asistenciaUsuarioId', e.target.value)}
-                className="rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white"
+                disabled={gol.enContra}
+                className="rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white disabled:opacity-40"
               >
                 <option value="">Sin asistencia</option>
                 {elegibles
@@ -169,6 +176,14 @@ export default function ModalCargarResultado({
                     </option>
                   ))}
               </select>
+              <label className="flex items-center gap-1 text-xs text-white/70">
+                <input
+                  type="checkbox"
+                  checked={gol.enContra}
+                  onChange={(e) => actualizarGol(indice, 'enContra', e.target.checked)}
+                />
+                En contra (PP)
+              </label>
               <Boton
                 variante="ghost"
                 className="px-2 py-1 text-xs text-sancion"

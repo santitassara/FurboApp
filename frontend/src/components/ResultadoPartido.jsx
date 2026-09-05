@@ -120,6 +120,7 @@ export default function ResultadoPartido({ partido, resultado }) {
                       <p className="text-white/90">
                         <span className="font-bold text-white">{gol.minuto}&apos;</span>{' '}
                         <span className="font-bold text-white">{gol.nombre}</span>
+                        {gol.enContra && <span className="text-white/50"> (PP)</span>}
                         {gol.asistenciaNombre && (
                           <span className="block text-xs text-white/50">asistencia de {gol.asistenciaNombre}</span>
                         )}
