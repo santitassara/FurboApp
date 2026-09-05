@@ -113,8 +113,9 @@ export default function ModalCargarResultado({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 px-4 py-8">
-      <div className="w-full max-w-2xl rounded-xl border border-white/10 bg-cancha-800 p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8">
+      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-xl border border-white/10 bg-cancha-800">
+      <div className="overflow-y-auto p-6">
         <h2 className="mb-4 text-lg font-bold capitalize text-white">
           {partido.estado === 'jugado' ? 'Editar resultado' : 'Cargar resultado'} — {formatearFechaPartido(partido.fecha)}
         </h2>
@@ -257,15 +258,16 @@ export default function ModalCargarResultado({
         </section>
 
         {error && <p className="mb-4 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
+      </div>
 
-        <div className="flex justify-end gap-3">
-          <Boton variante="ghost" onClick={onCancelar} disabled={procesando}>
-            Cancelar
-          </Boton>
-          <Boton variante="primario" onClick={confirmar} disabled={procesando || cargandoExistente}>
-            {procesando ? 'Guardando…' : 'Guardar resultado'}
-          </Boton>
-        </div>
+      <div className="flex justify-end gap-3 border-t border-white/10 p-6 pt-4">
+        <Boton variante="ghost" onClick={onCancelar} disabled={procesando}>
+          Cancelar
+        </Boton>
+        <Boton variante="primario" onClick={confirmar} disabled={procesando || cargandoExistente}>
+          {procesando ? 'Guardando…' : 'Guardar resultado'}
+        </Boton>
+      </div>
       </div>
     </div>
   );
