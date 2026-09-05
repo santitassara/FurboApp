@@ -87,7 +87,8 @@ CREATE TABLE IF NOT EXISTS Goles (
   usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
   asistenciaUsuarioId TEXT REFERENCES Usuarios(uid),
   equipo TEXT NOT NULL CHECK (equipo IN ('A', 'B')),
-  minuto INTEGER NOT NULL
+  minuto INTEGER NOT NULL,
+  enContra INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS RendimientosJugador (

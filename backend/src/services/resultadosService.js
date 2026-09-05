@@ -36,6 +36,9 @@ async function guardarResultado(partidoId, grupoId, payload = {}) {
     if (!Number.isInteger(gol.minuto) || gol.minuto < 0) {
       throw crearError('minuto debe ser un entero mayor o igual a 0', 400);
     }
+    if (gol.enContra && gol.asistenciaUsuarioId) {
+      throw crearError('Un gol en contra no puede tener asistencia', 400);
+    }
     if (gol.asistenciaUsuarioId) {
       if (gol.asistenciaUsuarioId === gol.usuarioId) {
         throw crearError('La asistencia no puede ser del mismo jugador que anotó el gol', 400);
@@ -59,15 +62,16 @@ async function guardarResultado(partidoId, grupoId, payload = {}) {
 
     for (const gol of goles) {
       db.prepare(
-        `INSERT INTO Goles (id, partidoId, usuarioId, asistenciaUsuarioId, equipo, minuto)
-         VALUES (@id, @partidoId, @usuarioId, @asistenciaUsuarioId, @equipo, @minuto)`
+        `INSERT INTO Goles (id, partidoId, usuarioId, asistenciaUsuarioId, equipo, minuto, enContra)
+         VALUES (@id, @partidoId, @usuarioId, @asistenciaUsuarioId, @equipo, @minuto, @enContra)`
       ).run({
         id: crypto.randomUUID(),
         partidoId,
         usuarioId: gol.usuarioId,
-        asistenciaUsuarioId: gol.asistenciaUsuarioId || null,
+        asistenciaUsuarioId: gol.enContra ? null : gol.asistenciaUsuarioId || null,
         equipo: gol.equipo,
         minuto: gol.minuto,
+        enContra: gol.enContra ? 1 : 0,
       });
     }
     for (const sancion of sanciones) {
@@ -106,6 +110,7 @@ async function obtenerResultado(partidoId, grupoId) {
         nombre: autor?.nombre || 'Jugador',
         equipo: gol.equipo,
         minuto: gol.minuto,
+        enContra: !!gol.enContra,
         asistenciaUsuarioId: gol.asistenciaUsuarioId,
         asistenciaNombre: asistente?.nombre || null,
       };

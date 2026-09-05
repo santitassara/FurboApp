@@ -261,4 +261,10 @@ if (!tienePasswordResetExpira) {
   db.exec('ALTER TABLE Usuarios ADD COLUMN passwordResetExpira TEXT');
 }
 
+const columnasGoles = db.prepare('PRAGMA table_info(Goles)').all();
+const tieneEnContra = columnasGoles.some((columna) => columna.name === 'enContra');
+if (!tieneEnContra) {
+  db.exec('ALTER TABLE Goles ADD COLUMN enContra INTEGER NOT NULL DEFAULT 0');
+}
+
 module.exports = { db };
