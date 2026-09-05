@@ -29,6 +29,10 @@ async function guardarResultado(partidoId, grupoId, payload = {}) {
 
   const goles = Array.isArray(payload.goles) ? payload.goles : [];
   const sanciones = Array.isArray(payload.sanciones) ? payload.sanciones : [];
+  const beelupUrl = typeof payload.beelupUrl === 'string' ? payload.beelupUrl.trim() : '';
+  if (beelupUrl && !/^https?:\/\//i.test(beelupUrl)) {
+    throw crearError('beelupUrl debe ser una URL válida', 400);
+  }
 
   for (const gol of goles) {
     if (!elegiblesSet.has(gol.usuarioId)) throw crearError('Jugador no elegible para el resultado', 400);
@@ -84,7 +88,10 @@ async function guardarResultado(partidoId, grupoId, payload = {}) {
       `INSERT INTO Resultados (id, partidoId, jugadorDestacadoId, fechaCarga)
        VALUES (@id, @partidoId, NULL, @fechaCarga)`
     ).run({ id: crypto.randomUUID(), partidoId, fechaCarga: new Date().toISOString() });
-    db.prepare("UPDATE Partidos SET estado = 'jugado' WHERE id = ?").run(partidoId);
+    db.prepare("UPDATE Partidos SET estado = 'jugado', beelupUrl = ? WHERE id = ?").run(
+      beelupUrl || null,
+      partidoId
+    );
   });
   guardar();
 
@@ -106,6 +113,7 @@ async function obtenerResultado(partidoId, grupoId) {
         ? await usuariosService.obtenerUsuario(gol.asistenciaUsuarioId)
         : null;
       return {
+        id: gol.id,
         usuarioId: gol.usuarioId,
         nombre: autor?.nombre || 'Jugador',
         equipo: gol.equipo,

@@ -267,4 +267,10 @@ if (!tieneEnContra) {
   db.exec('ALTER TABLE Goles ADD COLUMN enContra INTEGER NOT NULL DEFAULT 0');
 }
 
+const columnasPartidosBeelup = db.prepare('PRAGMA table_info(Partidos)').all();
+const tieneBeelupUrl = columnasPartidosBeelup.some((columna) => columna.name === 'beelupUrl');
+if (!tieneBeelupUrl) {
+  db.exec('ALTER TABLE Partidos ADD COLUMN beelupUrl TEXT');
+}
+
 module.exports = { db };

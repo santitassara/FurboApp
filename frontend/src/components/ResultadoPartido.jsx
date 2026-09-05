@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { FaFutbol } from 'react-icons/fa';
 import { formatearFechaPartido } from '../utils/fecha';
+import ModalVerGol from './ModalVerGol';
 
 function IconoEscudo({ variante }) {
   if (variante === 'B') {
@@ -74,6 +76,8 @@ function Panel({ titulo, children, className = '' }) {
 }
 
 export default function ResultadoPartido({ partido, resultado }) {
+  const [golSeleccionado, setGolSeleccionado] = useState(null);
+
   if (!resultado) {
     return (
       <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 text-sm text-white/50 shadow-lg">
@@ -115,7 +119,7 @@ export default function ResultadoPartido({ partido, resultado }) {
               return (
                 <ul key={equipo} className="mx-auto flex w-fit flex-col gap-2.5">
                   {golesDelEquipo.map((gol, indice) => (
-                    <li key={indice} className="flex items-start gap-2 text-sm">
+                    <li key={gol.id || indice} className="flex items-start gap-2 text-sm">
                       <FaFutbol className="mt-0.5 h-4 w-4 shrink-0 text-white/70" />
                       <p className="text-white/90">
                         <span className="font-bold text-white">{gol.minuto}&apos;</span>{' '}
@@ -123,6 +127,15 @@ export default function ResultadoPartido({ partido, resultado }) {
                         {gol.enContra && <span className="text-white/50"> (PP)</span>}
                         {gol.asistenciaNombre && (
                           <span className="block text-xs text-white/50">asistencia de {gol.asistenciaNombre}</span>
+                        )}
+                        {partido.beelupUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setGolSeleccionado(gol)}
+                            className="block text-xs font-semibold text-pasto-500 hover:underline"
+                          >
+                            Ver gol
+                          </button>
                         )}
                       </p>
                     </li>
@@ -182,6 +195,13 @@ export default function ResultadoPartido({ partido, resultado }) {
           </ul>
         </Panel>
       )}
+
+      <ModalVerGol
+        abierto={!!golSeleccionado}
+        beelupUrl={partido.beelupUrl}
+        gol={golSeleccionado}
+        onCerrar={() => setGolSeleccionado(null)}
+      />
     </div>
   );
 }
