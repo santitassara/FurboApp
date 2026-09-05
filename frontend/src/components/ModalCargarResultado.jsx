@@ -25,10 +25,13 @@ export default function ModalCargarResultado({
   const { grupoActivo } = useGrupo();
   const [goles, setGoles] = useState([]);
   const [sanciones, setSanciones] = useState([]);
+  const [beelupUrl, setBeelupUrl] = useState('');
   const [cargandoExistente, setCargandoExistente] = useState(false);
 
   useEffect(() => {
     if (!abierto) return;
+
+    setBeelupUrl(partido.beelupUrl || '');
 
     if (partido.estado !== 'jugado') {
       setGoles([]);
@@ -104,6 +107,7 @@ export default function ModalCargarResultado({
           enContra: gol.enContra,
         })),
       sanciones: sanciones.filter((sancion) => sancion.usuarioId && sancion.motivo.trim()),
+      beelupUrl: beelupUrl.trim(),
     };
     onConfirmar(payload);
   }
@@ -123,6 +127,20 @@ export default function ModalCargarResultado({
             el inicio antes de cargar el resultado.
           </p>
         )}
+
+        <section className="mb-6">
+          <label className="mb-2 block text-sm font-bold uppercase text-white/70" htmlFor="beelupUrl">
+            URL del video (Beelup)
+          </label>
+          <input
+            id="beelupUrl"
+            type="text"
+            placeholder="https://beelup.com/player.php?id=..."
+            value={beelupUrl}
+            onChange={(e) => setBeelupUrl(e.target.value)}
+            className="w-full rounded-lg border border-white/20 bg-cancha-900 px-2 py-1.5 text-sm text-white"
+          />
+        </section>
 
         <section className="mb-6">
           <div className="mb-2 flex items-center justify-between">

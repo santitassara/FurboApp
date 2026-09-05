@@ -52,7 +52,8 @@ CREATE TABLE IF NOT EXISTS Partidos (
   cupoSuplentes INTEGER NOT NULL,
   recordatorioEnviado INTEGER NOT NULL DEFAULT 0,
   recordatorioPostPartidoEnviado INTEGER NOT NULL DEFAULT 0,
-  votacionCerrada INTEGER NOT NULL DEFAULT 0
+  votacionCerrada INTEGER NOT NULL DEFAULT 0,
+  beelupUrl TEXT
 );
 
 CREATE TABLE IF NOT EXISTS Inscripciones (
