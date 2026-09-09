@@ -159,6 +159,16 @@ CREATE TABLE IF NOT EXISTS RecordatoriosVotacionEnviados (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_recordatorios_votacion_unico
   ON RecordatoriosVotacionEnviados (partidoId, usuarioId, ventana);
 
+CREATE TABLE IF NOT EXISTS WhatsappRecordatoriosDiarios (
+  id TEXT PRIMARY KEY,
+  partidoId TEXT NOT NULL REFERENCES Partidos(id),
+  tipo TEXT NOT NULL,
+  fecha TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_whatsapp_recordatorio_diario_unico
+  ON WhatsappRecordatoriosDiarios (partidoId, tipo, fecha);
+
 CREATE TABLE IF NOT EXISTS Notificaciones (
   id TEXT PRIMARY KEY,
   usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
