@@ -273,4 +273,10 @@ if (!tieneBeelupUrl) {
   db.exec('ALTER TABLE Partidos ADD COLUMN beelupUrl TEXT');
 }
 
+const columnasGrupos = db.prepare('PRAGMA table_info(Grupos)').all();
+const tieneWhatsappGrupoJid = columnasGrupos.some((columna) => columna.name === 'whatsappGrupoJid');
+if (!tieneWhatsappGrupoJid) {
+  db.exec('ALTER TABLE Grupos ADD COLUMN whatsappGrupoJid TEXT');
+}
+
 module.exports = { db };

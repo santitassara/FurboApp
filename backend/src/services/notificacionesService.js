@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 const webpush = require('web-push');
 const { db } = require('../config/db');
 const { admin } = require('../config/firebase');
+const whatsappNotificacionesService = require('./whatsappNotificacionesService');
 
 const VENTANAS_RECORDATORIO_VOTACION_HORAS = [72, 48, 24];
 
@@ -119,6 +120,10 @@ async function enviarNotificacionesPrePartido() {
       await notificarUsuario(titular, titulo, opciones);
     }
 
+    whatsappNotificacionesService.enviarWhatsappRecordatorioPartido(partido.id).catch((error) => {
+      console.error('Error enviando WhatsApp de recordatorio de partido:', error.message);
+    });
+
     // Marcar como enviado
     db.prepare('UPDATE Partidos SET recordatorioEnviado = 1 WHERE id = ?').run(partido.id);
   }
@@ -168,6 +173,10 @@ async function enviarNotificacionesPostPartido() {
     for (const jugador of jugadores) {
       await notificarUsuario(jugador, titulo, opciones);
     }
+
+    whatsappNotificacionesService.enviarWhatsappPostPartido(partido.id).catch((error) => {
+      console.error('Error enviando WhatsApp de post-partido:', error.message);
+    });
 
     // Marcar como enviado
     db.prepare('UPDATE Partidos SET recordatorioPostPartidoEnviado = 1 WHERE id = ?').run(partido.id);
@@ -310,6 +319,12 @@ async function enviarRecordatoriosVotacion() {
             WHERE r.partidoId = i.partidoId AND r.usuarioId = i.usuarioId AND r.ventana = ?
           )
       `).all(partido.id, ventana);
+
+      if (titularesSinVoto.length > 0) {
+        whatsappNotificacionesService.enviarWhatsappRecordatoriosVotacion(partido.id, ventana).catch((error) => {
+          console.error('Error enviando WhatsApp de recordatorio de votación:', error.message);
+        });
+      }
 
       const titulo = `Todavía no votaste - faltan ${ventana}hs`;
       const opciones = {

@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const { db } = require('../config/db');
 const notificacionesService = require('./notificacionesService');
+const whatsappNotificacionesService = require('./whatsappNotificacionesService');
 
 function crearErrorValidacion(mensaje) {
   const error = new Error(mensaje);
@@ -43,6 +44,10 @@ async function crearPartido({ fecha, cupoTitulares, cupoSuplentes, creadoPor, gr
 
   notificacionesService.enviarNotificacionNuevoPartido(nuevoPartido.id).catch((error) => {
     console.error('Error enviando notificación de nuevo partido:', error.message);
+  });
+
+  whatsappNotificacionesService.enviarWhatsappNuevoPartido(nuevoPartido.id).catch((error) => {
+    console.error('Error enviando WhatsApp de nuevo partido:', error.message);
   });
 
   return nuevoPartido;

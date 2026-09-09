@@ -7,6 +7,7 @@ const partidosRoutes = require('./routes/partidosRoutes');
 const usuariosGrupoRoutes = require('./routes/usuariosGrupoRoutes');
 const gruposRoutes = require('./routes/gruposRoutes');
 const seedRoutes = require('./routes/seedRoutes');
+const whatsappRoutes = require('./routes/whatsappRoutes');
 const manejadorErrores = require('./middlewares/manejadorErrores');
 const emitirActualizacionGrupo = require('./middlewares/emitirActualizacionGrupo');
 
@@ -22,6 +23,7 @@ app.use('/api/grupos/:grupoId/partidos', emitirActualizacionGrupo, partidosRoute
 app.use('/api/grupos/:grupoId/usuarios', emitirActualizacionGrupo, usuariosGrupoRoutes);
 app.use('/api/grupos', gruposRoutes);
 app.use('/api/seed', seedRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });
