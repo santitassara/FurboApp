@@ -1,9 +1,4 @@
 const path = require('node:path');
-const {
-  default: makeWASocket,
-  useMultiFileAuthState,
-  DisconnectReason,
-} = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode-terminal');
 
 let socket = null;
@@ -16,6 +11,17 @@ function resolverAuthDir() {
 }
 
 async function iniciarWhatsapp() {
+  // @whiskeysockets/baileys es un paquete ESM-only ("type": "module"): Node 22 lo
+  // puede resolver con require() en runtime normal, pero el runtime de Jest no
+  // soporta esa interop y revienta al cargar el módulo. Se requiere acá adentro,
+  // en vez de al tope del archivo, para que ningún test (que nunca llama a esta
+  // función) dispare esa carga.
+  const {
+    default: makeWASocket,
+    useMultiFileAuthState,
+    DisconnectReason,
+  } = require('@whiskeysockets/baileys');
+
   const { state, saveCreds } = await useMultiFileAuthState(resolverAuthDir());
 
   socket = makeWASocket({ auth: state });
