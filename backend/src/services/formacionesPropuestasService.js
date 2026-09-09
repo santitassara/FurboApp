@@ -3,6 +3,7 @@ const { db } = require('../config/db');
 const partidosService = require('./partidosService');
 const usuariosService = require('./usuariosService');
 const notificacionesService = require('./notificacionesService');
+const whatsappNotificacionesService = require('./whatsappNotificacionesService');
 
 function crearError(mensaje, status) {
   const error = new Error(mensaje);
@@ -70,6 +71,9 @@ async function crearPropuesta(partidoId, grupoId, creadoPor) {
   if (numero === 5) {
     notificacionesService.enviarNotificacionVotacionAbierta(partidoId).catch((error) => {
       console.error('Error enviando notificación de votación abierta:', error.message);
+    });
+    whatsappNotificacionesService.enviarWhatsappVotacionAbierta(partidoId).catch((error) => {
+      console.error('Error enviando WhatsApp de votación abierta:', error.message);
     });
   }
 }
@@ -168,6 +172,9 @@ function aplicarGanadora(partidoId, ganadoraId) {
 
   notificacionesService.enviarNotificacionVotacionCerrada(partidoId).catch((error) => {
     console.error('Error enviando notificación de votación cerrada:', error.message);
+  });
+  whatsappNotificacionesService.enviarWhatsappVotacionCerrada(partidoId).catch((error) => {
+    console.error('Error enviando WhatsApp de votación cerrada:', error.message);
   });
 }
 
