@@ -42,4 +42,23 @@ async function desporomoverDeAdmin(req, res) {
   res.json({ mensaje: 'Admin revocado' });
 }
 
-module.exports = { crear, unirse, listarMios, abandonar, listarMiembros, promoverAAdmin, desporomoverDeAdmin };
+async function vincularWhatsapp(req, res) {
+  const { grupoId } = req.params;
+  const { jid } = req.body;
+  if (!jid || typeof jid !== 'string') {
+    return res.status(400).json({ error: 'jid es obligatorio' });
+  }
+  const grupo = await gruposService.vincularWhatsapp(grupoId, jid);
+  res.json(grupo);
+}
+
+module.exports = {
+  crear,
+  unirse,
+  listarMios,
+  abandonar,
+  listarMiembros,
+  promoverAAdmin,
+  desporomoverDeAdmin,
+  vincularWhatsapp,
+};

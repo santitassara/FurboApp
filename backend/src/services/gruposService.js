@@ -183,6 +183,14 @@ async function desporomoverDeAdmin(grupoId, usuarioId) {
   );
 }
 
+async function vincularWhatsapp(grupoId, jid) {
+  const grupo = db.prepare('SELECT id FROM Grupos WHERE id = ?').get(grupoId);
+  if (!grupo) throw crearError('Grupo no encontrado', 404);
+
+  db.prepare('UPDATE Grupos SET whatsappGrupoJid = ? WHERE id = ?').run(jid, grupoId);
+  return { id: grupoId, whatsappGrupoJid: jid };
+}
+
 module.exports = {
   crearGrupo,
   unirseAGrupo,
@@ -195,4 +203,5 @@ module.exports = {
   listarMiembros,
   promoverAAdmin,
   desporomoverDeAdmin,
+  vincularWhatsapp,
 };

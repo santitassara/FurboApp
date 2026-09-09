@@ -1,6 +1,7 @@
 const express = require('express');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarCreadorGrupo = require('../middlewares/verificarCreadorGrupo');
+const verificarMiembroGrupo = require('../middlewares/verificarMiembroGrupo');
 const emitirActualizacionGrupo = require('../middlewares/emitirActualizacionGrupo');
 const envolverAsync = require('../utils/envolverAsync');
 const gruposController = require('../controllers/gruposController');
@@ -15,5 +16,6 @@ router.delete('/:grupoId/abandonar', verificarToken, envolverAsync(gruposControl
 router.get('/:grupoId/miembros', verificarToken, envolverAsync(gruposController.listarMiembros));
 router.post('/:grupoId/usuarios/:uid/promover', verificarToken, verificarCreadorGrupo(), envolverAsync(gruposController.promoverAAdmin));
 router.post('/:grupoId/usuarios/:uid/desporomover', verificarToken, verificarCreadorGrupo(), envolverAsync(gruposController.desporomoverDeAdmin));
+router.put('/:grupoId/whatsapp', verificarToken, verificarMiembroGrupo('admin'), envolverAsync(gruposController.vincularWhatsapp));
 
 module.exports = router;
