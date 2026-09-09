@@ -15,7 +15,7 @@
 - Sin tests automatizados (decisión explícita del usuario) — verificación manual en cada tarea.
 - Sin pantalla frontend para vincular el JID — se configura vía API directa (curl/Postman).
 - El trigger de perdón de sanción NO manda WhatsApp — queda excluido, no se toca `gruposService.perdonarSancion`.
-- `@whiskeysockets/baileys` pineado en `^6.17.16` (última versión estable, no RC).
+- `@whiskeysockets/baileys` pineado exacto en `6.7.24` (sin caret): `6.17.16` quedó marcado con vulnerabilidad high en `npm audit` (vía `music-metadata`/`uuid`), y con caret `^6.7.24` npm igual resuelve a `6.17.16`. `7.0.0-rc*` es prerelease, se evita.
 - Auth de Baileys persistida en `backend/data/whatsapp_auth/`, agregada a `backend/.gitignore`.
 - Todo formateo de fecha/hora en timezone `America/Argentina/Buenos_Aires`.
 - Cron jobs nuevos con `{ timezone: 'America/Argentina/Buenos_Aires' }` explícito (no depender de la timezone del host).
