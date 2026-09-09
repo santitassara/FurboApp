@@ -6,6 +6,7 @@ const partidosService = require('./src/services/partidosService');
 const recordatoriosService = require('./src/services/recordatoriosService');
 const mailer = require('./src/utils/mailer');
 const { iniciarScheduler } = require('./src/config/scheduler');
+const whatsappConfig = require('./src/config/whatsapp');
 
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled rejection:', err);
@@ -39,6 +40,10 @@ async function enviarRecordatoriosSeguro() {
 }
 
 mailer.verificarConfigSmtp();
+
+whatsappConfig.iniciarWhatsapp().catch((error) => {
+  console.error('Error iniciando WhatsApp:', error.message);
+});
 
 const servidorHttp = http.createServer(app);
 const io = configurarSocket(servidorHttp);
