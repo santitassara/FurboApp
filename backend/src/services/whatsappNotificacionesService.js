@@ -84,8 +84,90 @@ async function enviarWhatsappVotacionCerrada(partidoId) {
   await whatsapp.enviarMensajeGrupo(partido.whatsappGrupoJid, texto);
 }
 
+function contarTitulares(partidoId) {
+  return db
+    .prepare(
+      `SELECT COUNT(*) AS total FROM Inscripciones WHERE partidoId = ? AND estado = 'anotado' AND tipo = 'titular'`
+    )
+    .get(partidoId).total;
+}
+
+async function enviarWhatsappRecordatorioPartido(partidoId) {
+  const partido = obtenerPartidoConGrupo(partidoId);
+  if (!partido || !partido.whatsappGrupoJid) return;
+
+  const texto = `@todos Sos titular en el partido del grupo ${partido.nombreGrupo}. No seas Pancho/García y llega a horario`;
+  await whatsapp.enviarMensajeGrupo(partido.whatsappGrupoJid, texto);
+}
+
+async function enviarWhatsappRecordatoriosVotacion(partidoId, ventana) {
+  const partido = obtenerPartidoConGrupo(partidoId);
+  if (!partido || !partido.whatsappGrupoJid) return;
+
+  const texto = `@todos Todavía no votaste - faltan ${ventana}hs. Acordate de votar tu formación, después no hay quejas por los equipos`;
+  await whatsapp.enviarMensajeGrupo(partido.whatsappGrupoJid, texto);
+}
+
+async function enviarWhatsappPostPartido(partidoId) {
+  const partido = obtenerPartidoConGrupo(partidoId);
+  if (!partido || !partido.whatsappGrupoJid) return;
+
+  await whatsapp.enviarMensajeGrupo(
+    partido.whatsappGrupoJid,
+    '@todos Valoren la actuacion de los participantes del partido'
+  );
+  marcarEnviadoHoy(partidoId, 'post_partido');
+}
+
+async function enviarWhatsappRecordatoriosDiariosAnotate() {
+  const hoy = fechaLocalYMD(new Date().toISOString());
+
+  const partidos = db
+    .prepare(
+      `SELECT p.*, g.nombre AS nombreGrupo, g.whatsappGrupoJid
+       FROM Partidos p JOIN Grupos g ON g.id = p.grupoId
+       WHERE p.estado = 'abierto' AND g.whatsappGrupoJid IS NOT NULL`
+    )
+    .all();
+
+  for (const partido of partidos) {
+    const diaPartido = fechaLocalYMD(partido.fecha);
+    if (diaPartido <= hoy) continue;
+    if (contarTitulares(partido.id) >= partido.cupoTitulares) continue;
+    if (yaEnviadoHoy(partido.id, 'anotate')) continue;
+
+    await whatsapp.enviarMensajeGrupo(partido.whatsappGrupoJid, textoAnotate(partido));
+    marcarEnviadoHoy(partido.id, 'anotate');
+  }
+}
+
+async function enviarWhatsappRecordatoriosDiariosPostPartido() {
+  const partidos = db
+    .prepare(
+      `SELECT p.*, g.whatsappGrupoJid
+       FROM Partidos p JOIN Grupos g ON g.id = p.grupoId
+       WHERE p.estado = 'jugado' AND p.votacionEquiposCerrada = 0 AND g.whatsappGrupoJid IS NOT NULL`
+    )
+    .all();
+
+  for (const partido of partidos) {
+    if (yaEnviadoHoy(partido.id, 'post_partido')) continue;
+
+    await whatsapp.enviarMensajeGrupo(
+      partido.whatsappGrupoJid,
+      '@todos Valoren la actuacion de los participantes del partido'
+    );
+    marcarEnviadoHoy(partido.id, 'post_partido');
+  }
+}
+
 module.exports = {
   enviarWhatsappNuevoPartido,
   enviarWhatsappVotacionAbierta,
   enviarWhatsappVotacionCerrada,
+  enviarWhatsappRecordatorioPartido,
+  enviarWhatsappRecordatoriosVotacion,
+  enviarWhatsappPostPartido,
+  enviarWhatsappRecordatoriosDiariosAnotate,
+  enviarWhatsappRecordatoriosDiariosPostPartido,
 };
