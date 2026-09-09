@@ -32,16 +32,16 @@
 **Interfaces:**
 - Produces: dependencias `@whiskeysockets/baileys` y `qrcode-terminal` instaladas y disponibles para los próximos tasks.
 
-- [ ] **Step 1: Instalar las dependencias**
+- [x] **Step 1: Instalar las dependencias**
 
 Run: `cd "backend" && npm install @whiskeysockets/baileys@^6.17.16 qrcode-terminal@^0.12.0`
 
-- [ ] **Step 2: Verificar que quedaron en package.json**
+- [x] **Step 2: Verificar que quedaron en package.json**
 
 Run: `grep -n "baileys\|qrcode-terminal" backend/package.json`
 Expected: dos líneas, una por cada dependencia, dentro de `"dependencies"`.
 
-- [ ] **Step 3: Agregar la carpeta de auth de WhatsApp al gitignore**
+- [x] **Step 3: Agregar la carpeta de auth de WhatsApp al gitignore**
 
 En `backend/.gitignore`, agregar esta línea al final del archivo:
 
@@ -49,7 +49,7 @@ En `backend/.gitignore`, agregar esta línea al final del archivo:
 data/whatsapp_auth/
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add backend/package.json backend/package-lock.json backend/.gitignore
@@ -67,7 +67,7 @@ git commit -m "chore: agregar dependencias de Baileys para WhatsApp"
 **Interfaces:**
 - Produces: columna `Grupos.whatsappGrupoJid` (TEXT, nullable) y tabla `WhatsappRecordatoriosDiarios(id, partidoId, tipo, fecha)` con unique index `(partidoId, tipo, fecha)`.
 
-- [ ] **Step 1: Agregar la tabla nueva a schema.sql**
+- [x] **Step 1: Agregar la tabla nueva a schema.sql**
 
 En `backend/src/db/schema.sql`, justo después del bloque `CREATE UNIQUE INDEX IF NOT EXISTS idx_recordatorios_votacion_unico ON RecordatoriosVotacionEnviados (...)` (línea ~160), agregar:
 
@@ -83,7 +83,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_whatsapp_recordatorio_diario_unico
   ON WhatsappRecordatoriosDiarios (partidoId, tipo, fecha);
 ```
 
-- [ ] **Step 2: Agregar el ALTER TABLE de Grupos en db.js**
+- [x] **Step 2: Agregar el ALTER TABLE de Grupos en db.js**
 
 En `backend/src/config/db.js`, justo antes de la línea `module.exports = { db };` (al final del archivo), agregar:
 
@@ -95,7 +95,7 @@ if (!tieneWhatsappGrupoJid) {
 }
 ```
 
-- [ ] **Step 3: Verificar la migración corriendo el server contra una DB de prueba**
+- [x] **Step 3: Verificar la migración corriendo el server contra una DB de prueba**
 
 Run: `cd backend && SQLITE_DB_PATH=:memory: node -e "require('./src/config/db'); console.log('ok migración')"`
 Expected: imprime `ok migración` sin errores.
@@ -107,7 +107,7 @@ console.log(db.prepare(\"SELECT name FROM sqlite_master WHERE type='table' AND n
 "`
 Expected: imprime `true` y la fila `{ name: 'WhatsappRecordatoriosDiarios' }`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add backend/src/db/schema.sql backend/src/config/db.js
@@ -129,7 +129,7 @@ git commit -m "feat(db): agregar columna whatsappGrupoJid y tabla de dedupe diar
   - `async function enviarMensajeGrupo(jid: string, texto: string): Promise<void>`
   - `async function listarGruposDisponibles(): Promise<Array<{ jid: string, nombre: string }>>`
 
-- [ ] **Step 1: Crear el archivo**
+- [x] **Step 1: Crear el archivo**
 
 ```js
 const path = require('node:path');
@@ -208,7 +208,7 @@ async function listarGruposDisponibles() {
 module.exports = { iniciarWhatsapp, obtenerEstadoConexion, enviarMensajeGrupo, listarGruposDisponibles };
 ```
 
-- [ ] **Step 2: Verificar que el módulo carga y expone las 4 funciones**
+- [x] **Step 2: Verificar que el módulo carga y expone las 4 funciones**
 
 Run: `cd backend && node -e "
 const w = require('./src/config/whatsapp');
@@ -217,7 +217,7 @@ console.log(w.obtenerEstadoConexion());
 "`
 Expected: imprime `[ 'iniciarWhatsapp', 'obtenerEstadoConexion', 'enviarMensajeGrupo', 'listarGruposDisponibles' ]` y luego `desconectado` (todavía no se llamó `iniciarWhatsapp`).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add backend/src/config/whatsapp.js
@@ -234,7 +234,7 @@ git commit -m "feat: agregar módulo de ciclo de vida del socket de Baileys"
 **Interfaces:**
 - Consumes: `iniciarWhatsapp()` de Task 3.
 
-- [ ] **Step 1: Agregar el require y la llamada de arranque**
+- [x] **Step 1: Agregar el require y la llamada de arranque**
 
 En `backend/server.js`, agregar el require junto a los demás (después de la línea `const { iniciarScheduler } = require('./src/config/scheduler');`):
 
@@ -250,12 +250,12 @@ whatsappConfig.iniciarWhatsapp().catch((error) => {
 });
 ```
 
-- [ ] **Step 2: Verificar que el server sigue arrancando sin romperse**
+- [x] **Step 2: Verificar que el server sigue arrancando sin romperse**
 
 Run: `cd backend && SQLITE_DB_PATH=:memory: timeout 5 node server.js; echo "exit code: $?"`
 Expected: en la salida aparece `FurboApp backend escuchando en el puerto 4000` y (al no haber sesión guardada) se imprime un QR en la terminal. El proceso termina por el `timeout` (exit code 124), no por un crash.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add backend/server.js
@@ -277,7 +277,7 @@ git commit -m "feat: iniciar el socket de WhatsApp al arrancar el server"
   - `async function enviarWhatsappVotacionCerrada(partidoId: string): Promise<void>`
   - (internas, no exportadas) `obtenerPartidoConGrupo`, `fechaLocalYMD`, `formatearDiaYHora`, `yaEnviadoHoy`, `marcarEnviadoHoy`, `textoAnotate` — estas últimas dos las usa también Task 7.
 
-- [ ] **Step 1: Crear el archivo con los helpers y los 3 triggers inmediatos**
+- [x] **Step 1: Crear el archivo con los helpers y los 3 triggers inmediatos**
 
 ```js
 const crypto = require('node:crypto');
@@ -375,7 +375,7 @@ module.exports = {
 
 > Nota: la Task 7 agrega más funciones a este mismo archivo y reemplaza este `module.exports` por uno que incluye las 8 funciones. Este export de 3 funciones ya es completo y usable tal cual para lo que hookea la Task 6.
 
-- [ ] **Step 2: Verificar que el módulo carga y que `whatsappGrupoJid` nulo skippea en silencio**
+- [x] **Step 2: Verificar que el módulo carga y que `whatsappGrupoJid` nulo skippea en silencio**
 
 Run: `cd backend && SQLITE_DB_PATH=:memory: node -e "
 const crypto = require('node:crypto');
@@ -393,7 +393,7 @@ s.enviarWhatsappNuevoPartido(partidoId).then(() => console.log('ok, no crashea s
 "`
 Expected: imprime `ok, no crashea sin JID configurado` sin lanzar excepción (el Grupo no tiene `whatsappGrupoJid`, así que no intenta mandar nada).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add backend/src/services/whatsappNotificacionesService.js
@@ -411,7 +411,7 @@ git commit -m "feat: agregar triggers inmediatos de WhatsApp (nuevo partido, vot
 **Interfaces:**
 - Consumes: `enviarWhatsappNuevoPartido`, `enviarWhatsappVotacionAbierta`, `enviarWhatsappVotacionCerrada` de Task 5.
 
-- [ ] **Step 1: Hookear "nuevo partido" en partidosService.js**
+- [x] **Step 1: Hookear "nuevo partido" en partidosService.js**
 
 Agregar el require junto al de `notificacionesService` (línea 3):
 
@@ -431,7 +431,7 @@ Y justo después del bloque existente (línea 44-46):
   });
 ```
 
-- [ ] **Step 2: Hookear "votación abierta" y "votación cerrada" en formacionesPropuestasService.js**
+- [x] **Step 2: Hookear "votación abierta" y "votación cerrada" en formacionesPropuestasService.js**
 
 Agregar el require junto al de `notificacionesService` (línea 5):
 
@@ -463,12 +463,12 @@ Dentro de `aplicarGanadora`, junto al bloque existente (línea 169-171):
   });
 ```
 
-- [ ] **Step 3: Verificar que ambos archivos siguen cargando sin errores de sintaxis**
+- [x] **Step 3: Verificar que ambos archivos siguen cargando sin errores de sintaxis**
 
 Run: `cd backend && node -e "require('./src/services/partidosService'); require('./src/services/formacionesPropuestasService'); console.log('ok requires')"`
 Expected: imprime `ok requires`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add backend/src/services/partidosService.js backend/src/services/formacionesPropuestasService.js
@@ -491,7 +491,7 @@ git commit -m "feat: hookear WhatsApp en triggers de nuevo partido y votacion ab
   - `async function enviarWhatsappRecordatoriosDiariosAnotate(): Promise<void>`
   - `async function enviarWhatsappRecordatoriosDiariosPostPartido(): Promise<void>`
 
-- [ ] **Step 1: Agregar las 5 funciones y reemplazar el `module.exports`**
+- [x] **Step 1: Agregar las 5 funciones y reemplazar el `module.exports`**
 
 Agregar antes del `module.exports` de `backend/src/services/whatsappNotificacionesService.js`:
 
@@ -589,7 +589,7 @@ module.exports = {
 };
 ```
 
-- [ ] **Step 2: Verificar la condición de cupo lleno y el dedupe diario**
+- [x] **Step 2: Verificar la condición de cupo lleno y el dedupe diario**
 
 Run: `cd backend && SQLITE_DB_PATH=:memory: node -e "
 const crypto = require('node:crypto');
@@ -612,7 +612,7 @@ s.enviarWhatsappRecordatoriosDiariosAnotate().then(() => {
 "`
 Expected: imprime `registros dedupe (debería ser 0, cupo lleno con 1/1): 0` — el cupo (1) ya está lleno con la única inscripción, así que no manda ni deja registro.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add backend/src/services/whatsappNotificacionesService.js
@@ -629,7 +629,7 @@ git commit -m "feat: agregar recordatorios diarios de WhatsApp y triggers restan
 **Interfaces:**
 - Consumes: `enviarWhatsappRecordatorioPartido`, `enviarWhatsappPostPartido`, `enviarWhatsappRecordatoriosVotacion` de Task 7.
 
-- [ ] **Step 1: Agregar el require**
+- [x] **Step 1: Agregar el require**
 
 Al inicio de `backend/src/services/notificacionesService.js` (junto a los otros requires):
 
@@ -637,7 +637,7 @@ Al inicio de `backend/src/services/notificacionesService.js` (junto a los otros 
 const whatsappNotificacionesService = require('./whatsappNotificacionesService');
 ```
 
-- [ ] **Step 2: Hookear dentro de `enviarNotificacionesPrePartido`**
+- [x] **Step 2: Hookear dentro de `enviarNotificacionesPrePartido`**
 
 Dentro del `for (const partido of partidos)` de `enviarNotificacionesPrePartido`, justo antes de la línea `db.prepare('UPDATE Partidos SET recordatorioEnviado = 1 WHERE id = ?').run(partido.id);`, agregar:
 
@@ -648,7 +648,7 @@ Dentro del `for (const partido of partidos)` de `enviarNotificacionesPrePartido`
 
 ```
 
-- [ ] **Step 3: Hookear dentro de `enviarNotificacionesPostPartido`**
+- [x] **Step 3: Hookear dentro de `enviarNotificacionesPostPartido`**
 
 Dentro del `for (const partido of partidos)` de `enviarNotificacionesPostPartido`, justo antes de la línea `db.prepare('UPDATE Partidos SET recordatorioPostPartidoEnviado = 1 WHERE id = ?').run(partido.id);`, agregar:
 
@@ -659,7 +659,7 @@ Dentro del `for (const partido of partidos)` de `enviarNotificacionesPostPartido
 
 ```
 
-- [ ] **Step 4: Hookear dentro de `enviarRecordatoriosVotacion`**
+- [x] **Step 4: Hookear dentro de `enviarRecordatoriosVotacion`**
 
 Dentro del `for (const partido of partidos)` de `enviarRecordatoriosVotacion`, justo después de calcular `titularesSinVoto` y antes del `const titulo = ...`, agregar:
 
@@ -672,12 +672,12 @@ Dentro del `for (const partido of partidos)` de `enviarRecordatoriosVotacion`, j
 
 ```
 
-- [ ] **Step 5: Verificar que el archivo sigue cargando sin errores**
+- [x] **Step 5: Verificar que el archivo sigue cargando sin errores**
 
 Run: `cd backend && node -e "require('./src/services/notificacionesService'); console.log('ok require')"`
 Expected: imprime `ok require`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/src/services/notificacionesService.js
@@ -694,7 +694,7 @@ git commit -m "feat: hookear WhatsApp en recordatorio de partido, post-partido y
 **Interfaces:**
 - Consumes: `enviarWhatsappRecordatoriosDiariosAnotate`, `enviarWhatsappRecordatoriosDiariosPostPartido` de Task 7.
 
-- [ ] **Step 1: Agregar el require y los dos cron.schedule**
+- [x] **Step 1: Agregar el require y los dos cron.schedule**
 
 En `backend/src/config/scheduler.js`, agregar el require junto a los otros:
 
@@ -730,7 +730,7 @@ Y dentro de `iniciarScheduler()`, antes del `console.log('Scheduler de notificac
   );
 ```
 
-- [ ] **Step 2: Verificar que el scheduler arranca sin errores**
+- [x] **Step 2: Verificar que el scheduler arranca sin errores**
 
 Run: `cd backend && SQLITE_DB_PATH=:memory: node -e "
 const { iniciarScheduler } = require('./src/config/scheduler');
@@ -739,7 +739,7 @@ console.log('ok scheduler');
 "`
 Expected: imprime `Scheduler de notificaciones iniciado` y luego `ok scheduler`, sin excepciones.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add backend/src/config/scheduler.js
@@ -758,7 +758,7 @@ git commit -m "feat: agregar cron jobs diarios de WhatsApp (13hs y 15hs)"
 **Interfaces:**
 - Produces: `PUT /api/grupos/:grupoId/whatsapp` (requiere rol admin del Grupo), body `{ jid: string }`, responde `{ id, whatsappGrupoJid }`.
 
-- [ ] **Step 1: Agregar `vincularWhatsapp` a gruposService.js**
+- [x] **Step 1: Agregar `vincularWhatsapp` a gruposService.js**
 
 Agregar antes de `module.exports` en `backend/src/services/gruposService.js`:
 
@@ -774,7 +774,7 @@ async function vincularWhatsapp(grupoId, jid) {
 
 Y agregar `vincularWhatsapp` al `module.exports`.
 
-- [ ] **Step 2: Agregar el controlador**
+- [x] **Step 2: Agregar el controlador**
 
 Agregar en `backend/src/controllers/gruposController.js`, antes del `module.exports`:
 
@@ -792,7 +792,7 @@ async function vincularWhatsapp(req, res) {
 
 Y agregar `vincularWhatsapp` al `module.exports`.
 
-- [ ] **Step 3: Agregar la ruta**
+- [x] **Step 3: Agregar la ruta**
 
 En `backend/src/routes/gruposRoutes.js`, agregar el require de `verificarMiembroGrupo` (no está importado en este archivo todavía):
 
@@ -806,13 +806,13 @@ Y agregar la ruta, junto a las otras rutas de `:grupoId`:
 router.put('/:grupoId/whatsapp', verificarToken, verificarMiembroGrupo('admin'), envolverAsync(gruposController.vincularWhatsapp));
 ```
 
-- [ ] **Step 4: Verificar el endpoint levantando el server y pegándole con curl**
+- [x] **Step 4: Verificar el endpoint levantando el server y pegándole con curl**
 
 Run: `cd backend && SQLITE_DB_PATH=:memory: PORT=4999 node server.js &`
 Run (con un token real de un admin de un grupo existente, o revisar que responda 401 sin token): `curl -s -X PUT http://localhost:4999/api/grupos/algun-id/whatsapp -H "Content-Type: application/json" -d '{"jid":"123@g.us"}'`
 Expected: responde `{"error":"Token no provisto"}` (o el mensaje que use `verificarToken`) con status 401, confirmando que la ruta existe y está protegida. Parar el server después: `kill %1`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/src/services/gruposService.js backend/src/controllers/gruposController.js backend/src/routes/gruposRoutes.js
@@ -832,7 +832,7 @@ git commit -m "feat: agregar endpoint para vincular el grupo de WhatsApp a un Gr
 - Consumes: `listarGruposDisponibles()` de Task 3.
 - Produces: `GET /api/whatsapp/grupos-disponibles` (requiere super admin), responde `Array<{ jid, nombre }>`.
 
-- [ ] **Step 1: Crear el controlador**
+- [x] **Step 1: Crear el controlador**
 
 ```js
 const whatsappConfig = require('../config/whatsapp');
@@ -845,7 +845,7 @@ async function listarGruposDisponibles(req, res) {
 module.exports = { listarGruposDisponibles };
 ```
 
-- [ ] **Step 2: Crear las rutas**
+- [x] **Step 2: Crear las rutas**
 
 ```js
 const express = require('express');
@@ -861,7 +861,7 @@ router.get('/grupos-disponibles', verificarToken, verificarSuperAdmin, envolverA
 module.exports = router;
 ```
 
-- [ ] **Step 3: Montar la ruta en app.js**
+- [x] **Step 3: Montar la ruta en app.js**
 
 En `backend/src/app.js`, agregar el require junto a los otros:
 
@@ -875,13 +875,13 @@ Y montarla junto a las demás (antes de `app.use('/api/seed', seedRoutes);`):
 app.use('/api/whatsapp', whatsappRoutes);
 ```
 
-- [ ] **Step 4: Verificar el endpoint**
+- [x] **Step 4: Verificar el endpoint**
 
 Run: `cd backend && SQLITE_DB_PATH=:memory: PORT=4999 node server.js &`
 Run: `curl -s http://localhost:4999/api/whatsapp/grupos-disponibles`
 Expected: responde 401 (sin token), confirmando que la ruta existe y está protegida. Parar el server: `kill %1`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/src/controllers/whatsappController.js backend/src/routes/whatsappRoutes.js backend/src/app.js
