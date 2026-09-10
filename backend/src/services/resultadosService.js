@@ -129,13 +129,6 @@ async function obtenerResultado(partidoId, grupoId) {
   for (const gol of filasGoles) marcador[gol.equipo] += 1;
 
   const elegibles = await obtenerElegibles(partidoId);
-  const votacionCerrada = !!partido.votacionCerrada;
-  const votantes = new Set(
-    db
-      .prepare('SELECT DISTINCT votanteId FROM RendimientosJugador WHERE partidoId = ?')
-      .all(partidoId)
-      .map((fila) => fila.votanteId)
-  );
   const promediosPorJugador = new Map(
     db
       .prepare(
@@ -143,10 +136,7 @@ async function obtenerResultado(partidoId, grupoId) {
          FROM RendimientosJugador WHERE partidoId = ? GROUP BY jugadorId`
       )
       .all(partidoId)
-      .map((fila) => {
-        const penalizado = votacionCerrada && !votantes.has(fila.jugadorId);
-        return [fila.jugadorId, { ...fila, promedio: penalizado ? fila.promedio / 2 : fila.promedio }];
-      })
+      .map((fila) => [fila.jugadorId, fila])
   );
   const rendimientos = await Promise.all(
     elegibles.map(async (jugadorId) => {
