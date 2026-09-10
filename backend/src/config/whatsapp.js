@@ -1,5 +1,6 @@
 const path = require('node:path');
 const qrcode = require('qrcode-terminal');
+const { registrarListenerBot } = require('../services/whatsappBotService');
 
 let socket = null;
 let conectado = false;
@@ -27,6 +28,7 @@ async function iniciarWhatsapp() {
   socket = makeWASocket({ auth: state });
 
   socket.ev.on('creds.update', saveCreds);
+  registrarListenerBot(socket);
 
   socket.ev.on('connection.update', (actualizacion) => {
     const { connection, lastDisconnect, qr } = actualizacion;
