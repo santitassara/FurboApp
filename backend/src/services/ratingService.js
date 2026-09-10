@@ -29,13 +29,6 @@ function procesarPartido(partidoId, elegibles) {
   const procesados = [];
   const saltados = [];
 
-  const votantes = new Set(
-    db
-      .prepare('SELECT DISTINCT votanteId FROM RendimientosJugador WHERE partidoId = ?')
-      .all(partidoId)
-      .map((fila) => fila.votanteId)
-  );
-
   for (const jugadorId of elegibles) {
     const puntajes = db
       .prepare('SELECT puntaje FROM RendimientosJugador WHERE partidoId = ? AND jugadorId = ?')
@@ -74,9 +67,7 @@ function procesarPartido(partidoId, elegibles) {
     }
 
     const mediana = calcularMediana(puntajes);
-    // Jugador no votó a nadie en este partido: recibe la mitad de los puntos de valoración.
-    const medianaAjustada = votantes.has(jugadorId) ? mediana : mediana / 2;
-    const puntajeEscalado = medianaAjustada * 10;
+    const puntajeEscalado = mediana * 10;
     const ovrPrevio =
       CAMPOS_HABILIDAD.reduce((suma, campo) => suma + usuario[campo], 0) / CAMPOS_HABILIDAD.length;
 
