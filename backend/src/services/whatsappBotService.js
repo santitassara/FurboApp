@@ -67,16 +67,23 @@ function generarRespuestaLocal(grupoId, textoMensaje) {
   return '⚽ No entendí bien. Podés preguntarme *cuándo* jugamos o *cuántos* están anotados.';
 }
 
+function normalizarJid(jid) {
+  if (!jid) return jid;
+  const [usuario, dominio] = jid.split('@');
+  return `${usuario.split(':')[0]}@${dominio}`;
+}
+
 function registrarListenerBot(socket) {
   socket.ev.on('messages.upsert', async (m) => {
     const msg = m.messages[0];
     if (!msg.message || msg.key.fromMe) return;
 
     const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
-    const mentions = msg.message.extendedTextMessage?.contextInfo?.mentionedJid || [];
-    const botNumber = `${socket.user.id.split(':')[0]}@s.whatsapp.net`;
+    const mentions = (msg.message.extendedTextMessage?.contextInfo?.mentionedJid || []).map(normalizarJid);
+    // El bot puede ser mencionado como @s.whatsapp.net o, en grupos con addressingMode 'lid', como @lid.
+    const idsPropios = [socket.user?.id, socket.user?.lid].filter(Boolean).map(normalizarJid);
 
-    if (!mentions.includes(botNumber)) return;
+    if (!mentions.some((jid) => idsPropios.includes(jid))) return;
 
     const chatId = msg.key.remoteJid;
     const grupo = obtenerGrupoPorJid(chatId);
