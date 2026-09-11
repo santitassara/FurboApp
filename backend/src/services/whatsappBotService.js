@@ -48,6 +48,99 @@ function obtenerTitularesPorEquipo(partidoId) {
     .all(partidoId);
 }
 
+function hayVotacionFormacionAbierta(partidoId) {
+  const partidoRow = db.prepare('SELECT votacionEquiposCerrada FROM Partidos WHERE id = ?').get(partidoId);
+  if (!partidoRow || partidoRow.votacionEquiposCerrada) return false;
+  const { total } = db
+    .prepare('SELECT COUNT(*) AS total FROM FormacionesPropuestas WHERE partidoId = ?')
+    .get(partidoId);
+  return total > 0;
+}
+
+function obtenerPropuestasConVotos(partidoId) {
+  return db
+    .prepare(
+      `SELECT p.id, p.numero, COUNT(v.id) AS votos
+       FROM FormacionesPropuestas p
+       LEFT JOIN VotosFormacion v ON v.propuestaId = p.id
+       WHERE p.partidoId = ?
+       GROUP BY p.id
+       ORDER BY votos DESC, p.numero ASC`
+    )
+    .all(partidoId);
+}
+
+function seleccionarPropuestasMasVotadas(propuestas) {
+  if (propuestas.length === 0) return [];
+
+  const valoresDeVotos = [...new Set(propuestas.map((propuesta) => propuesta.votos))].sort((a, b) => b - a);
+  let seleccionadas = propuestas.filter((propuesta) => propuesta.votos === valoresDeVotos[0]);
+
+  if (seleccionadas.length < 2 && valoresDeVotos.length > 1) {
+    seleccionadas = seleccionadas.concat(
+      propuestas.filter((propuesta) => propuesta.votos === valoresDeVotos[1])
+    );
+  }
+
+  return seleccionadas;
+}
+
+function obtenerDetallePropuesta(propuestaId) {
+  return db
+    .prepare(
+      `SELECT d.equipo AS equipo, u.nombre AS nombre
+       FROM FormacionesPropuestasDetalle d
+       JOIN Usuarios u ON u.uid = d.usuarioId
+       WHERE d.propuestaId = ?
+       ORDER BY d.equipo ASC, d.ordenLinea ASC, u.nombre ASC`
+    )
+    .all(propuestaId);
+}
+
+function formatearPropuestaVotacion(propuesta) {
+  const detalle = obtenerDetallePropuesta(propuesta.id);
+  const equipoA = detalle.filter((jugador) => jugador.equipo === 'A').map((jugador) => `• ${jugador.nombre}`);
+  const equipoB = detalle.filter((jugador) => jugador.equipo === 'B').map((jugador) => `• ${jugador.nombre}`);
+
+  const bloques = [];
+  if (equipoA.length > 0) bloques.push(`⚪ *Equipo A* (${equipoA.length})\n${equipoA.join('\n')}`);
+  if (equipoB.length > 0) bloques.push(`⚫ *Equipo B* (${equipoB.length})\n${equipoB.join('\n')}`);
+
+  const etiquetaVotos = propuesta.votos === 1 ? 'voto' : 'votos';
+  return `*Propuesta ${propuesta.numero}* (${propuesta.votos} ${etiquetaVotos})\n${bloques.join('\n\n')}`;
+}
+
+function formatearVotacionFormacion(partidoId) {
+  const propuestas = obtenerPropuestasConVotos(partidoId);
+  if (propuestas.length === 0) {
+    return 'Todavía no hay propuestas de formación para votar.';
+  }
+
+  const masVotadas = seleccionarPropuestasMasVotadas(propuestas);
+  const encabezado = '🗳️ La votación de formación está abierta. Estas son las más votadas hasta ahora:';
+  return `${encabezado}\n\n${masVotadas.map(formatearPropuestaVotacion).join('\n\n')}`;
+}
+
+function formatearEstadoVotacion(partidoId) {
+  const propuestas = obtenerPropuestasConVotos(partidoId);
+  if (propuestas.length === 0) {
+    return 'Todavía no hay ninguna votación de formación en curso.';
+  }
+
+  const partidoRow = db
+    .prepare('SELECT votacionEquiposCerrada, propuestaGanadoraId FROM Partidos WHERE id = ?')
+    .get(partidoId);
+
+  if (partidoRow?.votacionEquiposCerrada) {
+    const ganadora = propuestas.find((propuesta) => propuesta.id === partidoRow.propuestaGanadoraId);
+    if (ganadora) {
+      return `✅ La votación ya cerró. Formación elegida:\n\n${formatearPropuestaVotacion(ganadora)}`;
+    }
+  }
+
+  return formatearVotacionFormacion(partidoId);
+}
+
 function formatearEquipos(partidoId) {
   const titulares = obtenerTitularesPorEquipo(partidoId);
 
@@ -79,6 +172,15 @@ function generarRespuestaLocal(grupoId, textoMensaje) {
   }
 
   if (
+    texto.includes('votacion') ||
+    texto.includes('votación') ||
+    texto.includes('voto') ||
+    texto.includes('votos')
+  ) {
+    return formatearEstadoVotacion(partido.id);
+  }
+
+  if (
     texto.includes('equipos') ||
     texto.includes('equipo') ||
     texto.includes('formacion') ||
@@ -86,6 +188,9 @@ function generarRespuestaLocal(grupoId, textoMensaje) {
     texto.includes('alineacion') ||
     texto.includes('alineación')
   ) {
+    if (hayVotacionFormacionAbierta(partido.id)) {
+      return formatearVotacionFormacion(partido.id);
+    }
     return formatearEquipos(partido.id);
   }
 
