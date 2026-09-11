@@ -59,7 +59,7 @@ function formatearEquipos(partidoId) {
   if (equipoB.length > 0) bloques.push(`⚫ *Equipo B* (${equipoB.length})\n${equipoB.join('\n')}`);
 
   if (bloques.length === 0) {
-    return 'Todavía no están armados los equipos para el próximo partido.';
+    return `Todavía no están armados los equipos para el próximo partido. El listado de titulares es: ${titulares.map((j) => j.nombre).join(', ')}`;
   }
 
   return bloques.join('\n\n');
