@@ -50,9 +50,6 @@ function obtenerTitularesPorEquipo(partidoId) {
 
 function formatearEquipos(partidoId) {
   const titulares = obtenerTitularesPorEquipo(partidoId);
-  if (titulares.length === 0) {
-    return 'Todavía no están armados los equipos para el próximo partido.';
-  }
 
   const equipoA = titulares.filter((jugador) => jugador.equipo === 'A').map((jugador) => `• ${jugador.nombre}`);
   const equipoB = titulares.filter((jugador) => jugador.equipo === 'B').map((jugador) => `• ${jugador.nombre}`);
@@ -60,6 +57,10 @@ function formatearEquipos(partidoId) {
   const bloques = [];
   if (equipoA.length > 0) bloques.push(`⚪ *Equipo A* (${equipoA.length})\n${equipoA.join('\n')}`);
   if (equipoB.length > 0) bloques.push(`⚫ *Equipo B* (${equipoB.length})\n${equipoB.join('\n')}`);
+
+  if (bloques.length === 0) {
+    return 'Todavía no están armados los equipos para el próximo partido.';
+  }
 
   return bloques.join('\n\n');
 }
