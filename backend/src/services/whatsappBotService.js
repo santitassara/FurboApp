@@ -34,6 +34,36 @@ function contarInscriptos(partidoId, tipo) {
     .get(partidoId, tipo).total;
 }
 
+function obtenerTitularesPorEquipo(partidoId) {
+  return db
+    .prepare(
+      `SELECT i.equipo AS equipo, u.nombre AS nombre
+       FROM Inscripciones i
+       JOIN Usuarios u ON u.uid = i.usuarioId
+       WHERE i.partidoId = ?
+         AND i.estado = 'anotado'
+         AND i.tipo = 'titular'
+       ORDER BY i.equipo ASC, i.ordenLinea ASC, u.nombre ASC`
+    )
+    .all(partidoId);
+}
+
+function formatearEquipos(partidoId) {
+  const titulares = obtenerTitularesPorEquipo(partidoId);
+  if (titulares.length === 0) {
+    return 'Todavía no están armados los equipos para el próximo partido.';
+  }
+
+  const equipoA = titulares.filter((jugador) => jugador.equipo === 'A').map((jugador) => `• ${jugador.nombre}`);
+  const equipoB = titulares.filter((jugador) => jugador.equipo === 'B').map((jugador) => `• ${jugador.nombre}`);
+
+  const bloques = [];
+  if (equipoA.length > 0) bloques.push(`⚪ *Equipo A* (${equipoA.length})\n${equipoA.join('\n')}`);
+  if (equipoB.length > 0) bloques.push(`⚫ *Equipo B* (${equipoB.length})\n${equipoB.join('\n')}`);
+
+  return bloques.join('\n\n');
+}
+
 function generarRespuestaLocal(grupoId, textoMensaje) {
   const texto = textoMensaje.toLowerCase();
   const partido = obtenerProximoPartido(grupoId);
@@ -45,6 +75,17 @@ function generarRespuestaLocal(grupoId, textoMensaje) {
   if (texto.includes('cuándo') || texto.includes('cuando') || texto.includes('hora') || texto.includes('dia')) {
     const { dia, hora } = formatearDiaYHora(partido.fecha);
     return `📅 El próximo partido es el *${dia}* a las *${hora}*.`;
+  }
+
+  if (
+    texto.includes('equipos') ||
+    texto.includes('equipo') ||
+    texto.includes('formacion') ||
+    texto.includes('formación') ||
+    texto.includes('alineacion') ||
+    texto.includes('alineación')
+  ) {
+    return formatearEquipos(partido.id);
   }
 
   if (
@@ -61,10 +102,10 @@ function generarRespuestaLocal(grupoId, textoMensaje) {
   }
 
   if (texto.includes('hola') || texto.includes('buenas')) {
-    return '¡Hola! ⚽ Preguntame *cuándo* jugamos o *cuántos* estamos anotados.';
+    return '¡Hola! ⚽ Preguntame *cuándo* jugamos, *cuántos* estamos anotados o cómo quedaron los *equipos*.';
   }
 
-  return '⚽ No entendí bien. Podés preguntarme *cuándo* jugamos o *cuántos* están anotados.';
+  return '⚽ No entendí bien. Podés preguntarme *cuándo* jugamos, *cuántos* están anotados o cómo quedaron los *equipos*.';
 }
 
 function normalizarJid(jid) {
