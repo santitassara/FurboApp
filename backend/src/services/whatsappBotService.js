@@ -1,6 +1,7 @@
 const { db } = require('../config/db');
 
 const ZONA = 'America/Argentina/Buenos_Aires';
+const TOP_RANKING = 5;
 
 function formatearDiaYHora(fechaIso) {
   const fecha = new Date(fechaIso);
@@ -158,8 +159,306 @@ function formatearEquipos(partidoId) {
   return bloques.join('\n\n');
 }
 
+function obtenerUltimoPartidoJugado(grupoId) {
+  return db
+    .prepare("SELECT * FROM Partidos WHERE grupoId = ? AND estado = 'jugado' ORDER BY fecha DESC LIMIT 1")
+    .get(grupoId);
+}
+
+function obtenerGoleadoresPartido(partidoId) {
+  return db
+    .prepare(
+      `SELECT u.nombre AS nombre, COUNT(*) AS goles
+       FROM Goles g
+       JOIN Usuarios u ON u.uid = g.usuarioId
+       WHERE g.partidoId = ? AND g.enContra = 0
+       GROUP BY g.usuarioId
+       ORDER BY goles DESC, nombre ASC`
+    )
+    .all(partidoId);
+}
+
+function obtenerAsistidoresPartido(partidoId) {
+  return db
+    .prepare(
+      `SELECT u.nombre AS nombre, COUNT(*) AS asistencias
+       FROM Goles g
+       JOIN Usuarios u ON u.uid = g.asistenciaUsuarioId
+       WHERE g.partidoId = ? AND g.asistenciaUsuarioId IS NOT NULL
+       GROUP BY g.asistenciaUsuarioId
+       ORDER BY asistencias DESC, nombre ASC`
+    )
+    .all(partidoId);
+}
+
+function obtenerMvpPartido(partidoId) {
+  const votos = db
+    .prepare(
+      `SELECT v.jugadorId AS jugadorId, u.nombre AS nombre, COUNT(*) AS votos
+       FROM VotosMvp v
+       JOIN Usuarios u ON u.uid = v.jugadorId
+       WHERE v.partidoId = ?
+       GROUP BY v.jugadorId
+       ORDER BY votos DESC`
+    )
+    .all(partidoId);
+
+  if (votos.length === 0) return [];
+  const maxVotos = votos[0].votos;
+  return votos.filter((fila) => fila.votos === maxVotos);
+}
+
+function obtenerGoleadoresGrupo(grupoId) {
+  return db
+    .prepare(
+      `SELECT u.nombre AS nombre, COUNT(*) AS goles
+       FROM Goles g
+       JOIN Partidos p ON p.id = g.partidoId
+       JOIN Usuarios u ON u.uid = g.usuarioId
+       WHERE p.grupoId = ? AND g.enContra = 0
+       GROUP BY g.usuarioId
+       ORDER BY goles DESC, nombre ASC
+       LIMIT ?`
+    )
+    .all(grupoId, TOP_RANKING);
+}
+
+function obtenerAsistidoresGrupo(grupoId) {
+  return db
+    .prepare(
+      `SELECT u.nombre AS nombre, COUNT(*) AS asistencias
+       FROM Goles g
+       JOIN Partidos p ON p.id = g.partidoId
+       JOIN Usuarios u ON u.uid = g.asistenciaUsuarioId
+       WHERE p.grupoId = ? AND g.asistenciaUsuarioId IS NOT NULL
+       GROUP BY g.asistenciaUsuarioId
+       ORDER BY asistencias DESC, nombre ASC
+       LIMIT ?`
+    )
+    .all(grupoId, TOP_RANKING);
+}
+
+function obtenerMvpsGrupo(grupoId) {
+  return db
+    .prepare(
+      `SELECT u.nombre AS nombre, COUNT(*) AS mvps
+       FROM (
+         SELECT v.partidoId AS partidoId, v.jugadorId AS jugadorId, COUNT(*) AS votos,
+                MAX(COUNT(*)) OVER (PARTITION BY v.partidoId) AS maxVotos
+         FROM VotosMvp v
+         JOIN Partidos p ON p.id = v.partidoId
+         WHERE p.grupoId = ?
+         GROUP BY v.partidoId, v.jugadorId
+       ) t
+       JOIN Usuarios u ON u.uid = t.jugadorId
+       WHERE t.votos = t.maxVotos
+       GROUP BY t.jugadorId
+       ORDER BY mvps DESC, u.nombre ASC
+       LIMIT ?`
+    )
+    .all(grupoId, TOP_RANKING);
+}
+
+function formatearListaConCantidad(filas, campoCantidad, etiquetaSingular, etiquetaPlural) {
+  return filas
+    .map((fila) => {
+      const cantidad = fila[campoCantidad];
+      const etiqueta = cantidad === 1 ? etiquetaSingular : etiquetaPlural;
+      return `• ${fila.nombre} (${cantidad} ${etiqueta})`;
+    })
+    .join('\n');
+}
+
+function formatearGoleadorUltimoPartido(grupoId) {
+  const partido = obtenerUltimoPartidoJugado(grupoId);
+  if (!partido) return 'Todavía no se jugó ningún partido en el grupo.';
+
+  const goleadores = obtenerGoleadoresPartido(partido.id);
+  if (goleadores.length === 0) return 'En el último partido no hubo goles registrados.';
+
+  const maxGoles = goleadores[0].goles;
+  const top = goleadores.filter((fila) => fila.goles === maxGoles);
+  return `⚽ Goleador/es del último partido:\n${formatearListaConCantidad(top, 'goles', 'gol', 'goles')}`;
+}
+
+function formatearAsistidorUltimoPartido(grupoId) {
+  const partido = obtenerUltimoPartidoJugado(grupoId);
+  if (!partido) return 'Todavía no se jugó ningún partido en el grupo.';
+
+  const asistidores = obtenerAsistidoresPartido(partido.id);
+  if (asistidores.length === 0) return 'En el último partido no hubo asistencias registradas.';
+
+  const maxAsistencias = asistidores[0].asistencias;
+  const top = asistidores.filter((fila) => fila.asistencias === maxAsistencias);
+  return `🎯 Máximo/s asistidor/es del último partido:\n${formatearListaConCantidad(top, 'asistencias', 'asistencia', 'asistencias')}`;
+}
+
+function formatearMvpUltimoPartido(grupoId) {
+  const partido = obtenerUltimoPartidoJugado(grupoId);
+  if (!partido) return 'Todavía no se jugó ningún partido en el grupo.';
+
+  const mvps = obtenerMvpPartido(partido.id);
+  if (mvps.length === 0) return 'En el último partido todavía no se votó el MVP.';
+
+  return `🏆 MVP del último partido:\n${formatearListaConCantidad(mvps, 'votos', 'voto', 'votos')}`;
+}
+
+function formatearEstadisticasUltimoPartido(grupoId) {
+  const partido = obtenerUltimoPartidoJugado(grupoId);
+  if (!partido) return 'Todavía no se jugó ningún partido en el grupo.';
+
+  const goleadores = obtenerGoleadoresPartido(partido.id);
+  const asistidores = obtenerAsistidoresPartido(partido.id);
+  const mvps = obtenerMvpPartido(partido.id);
+
+  const bloques = [];
+
+  if (goleadores.length > 0) {
+    const maxGoles = goleadores[0].goles;
+    const top = goleadores.filter((fila) => fila.goles === maxGoles);
+    bloques.push(`⚽ *Goleador/es*\n${formatearListaConCantidad(top, 'goles', 'gol', 'goles')}`);
+  } else {
+    bloques.push('⚽ *Goleador/es*\nSin goles registrados.');
+  }
+
+  if (asistidores.length > 0) {
+    const maxAsistencias = asistidores[0].asistencias;
+    const top = asistidores.filter((fila) => fila.asistencias === maxAsistencias);
+    bloques.push(`🎯 *Asistidor/es*\n${formatearListaConCantidad(top, 'asistencias', 'asistencia', 'asistencias')}`);
+  } else {
+    bloques.push('🎯 *Asistidor/es*\nSin asistencias registradas.');
+  }
+
+  if (mvps.length > 0) {
+    bloques.push(`🏆 *MVP*\n${formatearListaConCantidad(mvps, 'votos', 'voto', 'votos')}`);
+  } else {
+    bloques.push('🏆 *MVP*\nTodavía no se votó.');
+  }
+
+  return `📊 Estadísticas del último partido:\n\n${bloques.join('\n\n')}`;
+}
+
+function formatearGoleadoresGrupo(grupoId) {
+  const goleadores = obtenerGoleadoresGrupo(grupoId);
+  if (goleadores.length === 0) return 'Todavía no hay goles registrados en el grupo.';
+  return `⚽ Goleadores del grupo:\n${formatearListaConCantidad(goleadores, 'goles', 'gol', 'goles')}`;
+}
+
+function formatearAsistidoresGrupo(grupoId) {
+  const asistidores = obtenerAsistidoresGrupo(grupoId);
+  if (asistidores.length === 0) return 'Todavía no hay asistencias registradas en el grupo.';
+  return `🎯 Máximos asistidores del grupo:\n${formatearListaConCantidad(asistidores, 'asistencias', 'asistencia', 'asistencias')}`;
+}
+
+function formatearEstadisticasGrupo(grupoId) {
+  const goleadores = obtenerGoleadoresGrupo(grupoId);
+  const asistidores = obtenerAsistidoresGrupo(grupoId);
+  const mvps = obtenerMvpsGrupo(grupoId);
+
+  const bloques = [
+    `⚽ *Goleadores*\n${
+      goleadores.length > 0 ? formatearListaConCantidad(goleadores, 'goles', 'gol', 'goles') : 'Sin goles registrados.'
+    }`,
+    `🎯 *Asistidores*\n${
+      asistidores.length > 0
+        ? formatearListaConCantidad(asistidores, 'asistencias', 'asistencia', 'asistencias')
+        : 'Sin asistencias registradas.'
+    }`,
+    `🏆 *MVPs*\n${mvps.length > 0 ? formatearListaConCantidad(mvps, 'mvps', 'MVP', 'MVPs') : 'Sin MVPs registrados.'}`,
+  ];
+
+  return `📊 Estadísticas del grupo:\n\n${bloques.join('\n\n')}`;
+}
+
+function parsearFechaDelTexto(texto) {
+  const match = texto.match(/(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/);
+  if (!match) return null;
+
+  const dia = Number(match[1]);
+  const mes = Number(match[2]);
+  let anio = match[3] ? Number(match[3]) : null;
+  if (anio !== null && anio < 100) anio += 2000;
+
+  if (dia < 1 || dia > 31 || mes < 1 || mes > 12) return null;
+  return { dia, mes, anio };
+}
+
+function obtenerPartidoJugadoPorFecha(grupoId, { dia, mes, anio }) {
+  const partidos = db
+    .prepare("SELECT * FROM Partidos WHERE grupoId = ? AND estado = 'jugado' ORDER BY fecha DESC")
+    .all(grupoId);
+
+  return (
+    partidos.find((partido) => {
+      const fecha = new Date(partido.fecha);
+      const diaLocal = Number(fecha.toLocaleDateString('es-AR', { day: '2-digit', timeZone: ZONA }));
+      const mesLocal = Number(fecha.toLocaleDateString('es-AR', { month: '2-digit', timeZone: ZONA }));
+      const anioLocal = Number(fecha.toLocaleDateString('es-AR', { year: 'numeric', timeZone: ZONA }));
+
+      if (diaLocal !== dia || mesLocal !== mes) return false;
+      if (anio !== null && anioLocal !== anio) return false;
+      return true;
+    }) || null
+  );
+}
+
+function obtenerMarcadorPartido(partidoId) {
+  const filas = db.prepare('SELECT equipo FROM Goles WHERE partidoId = ?').all(partidoId);
+  const marcador = { A: 0, B: 0 };
+  for (const fila of filas) marcador[fila.equipo] += 1;
+  return marcador;
+}
+
+function formatearResultadoPartido(partido) {
+  const { dia } = formatearDiaYHora(partido.fecha);
+  const marcador = obtenerMarcadorPartido(partido.id);
+  return `🏟️ Resultado del partido del *${dia}*:\n⚪ Equipo A *${marcador.A}* - *${marcador.B}* Equipo B ⚫`;
+}
+
+function formatearResultadoUltimoPartido(grupoId) {
+  const partido = obtenerUltimoPartidoJugado(grupoId);
+  if (!partido) return 'Todavía no se jugó ningún partido en el grupo.';
+  return formatearResultadoPartido(partido);
+}
+
+function formatearResultadoPorFecha(grupoId, fecha) {
+  const partido = obtenerPartidoJugadoPorFecha(grupoId, fecha);
+  if (!partido) return 'No encontré ningún partido jugado en esa fecha.';
+  return formatearResultadoPartido(partido);
+}
+
 function generarRespuestaLocal(grupoId, textoMensaje) {
   const texto = textoMensaje.toLowerCase();
+
+  const preguntaPorUltimoPartido = texto.includes('ultimo') || texto.includes('último');
+  const preguntaPorEstadisticas = texto.includes('estadistica') || texto.includes('estadística');
+  const preguntaPorGoleador = texto.includes('goleador');
+  const preguntaPorMvp = texto.includes('mvp');
+  const preguntaPorAsistidor = texto.includes('asistidor') || texto.includes('asistencia');
+  const preguntaPorResultado =
+    texto.includes('resultado') || texto.includes('salio') || texto.includes('salió');
+
+  if (preguntaPorResultado) {
+    const fecha = parsearFechaDelTexto(texto);
+    return fecha ? formatearResultadoPorFecha(grupoId, fecha) : formatearResultadoUltimoPartido(grupoId);
+  }
+
+  if (preguntaPorEstadisticas) {
+    return preguntaPorUltimoPartido ? formatearEstadisticasUltimoPartido(grupoId) : formatearEstadisticasGrupo(grupoId);
+  }
+
+  if (preguntaPorGoleador) {
+    return preguntaPorUltimoPartido ? formatearGoleadorUltimoPartido(grupoId) : formatearGoleadoresGrupo(grupoId);
+  }
+
+  if (preguntaPorMvp) {
+    return formatearMvpUltimoPartido(grupoId);
+  }
+
+  if (preguntaPorAsistidor) {
+    return preguntaPorUltimoPartido ? formatearAsistidorUltimoPartido(grupoId) : formatearAsistidoresGrupo(grupoId);
+  }
+
   const partido = obtenerProximoPartido(grupoId);
 
   if (!partido) {
