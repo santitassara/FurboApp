@@ -519,6 +519,24 @@ function normalizarJid(jid) {
   return `${usuario.split(':')[0]}@${dominio}`;
 }
 
+// NUEVA FUNCIÓN: Intercepta el mensaje para extraer a los participantes si dice @todos
+async function enviarMensajeConMenciones(socket, chatId, texto, mensajeCitado = null) {
+  let opcionesMensaje = { text: texto };
+
+  if (texto.includes('@todos')) {
+    try {
+      const groupMetadata = await socket.groupMetadata(chatId);
+      const participantes = groupMetadata.participants.map((p) => p.id);
+      opcionesMensaje.mentions = participantes;
+    } catch (error) {
+      console.error('[BOT] Error al obtener participantes del grupo:', error.message);
+    }
+  }
+
+  const opcionesExtra = mensajeCitado ? { quoted: mensajeCitado } : {};
+  return await socket.sendMessage(chatId, opcionesMensaje, opcionesExtra);
+}
+
 function registrarListenerBot(socket) {
   socket.ev.on('messages.upsert', async (m) => {
     const msg = m.messages[0];
@@ -526,7 +544,6 @@ function registrarListenerBot(socket) {
 
     const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
     const mentions = (msg.message.extendedTextMessage?.contextInfo?.mentionedJid || []).map(normalizarJid);
-    // El bot puede ser mencionado como @s.whatsapp.net o, en grupos con addressingMode 'lid', como @lid.
     const idsPropios = [socket.user?.id, socket.user?.lid].filter(Boolean).map(normalizarJid);
 
     if (!mentions.some((jid) => idsPropios.includes(jid))) return;
@@ -539,12 +556,23 @@ function registrarListenerBot(socket) {
 
     try {
       await socket.sendPresenceUpdate('composing', chatId);
-      const respuesta = generarRespuestaLocal(grupo.id, cleanText);
-      await socket.sendMessage(chatId, { text: respuesta }, { quoted: msg });
+      let respuesta = generarRespuestaLocal(grupo.id, cleanText);
+      
+      // Si el texto incluye "@todos", el bot repite el mensaje mencionando a todos
+      if (cleanText.includes('@todos')) {
+         respuesta = cleanText; 
+      }
+
+      // Reemplazamos socket.sendMessage por nuestra nueva función
+      await enviarMensajeConMenciones(socket, chatId, respuesta, msg);
     } catch (error) {
       console.error('[BOT] Error al procesar la respuesta:', error.message);
     }
   });
 }
 
-module.exports = { registrarListenerBot, generarRespuestaLocal };
+module.exports = { 
+  registrarListenerBot, 
+  generarRespuestaLocal, 
+  enviarMensajeConMenciones // Se exporta por si mandás mensajes desde otro archivo/endpoint
+};
