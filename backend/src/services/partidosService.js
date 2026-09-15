@@ -41,11 +41,6 @@ async function crearPartido({
     throw crearErrorValidacion('valorCuota debe ser un entero mayor o igual a 0');
   }
 
-  const numeroFila = db
-    .prepare('SELECT COALESCE(MAX(numero), 0) as maximo FROM Partidos WHERE grupoId = ?')
-    .get(grupoId);
-  const numero = (numeroFila?.maximo || 0) + 1;
-
   const direccionLimpia = typeof direccion === 'string' ? direccion.trim() : '';
   let lat = null;
   let lon = null;
@@ -66,7 +61,6 @@ async function crearPartido({
     cupoTitulares,
     cupoSuplentes,
     recordatorioEnviado: 0,
-    numero,
     estadio: typeof estadio === 'string' && estadio.trim() ? estadio.trim() : null,
     tipoSuelo: typeof tipoSuelo === 'string' && tipoSuelo.trim() ? tipoSuelo.trim() : null,
     direccion: direccionLimpia || null,
@@ -78,8 +72,13 @@ async function crearPartido({
     `INSERT INTO Partidos
        (id, fecha, estado, creadoPor, grupoId, cupoTitulares, cupoSuplentes, numero, estadio, tipoSuelo, direccion, lat, lon, valorCuota)
      VALUES
-       (@id, @fecha, @estado, @creadoPor, @grupoId, @cupoTitulares, @cupoSuplentes, @numero, @estadio, @tipoSuelo, @direccion, @lat, @lon, @valorCuota)`
+       (@id, @fecha, @estado, @creadoPor, @grupoId, @cupoTitulares, @cupoSuplentes,
+         (SELECT COALESCE(MAX(numero), 0) + 1 FROM Partidos WHERE grupoId = @grupoId),
+         @estadio, @tipoSuelo, @direccion, @lat, @lon, @valorCuota)`
   ).run(nuevoPartido);
+
+  const filaNumero = db.prepare('SELECT numero FROM Partidos WHERE id = ?').get(nuevoPartido.id);
+  nuevoPartido.numero = filaNumero.numero;
 
   notificacionesService.enviarNotificacionNuevoPartido(nuevoPartido.id).catch((error) => {
     console.error('Error enviando notificación de nuevo partido:', error.message);
@@ -99,7 +98,9 @@ async function obtenerPartido(partidoId, grupoId) {
 }
 
 function listarPartidosVisibles(grupoId) {
-  const abiertos = db.prepare("SELECT * FROM Partidos WHERE estado = 'abierto' AND grupoId = ?").all(grupoId);
+  const abiertos = db
+    .prepare("SELECT * FROM Partidos WHERE estado = 'abierto' AND grupoId = ? ORDER BY fecha ASC")
+    .all(grupoId);
   const ultimoNoAbierto = db
     .prepare("SELECT * FROM Partidos WHERE estado IN ('cerrado','jugado') AND grupoId = ? ORDER BY fecha DESC LIMIT 1")
     .get(grupoId);
