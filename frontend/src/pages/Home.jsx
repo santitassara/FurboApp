@@ -272,9 +272,6 @@ export default function Home() {
                       }}
                     />
                   )}
-
-                  <MvpUltimaFecha grupoId={grupoActivo.id} />
-                  <LideresDelMes grupoId={grupoActivo.id} />
                 </div>
               </PartidoConEstado>
             ) : (
@@ -333,6 +330,13 @@ export default function Home() {
               </PartidoConEstado>
             )
           )}
+        </div>
+      )}
+
+      {!cargando && partidos.length > 0 && (
+        <div className="flex flex-col gap-6">
+          <MvpUltimaFecha grupoId={grupoActivo.id} />
+          <LideresDelMes grupoId={grupoActivo.id} />
         </div>
       )}
 

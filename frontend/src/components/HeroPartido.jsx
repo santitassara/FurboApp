@@ -14,7 +14,14 @@ export default function HeroPartido({
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <h1 className="font-display text-4xl leading-none text-white">{tituloHeroPartido(partido.fecha)}</h1>
+      <div className="flex flex-col gap-2">
+        <h2 className="font-display text-4xl leading-none text-white">{tituloHeroPartido(partido.fecha)}</h2>
+        {inscripcionUsuario && (
+          <span className="w-fit rounded-full bg-pasto-600/20 px-3 py-1 text-xs font-bold uppercase text-pasto-500">
+            {inscripcionUsuario.tipo === 'titular' ? 'Sos titular' : 'Sos suplente'}
+          </span>
+        )}
+      </div>
 
       {inscripcionUsuario ? (
         <Boton variante="peligro" onClick={onSolicitarBaja} disabled={procesando}>
