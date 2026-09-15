@@ -53,7 +53,14 @@ CREATE TABLE IF NOT EXISTS Partidos (
   recordatorioEnviado INTEGER NOT NULL DEFAULT 0,
   recordatorioPostPartidoEnviado INTEGER NOT NULL DEFAULT 0,
   votacionCerrada INTEGER NOT NULL DEFAULT 0,
-  beelupUrl TEXT
+  beelupUrl TEXT,
+  numero INTEGER,
+  estadio TEXT,
+  tipoSuelo TEXT,
+  direccion TEXT,
+  lat REAL,
+  lon REAL,
+  valorCuota INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS Inscripciones (

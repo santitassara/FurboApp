@@ -279,4 +279,21 @@ if (!tieneWhatsappGrupoJid) {
   db.exec('ALTER TABLE Grupos ADD COLUMN whatsappGrupoJid TEXT');
 }
 
+const columnasPartidosExtendido = {
+  numero: 'INTEGER',
+  estadio: 'TEXT',
+  tipoSuelo: 'TEXT',
+  direccion: 'TEXT',
+  lat: 'REAL',
+  lon: 'REAL',
+  valorCuota: 'INTEGER',
+};
+const columnasPartidosExtendidoActuales = db.prepare('PRAGMA table_info(Partidos)').all();
+for (const [columna, tipo] of Object.entries(columnasPartidosExtendido)) {
+  const yaExiste = columnasPartidosExtendidoActuales.some((c) => c.name === columna);
+  if (!yaExiste) {
+    db.exec(`ALTER TABLE Partidos ADD COLUMN ${columna} ${tipo}`);
+  }
+}
+
 module.exports = { db };
