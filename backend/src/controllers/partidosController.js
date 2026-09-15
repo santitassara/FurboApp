@@ -10,7 +10,7 @@ async function listar(req, res) {
       ...partido,
       ocupados: await inscripcionesService.contarOcupados(partido.id),
       clima:
-        partido.lat != null && partido.lon != null
+        partido.estado === 'abierto' && partido.lat != null && partido.lon != null
           ? await climaService.obtenerPronostico(partido.lat, partido.lon, partido.fecha)
           : null,
     }))

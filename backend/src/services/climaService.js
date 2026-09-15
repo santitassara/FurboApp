@@ -7,7 +7,7 @@ async function geocodificar(direccion) {
     const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(
       direccion
     )}&limit=1&appid=${process.env.OPENWEATHER_API_KEY}`;
-    const respuesta = await fetch(url);
+    const respuesta = await fetch(url, { signal: AbortSignal.timeout(3000) });
     if (!respuesta.ok) return null;
     const datos = await respuesta.json();
     if (!Array.isArray(datos) || datos.length === 0) return null;
@@ -21,13 +21,21 @@ async function geocodificar(direccion) {
 async function obtenerPronostico(lat, lon, fechaPartidoISO) {
   if (lat == null || lon == null || !process.env.OPENWEATHER_API_KEY) return null;
 
-  const fechaPartido = new Date(fechaPartidoISO);
+  let fechaPartido;
+  let claveCache;
+  try {
+    fechaPartido = new Date(fechaPartidoISO);
+    claveCache = `${lat.toFixed(2)},${lon.toFixed(2)},${fechaPartido.toISOString().slice(0, 10)}`;
+  } catch (error) {
+    console.error('Error parseando la fecha del partido para el pronóstico:', error.message);
+    return null;
+  }
+
   const diffMs = fechaPartido.getTime() - Date.now();
   if (diffMs > 5 * 24 * 60 * 60 * 1000) {
     return { disponible: false };
   }
 
-  const claveCache = `${lat.toFixed(2)},${lon.toFixed(2)},${fechaPartido.toISOString().slice(0, 10)}`;
   const cacheado = cachePronostico.get(claveCache);
   if (cacheado && Date.now() - cacheado.timestamp < CACHE_TTL_MS) {
     return cacheado.valor;
@@ -35,11 +43,17 @@ async function obtenerPronostico(lat, lon, fechaPartidoISO) {
 
   try {
     const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=es&appid=${process.env.OPENWEATHER_API_KEY}`;
-    const respuesta = await fetch(url);
-    if (!respuesta.ok) return null;
+    const respuesta = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    if (!respuesta.ok) {
+      cachePronostico.set(claveCache, { valor: null, timestamp: Date.now() });
+      return null;
+    }
     const datos = await respuesta.json();
     const lista = datos.list || [];
-    if (lista.length === 0) return null;
+    if (lista.length === 0) {
+      cachePronostico.set(claveCache, { valor: null, timestamp: Date.now() });
+      return null;
+    }
 
     const masCercano = lista.reduce((mejor, actual) => {
       const diffActual = Math.abs(new Date(actual.dt_txt).getTime() - fechaPartido.getTime());
@@ -57,6 +71,7 @@ async function obtenerPronostico(lat, lon, fechaPartidoISO) {
     return valor;
   } catch (error) {
     console.error('Error obteniendo pronóstico:', error.message);
+    cachePronostico.set(claveCache, { valor: null, timestamp: Date.now() });
     return null;
   }
 }
