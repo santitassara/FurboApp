@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 const { db } = require('../config/db');
 const notificacionesService = require('./notificacionesService');
 const whatsappNotificacionesService = require('./whatsappNotificacionesService');
+const climaService = require('./climaService');
 
 function crearErrorValidacion(mensaje) {
   const error = new Error(mensaje);
@@ -15,7 +16,17 @@ function crearError(mensaje, status) {
   return error;
 }
 
-async function crearPartido({ fecha, cupoTitulares, cupoSuplentes, creadoPor, grupoId }) {
+async function crearPartido({
+  fecha,
+  cupoTitulares,
+  cupoSuplentes,
+  creadoPor,
+  grupoId,
+  estadio,
+  tipoSuelo,
+  direccion,
+  valorCuota,
+}) {
   const fechaPartido = new Date(fecha);
   if (Number.isNaN(fechaPartido.getTime()) || fechaPartido <= new Date()) {
     throw crearErrorValidacion('La fecha del partido debe ser válida y futura');
@@ -25,6 +36,25 @@ async function crearPartido({ fecha, cupoTitulares, cupoSuplentes, creadoPor, gr
   }
   if (!Number.isInteger(cupoSuplentes) || cupoSuplentes < 0) {
     throw crearErrorValidacion('cupoSuplentes debe ser un entero mayor o igual a 0');
+  }
+  if (valorCuota !== undefined && valorCuota !== null && (!Number.isInteger(valorCuota) || valorCuota < 0)) {
+    throw crearErrorValidacion('valorCuota debe ser un entero mayor o igual a 0');
+  }
+
+  const numeroFila = db
+    .prepare('SELECT COALESCE(MAX(numero), 0) as maximo FROM Partidos WHERE grupoId = ?')
+    .get(grupoId);
+  const numero = (numeroFila?.maximo || 0) + 1;
+
+  const direccionLimpia = typeof direccion === 'string' ? direccion.trim() : '';
+  let lat = null;
+  let lon = null;
+  if (direccionLimpia) {
+    const coordenadas = await climaService.geocodificar(direccionLimpia);
+    if (coordenadas) {
+      lat = coordenadas.lat;
+      lon = coordenadas.lon;
+    }
   }
 
   const nuevoPartido = {
@@ -36,10 +66,19 @@ async function crearPartido({ fecha, cupoTitulares, cupoSuplentes, creadoPor, gr
     cupoTitulares,
     cupoSuplentes,
     recordatorioEnviado: 0,
+    numero,
+    estadio: typeof estadio === 'string' && estadio.trim() ? estadio.trim() : null,
+    tipoSuelo: typeof tipoSuelo === 'string' && tipoSuelo.trim() ? tipoSuelo.trim() : null,
+    direccion: direccionLimpia || null,
+    lat,
+    lon,
+    valorCuota: valorCuota ?? null,
   };
   db.prepare(
-    `INSERT INTO Partidos (id, fecha, estado, creadoPor, grupoId, cupoTitulares, cupoSuplentes)
-     VALUES (@id, @fecha, @estado, @creadoPor, @grupoId, @cupoTitulares, @cupoSuplentes)`
+    `INSERT INTO Partidos
+       (id, fecha, estado, creadoPor, grupoId, cupoTitulares, cupoSuplentes, numero, estadio, tipoSuelo, direccion, lat, lon, valorCuota)
+     VALUES
+       (@id, @fecha, @estado, @creadoPor, @grupoId, @cupoTitulares, @cupoSuplentes, @numero, @estadio, @tipoSuelo, @direccion, @lat, @lon, @valorCuota)`
   ).run(nuevoPartido);
 
   notificacionesService.enviarNotificacionNuevoPartido(nuevoPartido.id).catch((error) => {
