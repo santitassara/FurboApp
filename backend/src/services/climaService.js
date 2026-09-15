@@ -1,17 +1,45 @@
 const CACHE_TTL_MS = 60 * 60 * 1000;
 const cachePronostico = new Map();
 
+const REGEX_CPA_ARGENTINO = /\b[A-Z]\d{4}[A-Z]{3}\b/gi;
+const REGEX_GRAN_BUENOS_AIRES = /\bgran\s+buenos\s+aires\b|\bgba\b/gi;
+
+function limpiarDireccion(direccion) {
+  return direccion
+    .replace(REGEX_CPA_ARGENTINO, '')
+    .replace(REGEX_GRAN_BUENOS_AIRES, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/,\s*,/g, ',')
+    .replace(/^\s*,|,\s*$/g, '')
+    .trim();
+}
+
+async function buscarEnNominatim(consulta) {
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(consulta)}&format=json&limit=1`;
+  const respuesta = await fetch(url, {
+    signal: AbortSignal.timeout(3000),
+    headers: { 'User-Agent': 'FurboApp (https://github.com/santitassara/FurboApp)' },
+  });
+  if (!respuesta.ok) return null;
+  const datos = await respuesta.json();
+  if (!Array.isArray(datos) || datos.length === 0) return null;
+  return { lat: Number(datos[0].lat), lon: Number(datos[0].lon) };
+}
+
 async function geocodificar(direccion) {
-  if (!direccion || !process.env.OPENWEATHER_API_KEY) return null;
+  if (!direccion) return null;
   try {
-    const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(
-      direccion
-    )}&limit=1&appid=${process.env.OPENWEATHER_API_KEY}`;
-    const respuesta = await fetch(url, { signal: AbortSignal.timeout(3000) });
-    if (!respuesta.ok) return null;
-    const datos = await respuesta.json();
-    if (!Array.isArray(datos) || datos.length === 0) return null;
-    return { lat: datos[0].lat, lon: datos[0].lon };
+    const resultado = await buscarEnNominatim(direccion);
+    if (resultado) return resultado;
+
+    // Algunas direcciones argentinas traen el CPA (ej. "B1706EYJ") o la
+    // frase "Gran Buenos Aires"/"GBA" — Nominatim no los reconoce y eso
+    // hace fallar la búsqueda completa. Reintentamos sin ese ruido.
+    const direccionLimpia = limpiarDireccion(direccion);
+    if (direccionLimpia && direccionLimpia !== direccion) {
+      return await buscarEnNominatim(direccionLimpia);
+    }
+    return null;
   } catch (error) {
     console.error('Error geocodificando dirección:', error.message);
     return null;

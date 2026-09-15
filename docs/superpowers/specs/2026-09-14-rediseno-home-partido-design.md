@@ -21,7 +21,8 @@ mes).
 ## Decisiones ya tomadas (no volver a preguntar)
 
 - **Clima**: geocoding automático de la `direccion` cargada por el admin
-  (OpenWeather Geocoding API) → se guardan `lat`/`lon` en el partido. Si el
+  (Nominatim/OpenStreetMap — ver nota en la sección de backend) → se
+  guardan `lat`/`lon` en el partido. Si el
   partido es a más de ~5 días (límite del forecast free tier), se muestra
   el texto "Pronóstico no disponible aún" en vez de ocultar el bloque.
 - **Número de partido**: autoincremental por Grupo (`MAX(numero)+1`),
@@ -74,9 +75,11 @@ vacío); `valorCuota` opcional, si viene debe ser entero ≥ 0.
 arriba. Sin cambios de permisos (sigue siendo solo admin del grupo).
 
 ### `climaService.js` (nuevo)
-- `geocodificar(direccion)`: GET a
-  `https://api.openweathermap.org/geo/1.0/direct` → `{ lat, lon }` o `null`
-  si no matchea nada.
+- `geocodificar(direccion)`: GET a `https://nominatim.openstreetmap.org/search`
+  (OpenStreetMap, sin API key) → `{ lat, lon }` o `null` si no matchea nada.
+  Cambiado desde el geocoder de OpenWeather durante implementación: ese
+  geocoder solo resuelve nombres de ciudad, no direcciones de calle+altura
+  reales como las que carga el admin — Nominatim sí las resuelve.
 - `obtenerPronostico(lat, lon, fechaPartidoISO)`: GET a
   `https://api.openweathermap.org/data/2.5/forecast` (5 día/3h, free
   tier), busca el slot más cercano a la fecha del partido. Si la fecha
