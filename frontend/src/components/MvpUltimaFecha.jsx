@@ -50,7 +50,9 @@ export default function MvpUltimaFecha({ grupoId }) {
 
   return (
     <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
-      <h3 className="mb-3 text-lg font-bold text-white">MVP de la última fecha</h3>
+      <h3 className="mb-3 flex items-center gap-2 text-lg font-bold text-white">
+        <span aria-hidden="true">🏆</span> MVP de la última fecha
+      </h3>
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cancha-700 text-lg font-bold text-white">
           {mvp.nombre?.trim()?.[0]?.toUpperCase() || '?'}

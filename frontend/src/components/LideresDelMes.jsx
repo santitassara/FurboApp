@@ -22,7 +22,9 @@ export default function LideresDelMes({ grupoId }) {
 
   return (
     <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
-      <h3 className="mb-3 text-lg font-bold text-white">Líderes del mes</h3>
+      <h3 className="mb-3 flex items-center gap-2 text-lg font-bold text-white">
+        <span aria-hidden="true">📊</span> Líderes del mes
+      </h3>
       {lideres.goleadores.length > 0 && (
         <ol className="mb-3 flex flex-col gap-1">
           {lideres.goleadores.map((jugador, indice) => (
