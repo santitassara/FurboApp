@@ -10,6 +10,11 @@ import ModalConfirmacionSancion from '../components/ModalConfirmacionSancion';
 import ModalPosicion from '../components/ModalPosicion';
 import PartidoConEstado from '../components/PartidoConEstado';
 import EquiposPosibles from '../components/EquiposPosibles';
+import HeroPartido from '../components/HeroPartido';
+import TarjetaInfoPartido from '../components/TarjetaInfoPartido';
+import ListaConvocadosScroll from '../components/ListaConvocadosScroll';
+import MvpUltimaFecha from '../components/MvpUltimaFecha';
+import LideresDelMes from '../components/LideresDelMes';
 
 export default function Home() {
   const { perfil, actualizarPosicionesPerfil } = useAuth();
@@ -184,62 +189,150 @@ export default function Home() {
       ) : partidos.length === 0 ? (
         <p className="text-white/60">No hay partidos para mostrar por ahora.</p>
       ) : (
-        <div className="flex flex-col gap-4">
-          {partidos.map((partido) => (
-            <PartidoConEstado key={partido.id} partido={partido}>
-              <div
-                className={formacionesPorPartido[partido.id] ? 'grid grid-cols-1 gap-4 md:grid-cols-2' : ''}
-              >
-                {formacionesPorPartido[partido.id] && (
-                  <div id={`mapa-cancha-${partido.id}`}>
-                  <MapaCancha
-                    partidoId={partido.id}
-                    formacion={formacionesPorPartido[partido.id]}
-                    esAdmin={grupoActivo?.rol === 'admin'}
-                    onGuardado={(data) => setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))}
-                    propuestasInfo={propuestasPorPartido[partido.id]}
-                    previewPropuesta={previewPorPartido[partido.id] || null}
-                    onPropuesto={cargarPartidos}
-                    onSalirPreview={() => setPreviewPorPartido((anterior) => ({ ...anterior, [partido.id]: null }))}
-                    jugadores={inscripcionesPorPartido[partido.id] || []}
-                    onPromovido={cargarPartidos}
+        <div className="flex flex-col gap-6">
+          {partidos.map((partido, indice) =>
+            indice === 0 ? (
+              <PartidoConEstado key={partido.id} partido={partido}>
+                <div className="flex flex-col gap-4">
+                  <HeroPartido
+                    partido={partido}
+                    inscripcionUsuario={inscripcionDelUsuario(partido.id)}
+                    estaSancionado={grupoActivo?.estaSancionado}
+                    procesando={partidoEnProceso === partido.id}
+                    onAnotarse={() => setPartidoParaAnotarse(partido.id)}
+                    onSolicitarBaja={() => solicitarBaja(partido)}
                   />
+
+                  <TarjetaInfoPartido partido={partido} />
+
+                  <div
+                    className={formacionesPorPartido[partido.id] ? 'grid grid-cols-1 gap-4 md:grid-cols-2' : ''}
+                  >
+                    <div>
+                      <ListaConvocadosScroll
+                        jugadores={inscripcionesPorPartido[partido.id] || []}
+                        formacion={formacionesPorPartido[partido.id]}
+                        equiposDefinidos={Boolean(propuestasPorPartido[partido.id]?.votacionEquiposCerrada)}
+                        grupoId={grupoActivo.id}
+                      />
+                    </div>
+
+                    {(() => {
+                      const ocupados = partido.ocupados || { titulares: 0, suplentes: 0 };
+                      const esperandoTitulares = ocupados.titulares < partido.cupoTitulares;
+                      if (!formacionesPorPartido[partido.id]) return null;
+                      return (
+                        <div id={`mapa-cancha-${partido.id}`} className="relative">
+                          <div className={esperandoTitulares ? 'pointer-events-none blur-sm' : ''}>
+                            <MapaCancha
+                              partidoId={partido.id}
+                              formacion={formacionesPorPartido[partido.id]}
+                              esAdmin={grupoActivo?.rol === 'admin'}
+                              onGuardado={(data) =>
+                                setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))
+                              }
+                              propuestasInfo={propuestasPorPartido[partido.id]}
+                              previewPropuesta={previewPorPartido[partido.id] || null}
+                              onPropuesto={cargarPartidos}
+                              onSalirPreview={() =>
+                                setPreviewPorPartido((anterior) => ({ ...anterior, [partido.id]: null }))
+                              }
+                              jugadores={inscripcionesPorPartido[partido.id] || []}
+                              onPromovido={cargarPartidos}
+                            />
+                          </div>
+                          {esperandoTitulares && (
+                            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-cancha-900/60">
+                              <p className="rounded-lg bg-black/70 px-4 py-2 text-sm font-bold uppercase tracking-wide text-white">
+                                Esperando a todos los titulares
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
+
+                  {propuestasPorPartido[partido.id]?.propuestas?.length > 0 && (
+                    <EquiposPosibles
+                      grupoId={grupoActivo.id}
+                      partidoId={partido.id}
+                      datos={propuestasPorPartido[partido.id]}
+                      esAdmin={grupoActivo?.rol === 'admin'}
+                      soyTitular={inscripcionDelUsuario(partido.id)?.tipo === 'titular'}
+                      onActualizado={cargarPartidos}
+                      onVerEnCancha={(propuesta) => {
+                        setPreviewPorPartido((anterior) => ({
+                          ...anterior,
+                          [partido.id]: [...propuesta.equipoA, ...propuesta.equipoB],
+                        }));
+                        document
+                          .getElementById(`mapa-cancha-${partido.id}`)
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                    />
+                  )}
+
+                  <MvpUltimaFecha grupoId={grupoActivo.id} />
+                  <LideresDelMes grupoId={grupoActivo.id} />
+                </div>
+              </PartidoConEstado>
+            ) : (
+              <PartidoConEstado key={partido.id} partido={partido}>
+                <div
+                  className={formacionesPorPartido[partido.id] ? 'grid grid-cols-1 gap-4 md:grid-cols-2' : ''}
+                >
+                  {formacionesPorPartido[partido.id] && (
+                    <div id={`mapa-cancha-${partido.id}`}>
+                      <MapaCancha
+                        partidoId={partido.id}
+                        formacion={formacionesPorPartido[partido.id]}
+                        esAdmin={grupoActivo?.rol === 'admin'}
+                        onGuardado={(data) => setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))}
+                        propuestasInfo={propuestasPorPartido[partido.id]}
+                        previewPropuesta={previewPorPartido[partido.id] || null}
+                        onPropuesto={cargarPartidos}
+                        onSalirPreview={() => setPreviewPorPartido((anterior) => ({ ...anterior, [partido.id]: null }))}
+                        jugadores={inscripcionesPorPartido[partido.id] || []}
+                        onPromovido={cargarPartidos}
+                      />
+                    </div>
+                  )}
+                  <TarjetaPartido
+                    partido={partido}
+                    inscripcionUsuario={inscripcionDelUsuario(partido.id)}
+                    estaSancionado={grupoActivo?.estaSancionado}
+                    procesando={partidoEnProceso === partido.id}
+                    onAnotarse={() => setPartidoParaAnotarse(partido.id)}
+                    onSolicitarBaja={() => solicitarBaja(partido)}
+                    jugadores={inscripcionesPorPartido[partido.id] || []}
+                    formacion={formacionesPorPartido[partido.id]}
+                    equiposDefinidos={Boolean(propuestasPorPartido[partido.id]?.votacionEquiposCerrada)}
+                    grupoId={grupoActivo.id}
+                  />
+                </div>
+                {propuestasPorPartido[partido.id]?.propuestas?.length > 0 && (
+                  <EquiposPosibles
+                    grupoId={grupoActivo.id}
+                    partidoId={partido.id}
+                    datos={propuestasPorPartido[partido.id]}
+                    esAdmin={grupoActivo?.rol === 'admin'}
+                    soyTitular={inscripcionDelUsuario(partido.id)?.tipo === 'titular'}
+                    onActualizado={cargarPartidos}
+                    onVerEnCancha={(propuesta) => {
+                      setPreviewPorPartido((anterior) => ({
+                        ...anterior,
+                        [partido.id]: [...propuesta.equipoA, ...propuesta.equipoB],
+                      }));
+                      document
+                        .getElementById(`mapa-cancha-${partido.id}`)
+                        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                  />
                 )}
-                <TarjetaPartido
-                  partido={partido}
-                  inscripcionUsuario={inscripcionDelUsuario(partido.id)}
-                  estaSancionado={grupoActivo?.estaSancionado}
-                  procesando={partidoEnProceso === partido.id}
-                  onAnotarse={() => setPartidoParaAnotarse(partido.id)}
-                  onSolicitarBaja={() => solicitarBaja(partido)}
-                  jugadores={inscripcionesPorPartido[partido.id] || []}
-                  formacion={formacionesPorPartido[partido.id]}
-                  equiposDefinidos={Boolean(propuestasPorPartido[partido.id]?.votacionEquiposCerrada)}
-                  grupoId={grupoActivo.id}
-                />
-              </div>
-              {propuestasPorPartido[partido.id]?.propuestas?.length > 0 && (
-                <EquiposPosibles
-                  grupoId={grupoActivo.id}
-                  partidoId={partido.id}
-                  datos={propuestasPorPartido[partido.id]}
-                  esAdmin={grupoActivo?.rol === 'admin'}
-                  soyTitular={inscripcionDelUsuario(partido.id)?.tipo === 'titular'}
-                  onActualizado={cargarPartidos}
-                  onVerEnCancha={(propuesta) => {
-                    setPreviewPorPartido((anterior) => ({
-                      ...anterior,
-                      [partido.id]: [...propuesta.equipoA, ...propuesta.equipoB],
-                    }));
-                    document
-                      .getElementById(`mapa-cancha-${partido.id}`)
-                      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }}
-                />
-              )}
-            </PartidoConEstado>
-          ))}
+              </PartidoConEstado>
+            )
+          )}
         </div>
       )}
 
