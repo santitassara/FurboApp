@@ -292,6 +292,7 @@ export default function AdminPanel() {
             <input
               type="number"
               min="0"
+              step="1"
               value={formulario.valorCuota}
               onChange={(evento) => setFormulario({ ...formulario, valorCuota: evento.target.value })}
               className="w-28 rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white"
