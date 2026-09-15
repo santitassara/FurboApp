@@ -20,6 +20,7 @@ export default function TarjetaInfoPartido({ partido }) {
   const faltan = Math.max(0, totalCupo - totalConfirmados);
   const esHoy = new Date(partido.fecha).toDateString() === new Date().toDateString();
   const hora = new Date(partido.fecha).toLocaleString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  const tieneUbicacion = Boolean(partido.estadio || partido.tipoSuelo || partido.direccion);
 
   return (
     <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
@@ -35,60 +36,69 @@ export default function TarjetaInfoPartido({ partido }) {
         )}
       </div>
 
-      {(partido.estadio || partido.tipoSuelo || partido.direccion) && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-col gap-1 text-sm text-white/70">
-            {partido.estadio && <span>🏟️ {partido.estadio}</span>}
-            {partido.tipoSuelo && <span className="text-white/50">👟 {partido.tipoSuelo}</span>}
-            {partido.direccion && <span>📍 {partido.direccion}</span>}
+      <div className="grid gap-4 md:grid-cols-[1fr_260px]">
+        <div className="flex flex-col gap-3">
+          {(partido.estadio || partido.tipoSuelo) && (
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/70">
+              {partido.estadio && <span>🏟️ {partido.estadio}</span>}
+              {partido.tipoSuelo && <span className="text-white/50">👟 {partido.tipoSuelo}</span>}
+            </div>
+          )}
+
+          {partido.clima && (
+            <div className="text-sm text-white/70">
+              {partido.clima.disponible ? (
+                <span>
+                  ☀️ {Math.round(partido.clima.temp)}°C, {partido.clima.descripcion}
+                </span>
+              ) : (
+                <span className="text-white/40">Pronóstico no disponible aún</span>
+              )}
+            </div>
+          )}
+
+          <div className="mt-auto">
+            <div className="mb-1 flex items-center justify-between text-xs text-white/70">
+              <span>
+                {totalConfirmados}/{totalCupo} confirmados
+              </span>
+              {faltan > 0 && <span className="text-white/50">Faltan {faltan} para cerrar</span>}
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+              <div className="h-full rounded-full bg-pasto-500 transition-all" style={{ width: `${porcentaje}%` }} />
+            </div>
           </div>
-          {partido.direccion && (
-            <a
-              href={urlMaps(partido.direccion)}
-              target="_blank"
-              rel="noreferrer"
-              className="shrink-0 rounded-lg border border-white/20 px-3 py-2 text-xs font-bold uppercase tracking-wide text-white/80 transition hover:bg-white/10"
-            >
-              Ver en Maps
-            </a>
-          )}
         </div>
-      )}
 
-      {partido.clima && (
-        <div className="mb-4 text-sm text-white/70">
-          {partido.clima.disponible ? (
-            <span>☀️ {Math.round(partido.clima.temp)}°C, {partido.clima.descripcion}</span>
-          ) : (
-            <span className="text-white/40">Pronóstico no disponible aún</span>
+        <div className="flex flex-col gap-3">
+          {tieneUbicacion && partido.direccion && (
+            <div className="rounded-lg border border-white/10 bg-cancha-900/50 p-3">
+              <p className="mb-2 text-sm text-white/70">📍 {partido.direccion}</p>
+              <a
+                href={urlMaps(partido.direccion)}
+                target="_blank"
+                rel="noreferrer"
+                className="block w-full rounded-lg border border-white/20 px-3 py-1.5 text-center text-xs font-bold uppercase tracking-wide text-white/80 transition hover:bg-white/10"
+              >
+                Maps / Waze
+              </a>
+            </div>
           )}
-        </div>
-      )}
 
-      <div className="mb-4">
-        <div className="mb-1 flex items-center justify-between text-xs text-white/70">
-          <span>
-            {totalConfirmados}/{totalCupo} confirmados
-          </span>
-          {faltan > 0 && <span className="text-white/50">Faltan {faltan} para cerrar</span>}
-        </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
-          <div className="h-full rounded-full bg-pasto-500 transition-all" style={{ width: `${porcentaje}%` }} />
+          {typeof partido.valorCuota === 'number' && (
+            <div className="flex items-center justify-between rounded-lg border border-white/10 bg-cancha-900/50 p-3">
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-white/50">Cuota x jugador</p>
+                <p className="text-lg font-bold text-white">{formatearMoneda(partido.valorCuota)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[11px] uppercase tracking-wide text-white/50">Total</p>
+                <p className="text-lg font-bold text-pasto-500">{formatearMoneda(partido.valorCuota * totalCupo)}</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {typeof partido.valorCuota === 'number' && (
-        <div className="flex items-center justify-between border-t border-white/10 pt-3">
-          <div>
-            <p className="text-[11px] uppercase tracking-wide text-white/50">Cuota x jugador</p>
-            <p className="text-lg font-bold text-white">{formatearMoneda(partido.valorCuota)}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[11px] uppercase tracking-wide text-white/50">Total</p>
-            <p className="text-lg font-bold text-pasto-500">{formatearMoneda(partido.valorCuota * totalCupo)}</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
