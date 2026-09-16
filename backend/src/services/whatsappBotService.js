@@ -523,7 +523,7 @@ function normalizarJid(jid) {
 async function enviarMensajeConMenciones(socket, chatId, texto, mensajeCitado = null) {
   let opcionesMensaje = { text: texto };
 
-  if (texto.includes('@todos')) {
+  if (texto.toLowerCase().includes('@todos')) {
     try {
       const groupMetadata = await socket.groupMetadata(chatId);
       const participantes = groupMetadata.participants.map((p) => p.id);
@@ -556,12 +556,11 @@ function registrarListenerBot(socket) {
 
     try {
       await socket.sendPresenceUpdate('composing', chatId);
-      let respuesta = generarRespuestaLocal(grupo.id, cleanText);
-      
+
       // Si el texto incluye "@todos", el bot repite el mensaje mencionando a todos
-      if (cleanText.includes('@todos')) {
-         respuesta = cleanText; 
-      }
+      const respuesta = cleanText.toLowerCase().includes('@todos')
+        ? cleanText
+        : generarRespuestaLocal(grupo.id, cleanText);
 
       // Reemplazamos socket.sendMessage por nuestra nueva función
       await enviarMensajeConMenciones(socket, chatId, respuesta, msg);
