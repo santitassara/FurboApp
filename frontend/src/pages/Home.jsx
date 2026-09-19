@@ -15,6 +15,7 @@ import TarjetaInfoPartido from '../components/TarjetaInfoPartido';
 import ListaConvocadosScroll from '../components/ListaConvocadosScroll';
 import MvpUltimaFecha from '../components/MvpUltimaFecha';
 import LideresDelMes from '../components/LideresDelMes';
+import InfoGeneralGrupo from '../components/InfoGeneralGrupo';
 
 export default function Home() {
   const { perfil, actualizarPosicionesPerfil } = useAuth();
@@ -334,9 +335,10 @@ export default function Home() {
       )}
 
       {!cargando && partidos.length > 0 && (
-        <div className="flex flex-col gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <MvpUltimaFecha grupoId={grupoActivo.id} />
           <LideresDelMes grupoId={grupoActivo.id} />
+          <InfoGeneralGrupo grupoActivo={grupoActivo} proximoPartido={partidos[0]} />
         </div>
       )}
 
