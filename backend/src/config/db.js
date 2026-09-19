@@ -279,4 +279,4 @@ if (!tieneWhatsappGrupoJid) {
   db.exec('ALTER TABLE Grupos ADD COLUMN whatsappGrupoJid TEXT');
 }
 
-module.exports = { db };
+module.exports = { db, DB_PATH };

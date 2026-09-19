@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const notificacionesService = require('../services/notificacionesService');
 const ratingService = require('../services/ratingService');
 const whatsappNotificacionesService = require('../services/whatsappNotificacionesService');
+const backupTelegramService = require('../services/backupTelegramService');
 
 function iniciarScheduler() {
   // Ejecutar cada minuto
@@ -41,6 +42,14 @@ function iniciarScheduler() {
       } catch (error) {
         console.error('Error en cron WhatsApp diario (post-partido):', error.message);
       }
+    },
+    { timezone: 'America/Argentina/Buenos_Aires' }
+  );
+
+  cron.schedule(
+    '0 4 * * *',
+    async () => {
+      await backupTelegramService.enviarBackupDiario();
     },
     { timezone: 'America/Argentina/Buenos_Aires' }
   );
