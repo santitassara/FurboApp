@@ -179,7 +179,15 @@ async function obtenerResultado(partidoId, grupoId) {
     totalElegibles: elegibles.length,
   };
 
-  return { marcador, goles, rendimientos, sanciones, jugadorDestacado, fechaCarga: resultado.fechaCarga };
+  return {
+    marcador,
+    goles,
+    rendimientos,
+    sanciones,
+    jugadorDestacado,
+    fechaCarga: resultado.fechaCarga,
+    votacionCerrada: Boolean(partido.votacionCerrada),
+  };
 }
 
 function eliminarPorPartido(partidoId) {
