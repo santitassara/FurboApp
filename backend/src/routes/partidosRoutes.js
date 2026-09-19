@@ -13,6 +13,7 @@ const router = express.Router({ mergeParams: true });
 
 router.get('/', verificarToken, verificarMiembroGrupo(), envolverAsync(partidosController.listar));
 router.get('/historial', verificarToken, verificarMiembroGrupo(), envolverAsync(partidosController.historial));
+router.get('/lideres-mes', verificarToken, verificarMiembroGrupo(), envolverAsync(partidosController.lideresMes));
 router.post('/', verificarToken, verificarMiembroGrupo('admin'), envolverAsync(partidosController.crear));
 router.delete('/:partidoId', verificarToken, verificarMiembroGrupo('admin'), envolverAsync(partidosController.eliminar));
 router.post('/:partidoId/anotarse', verificarToken, verificarMiembroGrupo(), envolverAsync(inscripcionesController.anotarse));

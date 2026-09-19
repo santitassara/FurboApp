@@ -85,4 +85,54 @@ function obtenerEstadisticasTotalesJugador(usuarioId) {
   return { goles, mvps };
 }
 
-module.exports = { obtenerEstadisticasJugador, obtenerEstadisticasTotalesJugador };
+async function obtenerLideresDelMes(grupoId) {
+  const usuariosService = require('./usuariosService');
+  const ahora = new Date();
+  const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
+  const finMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 1).toISOString();
+
+  const filasGoleadores = db
+    .prepare(
+      `SELECT g.usuarioId, COUNT(*) as goles
+       FROM Goles g
+       JOIN Partidos p ON g.partidoId = p.id
+       WHERE p.grupoId = ? AND g.enContra = 0 AND p.fecha >= ? AND p.fecha < ?
+       GROUP BY g.usuarioId
+       ORDER BY goles DESC
+       LIMIT 3`
+    )
+    .all(grupoId, inicioMes, finMes);
+
+  const filaAsistidor = db
+    .prepare(
+      `SELECT g.asistenciaUsuarioId as usuarioId, COUNT(*) as asistencias
+       FROM Goles g
+       JOIN Partidos p ON g.partidoId = p.id
+       WHERE p.grupoId = ? AND g.asistenciaUsuarioId IS NOT NULL AND p.fecha >= ? AND p.fecha < ?
+       GROUP BY g.asistenciaUsuarioId
+       ORDER BY asistencias DESC
+       LIMIT 1`
+    )
+    .get(grupoId, inicioMes, finMes);
+
+  const goleadores = await Promise.all(
+    filasGoleadores.map(async (fila) => {
+      const usuario = await usuariosService.obtenerUsuario(fila.usuarioId);
+      return { usuarioId: fila.usuarioId, nombre: usuario?.nombre || 'Jugador', goles: fila.goles };
+    })
+  );
+
+  let asistidor = null;
+  if (filaAsistidor) {
+    const usuario = await usuariosService.obtenerUsuario(filaAsistidor.usuarioId);
+    asistidor = {
+      usuarioId: filaAsistidor.usuarioId,
+      nombre: usuario?.nombre || 'Jugador',
+      asistencias: filaAsistidor.asistencias,
+    };
+  }
+
+  return { goleadores, asistidor };
+}
+
+module.exports = { obtenerEstadisticasJugador, obtenerEstadisticasTotalesJugador, obtenerLideresDelMes };

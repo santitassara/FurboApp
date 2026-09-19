@@ -8,7 +8,15 @@ import ListaJugadores from '../components/ListaJugadores';
 import ModalConfirmacionSancionAdmin from '../components/ModalConfirmacionSancionAdmin';
 import ModalCargarResultado from '../components/ModalCargarResultado';
 
-const FORMULARIO_INICIAL = { fecha: '', cupoTitulares: 10, cupoSuplentes: 5 };
+const FORMULARIO_INICIAL = {
+  fecha: '',
+  cupoTitulares: 10,
+  cupoSuplentes: 5,
+  estadio: '',
+  tipoSuelo: '',
+  direccion: '',
+  valorCuota: '',
+};
 
 export default function AdminPanel() {
   const { grupoActivo } = useGrupo();
@@ -77,6 +85,10 @@ export default function AdminPanel() {
         fecha: new Date(formulario.fecha).toISOString(),
         cupoTitulares: Number(formulario.cupoTitulares),
         cupoSuplentes: Number(formulario.cupoSuplentes),
+        estadio: formulario.estadio || undefined,
+        tipoSuelo: formulario.tipoSuelo || undefined,
+        direccion: formulario.direccion || undefined,
+        valorCuota: formulario.valorCuota !== '' ? Number(formulario.valorCuota) : undefined,
       });
       setMensaje('Partido creado con éxito.');
       setFormulario(FORMULARIO_INICIAL);
@@ -243,6 +255,48 @@ export default function AdminPanel() {
               value={formulario.cupoSuplentes}
               onChange={(evento) => setFormulario({ ...formulario, cupoSuplentes: evento.target.value })}
               className="w-28 rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white"
+            />
+          </label>
+          <label className="flex flex-1 flex-col gap-1 text-sm text-white/70">
+            Estadio
+            <input
+              type="text"
+              value={formulario.estadio}
+              onChange={(evento) => setFormulario({ ...formulario, estadio: evento.target.value })}
+              className="rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white"
+              placeholder="Ej. El Monumental F7"
+            />
+          </label>
+          <label className="flex flex-1 flex-col gap-1 text-sm text-white/70">
+            Tipo de suelo
+            <input
+              type="text"
+              value={formulario.tipoSuelo}
+              onChange={(evento) => setFormulario({ ...formulario, tipoSuelo: evento.target.value })}
+              className="rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white"
+              placeholder="Ej. Sintético Cubierto Pro 7vs7"
+            />
+          </label>
+          <label className="flex flex-1 flex-col gap-1 text-sm text-white/70">
+            Dirección
+            <input
+              type="text"
+              value={formulario.direccion}
+              onChange={(evento) => setFormulario({ ...formulario, direccion: evento.target.value })}
+              className="rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white"
+              placeholder="Ej. Av. Álvarez Thomas 1850, CABA"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-white/70">
+            Valor por jugador
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={formulario.valorCuota}
+              onChange={(evento) => setFormulario({ ...formulario, valorCuota: evento.target.value })}
+              className="w-28 rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white"
+              placeholder="3000"
             />
           </label>
           <Boton type="submit" disabled={accionEnCurso}>

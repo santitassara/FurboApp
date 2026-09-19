@@ -1,5 +1,7 @@
 const partidosService = require('../services/partidosService');
 const inscripcionesService = require('../services/inscripcionesService');
+const climaService = require('../services/climaService');
+const estadisticasService = require('../services/estadisticasService');
 
 async function listar(req, res) {
   const partidos = await partidosService.listarPartidosVisibles(req.params.grupoId);
@@ -7,6 +9,10 @@ async function listar(req, res) {
     partidos.map(async (partido) => ({
       ...partido,
       ocupados: await inscripcionesService.contarOcupados(partido.id),
+      clima:
+        partido.estado === 'abierto' && partido.lat != null && partido.lon != null
+          ? await climaService.obtenerPronostico(partido.lat, partido.lon, partido.fecha)
+          : null,
     }))
   );
   res.json(partidosConCupos);
@@ -24,11 +30,15 @@ async function historial(req, res) {
 }
 
 async function crear(req, res) {
-  const { fecha, cupoTitulares, cupoSuplentes } = req.body;
+  const { fecha, cupoTitulares, cupoSuplentes, estadio, tipoSuelo, direccion, valorCuota } = req.body;
   const partido = await partidosService.crearPartido({
     fecha,
     cupoTitulares,
     cupoSuplentes,
+    estadio,
+    tipoSuelo,
+    direccion,
+    valorCuota: valorCuota !== undefined && valorCuota !== null ? Number(valorCuota) : null,
     creadoPor: req.usuario.uid,
     grupoId: req.params.grupoId,
   });
@@ -41,4 +51,9 @@ async function eliminar(req, res) {
   res.status(204).send();
 }
 
-module.exports = { listar, historial, crear, eliminar };
+async function lideresMes(req, res) {
+  const lideres = await estadisticasService.obtenerLideresDelMes(req.params.grupoId);
+  res.json(lideres);
+}
+
+module.exports = { listar, historial, crear, eliminar, lideresMes };
