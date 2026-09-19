@@ -21,8 +21,7 @@ mes).
 ## Decisiones ya tomadas (no volver a preguntar)
 
 - **Clima**: geocoding automático de la `direccion` cargada por el admin
-  (Nominatim/OpenStreetMap — ver nota en la sección de backend) → se
-  guardan `lat`/`lon` en el partido. Si el
+  (OpenWeather Geocoding API) → se guardan `lat`/`lon` en el partido. Si el
   partido es a más de ~5 días (límite del forecast free tier), se muestra
   el texto "Pronóstico no disponible aún" en vez de ocultar el bloque.
 - **Número de partido**: autoincremental por Grupo (`MAX(numero)+1`),
@@ -75,11 +74,9 @@ vacío); `valorCuota` opcional, si viene debe ser entero ≥ 0.
 arriba. Sin cambios de permisos (sigue siendo solo admin del grupo).
 
 ### `climaService.js` (nuevo)
-- `geocodificar(direccion)`: GET a `https://nominatim.openstreetmap.org/search`
-  (OpenStreetMap, sin API key) → `{ lat, lon }` o `null` si no matchea nada.
-  Cambiado desde el geocoder de OpenWeather durante implementación: ese
-  geocoder solo resuelve nombres de ciudad, no direcciones de calle+altura
-  reales como las que carga el admin — Nominatim sí las resuelve.
+- `geocodificar(direccion)`: GET a
+  `https://api.openweathermap.org/geo/1.0/direct` → `{ lat, lon }` o `null`
+  si no matchea nada.
 - `obtenerPronostico(lat, lon, fechaPartidoISO)`: GET a
   `https://api.openweathermap.org/data/2.5/forecast` (5 día/3h, free
   tier), busca el slot más cercano a la fecha del partido. Si la fecha
@@ -94,12 +91,20 @@ arriba. Sin cambios de permisos (sigue siendo solo admin del grupo).
 `clima: { disponible, temp, descripcion, icono } | null` antes de
 devolver la lista (solo si tiene `lat`/`lon`).
 
-### `estadisticasService.js` — nuevas funciones
-- `obtenerMvpUltimaFecha(grupoId)`: toma el último partido `jugado` del
-  grupo, calcula el jugador con más votos en `VotosMvp` para ese
-  `partidoId` (mismo patrón de empate que ya usa `resultadosService`),
-  devuelve `{ jugador, goles, asistencias, valoracion, porcentajeVotos }`
-  o `null` si no hay partidos jugados o no hay votos.
+### MVP de la última fecha — sin endpoint nuevo
+Ya existen `GET /partidos/historial` (lista partidos `jugado`, ordenados
+`fecha DESC`) y `GET /partidos/:partidoId/resultado` (devuelve
+`jugadorDestacado.jugadores[]/votos/totalElegibles`, `goles[]` con
+`usuarioId`/`enContra`/`asistenciaUsuarioId`, y `rendimientos[]` con
+`promedio` por jugador). El frontend arma el MVP tomando
+`historial[0]` y pidiendo su `resultado`: goles = count de `goles`
+donde `usuarioId === destacadoId && !enContra`; asistencias = count
+donde `asistenciaUsuarioId === destacadoId`; valoración =
+`rendimientos.find(r => r.usuarioId === destacadoId).promedio`; % votos
+= `jugadorDestacado.votos / jugadorDestacado.totalElegibles * 100`. No
+se toca el backend para esto.
+
+### `estadisticasService.js` — nueva función
 - `obtenerLideresDelMes(grupoId)`: rango = primer/último día del mes
   calendario actual (server time). Query sobre `Goles` filtrando
   `p.fecha BETWEEN inicioMes AND finMes AND p.grupoId = ?`:
@@ -107,12 +112,11 @@ devolver la lista (solo si tiene `lat`/`lon`).
   - top 1 por `COUNT(*) GROUP BY asistenciaUsuarioId`
   Devuelve `{ goleadores: [{usuarioId, nombre, goles}], asistidor: {usuarioId, nombre, asistencias} | null }`.
 
-### Rutas nuevas
-- `GET /api/grupos/:grupoId/mvp-ultima-fecha`
-- `GET /api/grupos/:grupoId/lideres-mes`
+### Ruta nueva
+- `GET /api/grupos/:grupoId/partidos/lideres-mes`
 
-Ambas protegidas por membresía del grupo igual que el resto de rutas
-anidadas bajo `/grupos/:grupoId`.
+Protegida por membresía del grupo igual que el resto de rutas anidadas
+bajo `/grupos/:grupoId/partidos`.
 
 ### Config
 `.env` nuevo: `OPENWEATHER_API_KEY=`. Se agrega a `.env.example`.
@@ -135,11 +139,13 @@ anidadas bajo `/grupos/:grupoId`.
 - **`ListaConvocadosScroll.jsx`**: wrapper delgado sobre `ListaJugadores`
   existente con `max-h-80 overflow-y-auto` (o valor similar a ajustar en
   implementación) — no toca lógica interna de `ListaJugadores`.
-- **`MvpUltimaFecha.jsx`**: consume `GET /mvp-ultima-fecha`, muestra
-  jugador + stats + `%` de votos. Si no hay datos, no renderiza nada.
-- **`LideresDelMes.jsx`**: consume `GET /lideres-mes`, muestra top 3
-  goleadores + destacado de asistencias. Si no hay datos, no renderiza
-  nada.
+- **`MvpUltimaFecha.jsx`**: recibe `grupoId`, internamente pide
+  `GET /partidos/historial` + `GET /partidos/:id/resultado` del primero
+  y deriva goles/asistencias/valoración/% votos como se describe arriba.
+  Si no hay partidos jugados o no hay votos, no renderiza nada.
+- **`LideresDelMes.jsx`**: consume `GET /partidos/lideres-mes`, muestra
+  top 3 goleadores + destacado de asistencias. Si no hay datos, no
+  renderiza nada.
 
 ### `MapaCancha` — blur de espera
 Cuando `ocupados.titulares < cupoTitulares` (formación aún no armada),
@@ -154,8 +160,9 @@ interna de `MapaCancha`, solo el wrapper condicional en `Home.jsx`.
   `MapaCancha` (blureado o no) + `MvpUltimaFecha` + `LideresDelMes`.
 - Partidos restantes (si los hay) se siguen renderizando como hoy
   (`TarjetaPartido` simple), sin el layout hero.
-- Se agregan dos llamadas a la carga inicial: `GET .../mvp-ultima-fecha`
-  y `GET .../lideres-mes` (solo para el partido hero / grupo activo).
+- `MvpUltimaFecha` y `LideresDelMes` disparan sus propias llamadas
+  (`historial`+`resultado` y `lideres-mes` respectivamente) para el
+  grupo activo, independientes de la carga de `partidos` en `Home.jsx`.
 - Formulario de creación de partido (donde esté hoy — a confirmar path
   exacto en el plan) gana los campos nuevos: estadio, tipo de suelo,
   dirección, valor de cuota.
