@@ -224,8 +224,8 @@ export default function AdminPanel() {
 
       <section className="rounded-xl border border-white/10 bg-cancha-800 p-5">
         <h2 className="mb-4 text-lg font-bold text-white">Crear partido para {grupoActivo.nombre}</h2>
-        <form onSubmit={crearPartido} className="flex flex-col gap-4 sm:flex-row sm:items-end">
-          <label className="flex flex-1 flex-col gap-1 text-sm text-white/70">
+        <form onSubmit={crearPartido} className="flex flex-wrap items-end gap-4">
+          <label className="flex min-w-[200px] flex-1 flex-col gap-1 text-sm text-white/70">
             Fecha y hora
             <input
               type="datetime-local"
@@ -257,7 +257,7 @@ export default function AdminPanel() {
               className="w-28 rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white"
             />
           </label>
-          <label className="flex flex-1 flex-col gap-1 text-sm text-white/70">
+          <label className="flex min-w-[180px] flex-1 flex-col gap-1 text-sm text-white/70">
             Estadio
             <input
               type="text"
@@ -267,7 +267,7 @@ export default function AdminPanel() {
               placeholder="Ej. El Monumental F7"
             />
           </label>
-          <label className="flex flex-1 flex-col gap-1 text-sm text-white/70">
+          <label className="flex min-w-[180px] flex-1 flex-col gap-1 text-sm text-white/70">
             Tipo de suelo
             <input
               type="text"
@@ -277,7 +277,7 @@ export default function AdminPanel() {
               placeholder="Ej. Sintético Cubierto Pro 7vs7"
             />
           </label>
-          <label className="flex flex-1 flex-col gap-1 text-sm text-white/70">
+          <label className="flex min-w-[220px] flex-1 flex-col gap-1 text-sm text-white/70">
             Dirección
             <input
               type="text"
