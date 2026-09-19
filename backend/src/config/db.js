@@ -296,4 +296,4 @@ for (const [columna, tipo] of Object.entries(columnasPartidosExtendido)) {
   }
 }
 
-module.exports = { db };
+module.exports = { db, DB_PATH };
