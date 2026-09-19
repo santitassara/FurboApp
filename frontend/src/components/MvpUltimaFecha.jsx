@@ -4,6 +4,7 @@ import { rutaGrupo } from '../utils/rutasGrupo';
 
 export default function MvpUltimaFecha({ grupoId }) {
   const [mvp, setMvp] = useState(null);
+  const [votacionCerrada, setVotacionCerrada] = useState(false);
 
   useEffect(() => {
     let cancelado = false;
@@ -27,6 +28,7 @@ export default function MvpUltimaFecha({ grupoId }) {
             : 0;
 
         if (!cancelado) {
+          setVotacionCerrada(Boolean(resultado.votacionCerrada));
           setMvp({
             nombre: destacado.nombre,
             goles,
@@ -49,11 +51,11 @@ export default function MvpUltimaFecha({ grupoId }) {
   if (!mvp) return null;
 
   return (
-    <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
+    <div className="relative rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
       <h3 className="mb-3 flex items-center gap-2 text-lg font-bold text-white">
         <span aria-hidden="true">🏆</span> MVP de la última fecha
       </h3>
-      <div className="flex items-center gap-3">
+      <div className={`flex items-center gap-3 ${votacionCerrada ? '' : 'pointer-events-none blur-sm'}`}>
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cancha-700 text-lg font-bold text-white">
           {mvp.nombre?.trim()?.[0]?.toUpperCase() || '?'}
         </div>
@@ -68,6 +70,13 @@ export default function MvpUltimaFecha({ grupoId }) {
           {mvp.porcentajeVotos}% votos
         </span>
       </div>
+      {!votacionCerrada && (
+        <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-cancha-900/60">
+          <p className="rounded-lg bg-black/70 px-4 py-2 text-sm font-bold uppercase tracking-wide text-white">
+            Disponible cuando cierre la votación
+          </p>
+        </div>
+      )}
     </div>
   );
 }
