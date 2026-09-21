@@ -7,6 +7,7 @@ import Boton from '../components/Boton';
 import ListaJugadores from '../components/ListaJugadores';
 import ModalConfirmacionSancionAdmin from '../components/ModalConfirmacionSancionAdmin';
 import ModalCargarResultado from '../components/ModalCargarResultado';
+import ProgramacionPartidos from '../components/ProgramacionPartidos';
 
 const FORMULARIO_INICIAL = {
   fecha: '',
@@ -304,6 +305,8 @@ export default function AdminPanel() {
           </Boton>
         </form>
       </section>
+
+      <ProgramacionPartidos grupoId={grupoActivo.id} />
 
       <section className="rounded-xl border border-white/10 bg-cancha-800 p-5">
         <h2 className="mb-4 text-lg font-bold text-white">Sancionados</h2>
