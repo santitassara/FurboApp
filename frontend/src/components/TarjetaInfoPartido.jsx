@@ -40,14 +40,14 @@ export default function TarjetaInfoPartido({ partido }) {
       <div className="grid gap-4 md:grid-cols-[1fr_260px]">
         <div className="flex flex-col gap-3">
           {(partido.estadio || partido.tipoSuelo) && (
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/70">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/70 md:gap-x-6 md:gap-y-2 md:text-2xl">
               {partido.estadio && <span>🏟️ {partido.estadio}</span>}
               {partido.tipoSuelo && <span className="text-white/50">👟 {partido.tipoSuelo}</span>}
             </div>
           )}
 
           {partido.clima && (
-            <div className="text-sm text-white/70">
+            <div className="text-sm text-white/70 md:text-2xl">
               {partido.clima.disponible ? (
                 <span>
                   ☀️ {Math.round(partido.clima.temp)}°C, {partido.clima.descripcion}
