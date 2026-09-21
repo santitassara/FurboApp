@@ -3,6 +3,7 @@ const notificacionesService = require('../services/notificacionesService');
 const ratingService = require('../services/ratingService');
 const whatsappNotificacionesService = require('../services/whatsappNotificacionesService');
 const backupTelegramService = require('../services/backupTelegramService');
+const programacionesService = require('../services/programacionesService');
 
 function iniciarScheduler() {
   // Ejecutar cada minuto
@@ -19,6 +20,12 @@ function iniciarScheduler() {
       await ratingService.cerrarVotacionesVencidas();
     } catch (error) {
       console.error('Error en scheduler de cierre de votación:', error.message);
+    }
+
+    try {
+      await programacionesService.ejecutarProgramacionesVencidas();
+    } catch (error) {
+      console.error('Error en scheduler de programaciones de partido:', error.message);
     }
   });
 
@@ -53,6 +60,12 @@ function iniciarScheduler() {
     },
     { timezone: 'America/Argentina/Buenos_Aires' }
   );
+
+  // Corrida de arranque: recupera disparos perdidos mientras el backend
+  // estuvo caído, sin esperar al próximo minuto.
+  programacionesService.ejecutarProgramacionesVencidas().catch((error) => {
+    console.error('Error en la corrida inicial de programaciones:', error.message);
+  });
 
   console.log('Scheduler de notificaciones iniciado');
 }

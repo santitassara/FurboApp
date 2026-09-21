@@ -632,30 +632,32 @@ Y antes del `console.log('Scheduler de notificaciones iniciado');`, una corrida 
 
 - [ ] **Step 5: Verificar el barrido, el catch-up y el anti-duplicado**
 
-```bash
-cd backend && SQLITE_DB_PATH=:memory: node -e "
-const { db } = require('./src/config/db');
-const ahora = new Date();
-db.prepare('INSERT INTO Usuarios (uid, nombre, email, esSuperAdmin, fechaCreacion) VALUES (?,?,?,0,?)').run('u1','Test','t@t.com', ahora.toISOString());
-db.prepare('INSERT INTO Grupos (id, nombre, codigoInvitacion, creadoPor, fechaCreacion) VALUES (?,?,?,?,?)').run('g1','Grupo','ABC','u1', ahora.toISOString());
-const s = require('./src/services/programacionesService');
-const p = s.crearProgramacion({ diaSemanaDisparo: 1, horaDisparo: '20:00', diaSemanaPartido: 5, horaPartido: '20:00', cupoTitulares: 10, cupoSuplentes: 5, estadio: 'Parador 4', valorCuota: 10000 }, 'g1', 'u1');
-// Simula un disparo perdido hace tres semanas.
-db.prepare('UPDATE ProgramacionesPartido SET proximoDisparo = ? WHERE id = ?').run(new Date(Date.now() - 21*24*3600*1000).toISOString(), p.id);
-(async () => {
-  await s.ejecutarProgramacionesVencidas();
-  const partidos = db.prepare('SELECT fecha, estadio, valorCuota FROM Partidos WHERE grupoId = ?').all('g1');
-  console.log('partidos tras catch-up:', JSON.stringify(partidos));
-  const fila = db.prepare('SELECT proximoDisparo, ultimoPartidoId FROM ProgramacionesPartido WHERE id = ?').get(p.id);
-  console.log('proximo disparo futuro:', new Date(fila.proximoDisparo) > new Date(), '| ultimoPartidoId seteado:', Boolean(fila.ultimoPartidoId));
-  // Segundo barrido inmediato: no debe crear nada porque el disparo ya es futuro.
-  await s.ejecutarProgramacionesVencidas();
-  console.log('partidos tras segundo barrido:', db.prepare('SELECT COUNT(*) c FROM Partidos').get().c);
-})();
-"
-```
+El script de verificación tiene que stubbear `config/firebase`,
+`notificacionesService`, `whatsappNotificacionesService` y `climaService` antes
+de requerir el servicio: sin `.env` el require de Firebase explota, y crear un
+partido de verdad dispararía push y WhatsApp reales. Se hace inyectando los
+stubs en `require.cache`.
 
-Esperado: exactamente **un** partido, con `estadio: 'Parador 4'` y `valorCuota: 10000`, y una `fecha` que cae un viernes 20:00 futuro; `proximo disparo futuro: true`; `ultimoPartidoId seteado: true`; y `partidos tras segundo barrido: 1`.
+Escenario: una programación cuyo disparo es **hoy temprano** (ya vencido, con
+`proximoDisparo` forzado tres semanas atrás para simular el backend caído) y
+cuyo partido cae dentro de 5 días. Se usa ese escenario y no uno fijo porque el
+resultado depende del día en que se corra la verificación.
+
+Comprobar, en orden:
+
+1. Tras el primer barrido hay **exactamente un** partido, con fecha futura,
+   `estadio: 'Parador 4'`, `valorCuota: 10000` y `cupoTitulares: 10`.
+2. El `proximoDisparo` de la fila quedó en el futuro y `ultimoPartidoId` quedó
+   seteado.
+3. Un segundo barrido inmediato **no** crea nada (sigue habiendo un partido).
+4. Forzando otro disparo vencido a mano, el barrido loguea
+   `ya existe un partido del grupo para ...` y sigue habiendo un solo partido.
+
+**Ojo con un falso negativo:** si se arma el escenario con un disparo cuyo
+partido correspondiente ya pasó (por ejemplo, disparo los lunes y partido los
+viernes, corriendo la verificación un domingo), el barrido loguea
+`la fecha calculada ... ya pasó, se saltea la ocurrencia` y no crea nada. Eso
+es el comportamiento correcto, no un bug: el partido de esa semana ya se jugó.
 
 - [ ] **Step 6: Commit**
 

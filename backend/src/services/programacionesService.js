@@ -1,6 +1,10 @@
 const crypto = require('node:crypto');
 const { db } = require('../config/db');
-const { calcularProximoDisparo } = require('../utils/programacionFechas');
+const {
+  calcularProximoDisparo,
+  calcularUltimoDisparo,
+  calcularFechaPartido,
+} = require('../utils/programacionFechas');
 
 function crearErrorValidacion(mensaje) {
   const error = new Error(mensaje);
@@ -164,10 +168,84 @@ function eliminarProgramacion(programacionId, grupoId) {
   db.prepare('DELETE FROM ProgramacionesPartido WHERE id = ?').run(programacionId);
 }
 
+function existePartidoEnFecha(grupoId, fechaIso) {
+  const fila = db.prepare('SELECT id FROM Partidos WHERE grupoId = ? AND fecha = ?').get(grupoId, fechaIso);
+  return Boolean(fila);
+}
+
+async function ejecutarProgramacion(programacion, ahora) {
+  const partidosService = require('./partidosService');
+
+  // Se parte del disparo vencido más reciente, no del guardado en la fila: si
+  // el backend estuvo caído tres semanas, igual corresponde crear el partido
+  // de esta semana y no intentar uno cuya fecha ya pasó.
+  const momentoDisparo = calcularUltimoDisparo(programacion, ahora);
+  const fechaPartido = calcularFechaPartido(programacion, momentoDisparo);
+  const fechaPartidoIso = fechaPartido.toISOString();
+
+  let partidoCreadoId = programacion.ultimoPartidoId;
+  let huboDisparo = false;
+
+  if (fechaPartido <= ahora) {
+    console.warn(
+      `Programación ${programacion.id}: la fecha calculada ${fechaPartidoIso} ya pasó, se saltea la ocurrencia`
+    );
+  } else if (existePartidoEnFecha(programacion.grupoId, fechaPartidoIso)) {
+    console.warn(
+      `Programación ${programacion.id}: ya existe un partido del grupo para ${fechaPartidoIso}, no se duplica`
+    );
+  } else {
+    const partido = await partidosService.crearPartido({
+      fecha: fechaPartidoIso,
+      cupoTitulares: programacion.cupoTitulares,
+      cupoSuplentes: programacion.cupoSuplentes,
+      estadio: programacion.estadio,
+      tipoSuelo: programacion.tipoSuelo,
+      direccion: programacion.direccion,
+      valorCuota: programacion.valorCuota,
+      creadoPor: programacion.creadoPor,
+      grupoId: programacion.grupoId,
+    });
+    partidoCreadoId = partido.id;
+    huboDisparo = true;
+    console.log(`Programación ${programacion.id}: partido ${partido.id} creado para ${fechaPartidoIso}`);
+  }
+
+  db.prepare(
+    `UPDATE ProgramacionesPartido
+       SET proximoDisparo = @proximoDisparo, ultimoDisparo = @ultimoDisparo, ultimoPartidoId = @ultimoPartidoId
+     WHERE id = @id`
+  ).run({
+    id: programacion.id,
+    proximoDisparo: calcularProximoDisparo(programacion, ahora).toISOString(),
+    ultimoDisparo: huboDisparo ? ahora.toISOString() : programacion.ultimoDisparo,
+    ultimoPartidoId: partidoCreadoId,
+  });
+}
+
+async function ejecutarProgramacionesVencidas() {
+  const ahora = new Date();
+  const vencidas = db
+    .prepare(
+      'SELECT * FROM ProgramacionesPartido WHERE activa = 1 AND proximoDisparo <= ? ORDER BY proximoDisparo ASC'
+    )
+    .all(ahora.toISOString());
+
+  for (const programacion of vencidas) {
+    try {
+      await ejecutarProgramacion(programacion, ahora);
+    } catch (error) {
+      // Una programación con datos malos no puede frenar a las demás.
+      console.error(`Error ejecutando programación ${programacion.id}:`, error.message);
+    }
+  }
+}
+
 module.exports = {
   listarProgramaciones,
   obtenerProgramacion,
   crearProgramacion,
   actualizarProgramacion,
   eliminarProgramacion,
+  ejecutarProgramacionesVencidas,
 };
