@@ -14,10 +14,11 @@ function urlMaps(direccion) {
 
 export default function TarjetaInfoPartido({ partido }) {
   const ocupados = partido.ocupados || { titulares: 0, suplentes: 0 };
-  const totalConfirmados = ocupados.titulares + ocupados.suplentes;
-  const totalCupo = partido.cupoTitulares + partido.cupoSuplentes;
-  const porcentaje = totalCupo > 0 ? Math.min(100, Math.round((totalConfirmados / totalCupo) * 100)) : 0;
-  const faltan = Math.max(0, totalCupo - totalConfirmados);
+  const titularesConfirmados = ocupados.titulares;
+  const cupoTitulares = partido.cupoTitulares;
+  const porcentaje =
+    cupoTitulares > 0 ? Math.min(100, Math.round((titularesConfirmados / cupoTitulares) * 100)) : 0;
+  const faltan = Math.max(0, cupoTitulares - titularesConfirmados);
   const esHoy = new Date(partido.fecha).toDateString() === new Date().toDateString();
   const hora = new Date(partido.fecha).toLocaleString('es-AR', { hour: '2-digit', minute: '2-digit' });
   const tieneUbicacion = Boolean(partido.estadio || partido.tipoSuelo || partido.direccion);
@@ -60,7 +61,7 @@ export default function TarjetaInfoPartido({ partido }) {
           <div className="mt-auto">
             <div className="mb-1 flex items-center justify-between text-xs text-white/70">
               <span>
-                {totalConfirmados}/{totalCupo} confirmados
+                {titularesConfirmados}/{cupoTitulares} titulares confirmados
               </span>
               {faltan > 0 && <span className="text-white/50">Faltan {faltan} para cerrar</span>}
             </div>
@@ -93,7 +94,7 @@ export default function TarjetaInfoPartido({ partido }) {
               </div>
               <div className="text-right">
                 <p className="text-[11px] uppercase tracking-wide text-white/50">Total</p>
-                <p className="text-lg font-bold text-pasto-500">{formatearMoneda(partido.valorCuota * totalCupo)}</p>
+                <p className="text-lg font-bold text-pasto-500">{formatearMoneda(partido.valorCuota * cupoTitulares)}</p>
               </div>
             </div>
           )}
