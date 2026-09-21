@@ -120,6 +120,8 @@ en `whatsappNotificacionesService.js` y `whatsappBotService.js`.
 - `calcularProximoDisparo(programacion, desde)`: devuelve la próxima
   ocurrencia de `diaSemanaDisparo` a `horaDisparo` en hora de
   Argentina, estrictamente posterior a `desde`.
+- `calcularUltimoDisparo(programacion, hasta)`: devuelve la ocurrencia más
+  reciente de `diaSemanaDisparo` a `horaDisparo` en o antes de `hasta`.
 - `calcularFechaPartido(programacion, momentoDisparo)`: devuelve la
   primera ocurrencia de `diaSemanaPartido` a `horaPartido` estrictamente
   posterior a `momentoDisparo`; si el día de semana del partido es el
@@ -158,10 +160,16 @@ Validaciones, todas con status 400:
 Para cada fila con `activa = 1` y `proximoDisparo <= ahora`, en orden de
 `proximoDisparo`:
 
-1. Calcular `fechaPartido = calcularFechaPartido(fila, fila.proximoDisparo)`.
-2. Si `fechaPartido` ya pasó (el backend estuvo caído más de una
-   semana), no crear nada; avanzar `proximoDisparo` repetidamente hasta
-   que quede en el futuro y seguir con la próxima fila.
+1. Calcular el disparo vencido **más reciente** con
+   `calcularUltimoDisparo(fila, ahora)` y, desde ahí,
+   `fechaPartido = calcularFechaPartido(fila, momentoDisparo)`. Se usa la
+   ocurrencia más reciente y no el `proximoDisparo` guardado para que un
+   backend que estuvo caído tres semanas cree el partido de esta semana en
+   vez de intentar uno cuya fecha ya pasó.
+2. Si `fechaPartido` ya pasó, no crear nada y seguir con la próxima fila.
+   El nuevo `proximoDisparo` se calcula siempre como
+   `calcularProximoDisparo(fila, ahora)`, que por definición queda en el
+   futuro, así que una fila vencida nunca entra en bucle.
 3. Si ya existe un `Partido` del mismo `grupoId` con esa misma `fecha`,
    no crear; solo avanzar `proximoDisparo`. Evita duplicados si el
    admin ya lo había creado a mano o si el barrido corre dos veces.
