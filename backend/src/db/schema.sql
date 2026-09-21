@@ -199,3 +199,28 @@ CREATE TABLE IF NOT EXISTS MensajesEquipo (
 );
 
 CREATE INDEX IF NOT EXISTS idx_mensajes_equipo ON MensajesEquipo (partidoId, equipo, fechaEnvio);
+
+CREATE TABLE IF NOT EXISTS ProgramacionesPartido (
+  id TEXT PRIMARY KEY,
+  grupoId TEXT NOT NULL REFERENCES Grupos(id),
+  nombre TEXT,
+  activa INTEGER NOT NULL DEFAULT 1,
+  diaSemanaDisparo INTEGER NOT NULL,
+  horaDisparo TEXT NOT NULL,
+  diaSemanaPartido INTEGER NOT NULL,
+  horaPartido TEXT NOT NULL,
+  cupoTitulares INTEGER NOT NULL,
+  cupoSuplentes INTEGER NOT NULL,
+  estadio TEXT,
+  tipoSuelo TEXT,
+  direccion TEXT,
+  valorCuota INTEGER,
+  proximoDisparo TEXT NOT NULL,
+  ultimoDisparo TEXT,
+  ultimoPartidoId TEXT REFERENCES Partidos(id),
+  creadoPor TEXT NOT NULL REFERENCES Usuarios(uid),
+  fechaCreacion TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_programaciones_disparo
+  ON ProgramacionesPartido (activa, proximoDisparo);
