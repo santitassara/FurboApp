@@ -120,7 +120,7 @@ export default function ListaJugadores({ jugadores, formacion, equiposDefinidos,
     <div className="flex flex-col gap-4">
       <div className="rounded-lg bg-cancha-700 px-3 py-2">
         <h4 className="text-xs font-bold uppercase tracking-wide text-white">
-          Listado de jugadores ({jugadores.length})
+          Listado de jugadores ({titulares.length})
         </h4>
       </div>
 

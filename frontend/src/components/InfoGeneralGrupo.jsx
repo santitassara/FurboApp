@@ -19,8 +19,8 @@ export default function InfoGeneralGrupo({ grupoActivo, proximoPartido }) {
   }, [grupoActivo.id]);
 
   const ocupados = proximoPartido?.ocupados || { titulares: 0, suplentes: 0 };
-  const totalOcupados = ocupados.titulares + ocupados.suplentes;
-  const totalCupos = (proximoPartido?.cupoTitulares || 0) + (proximoPartido?.cupoSuplentes || 0);
+  const titularesOcupados = ocupados.titulares;
+  const cupoTitulares = proximoPartido?.cupoTitulares || 0;
 
   return (
     <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
@@ -36,7 +36,7 @@ export default function InfoGeneralGrupo({ grupoActivo, proximoPartido }) {
           <p className="flex items-center justify-between">
             <span>Próximo partido</span>
             <span className="font-bold text-pasto-500">
-              {totalOcupados}/{totalCupos} anotados
+              {titularesOcupados}/{cupoTitulares} titulares
             </span>
           </p>
         ) : (
