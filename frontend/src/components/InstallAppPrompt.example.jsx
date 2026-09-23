@@ -5,7 +5,7 @@
 
 import { useEffect } from 'react';
 import InstallAppPrompt from './InstallAppPrompt';
-import './InstallAppPrompt.css';
+import './InstallAppPrompt.module.css';
 
 export default function App() {
   useEffect(() => {

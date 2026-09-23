@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 import { rutaGrupo } from '../utils/rutasGrupo';
+import styles from './InfoGeneralGrupo.module.css';
 
 export default function InfoGeneralGrupo({ grupoActivo, proximoPartido }) {
   const [cantidadMiembros, setCantidadMiembros] = useState(null);
@@ -23,24 +24,24 @@ export default function InfoGeneralGrupo({ grupoActivo, proximoPartido }) {
   const cupoTitulares = proximoPartido?.cupoTitulares || 0;
 
   return (
-    <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
-      <h3 className="mb-3 flex items-center gap-2 text-lg font-bold text-white">
+    <div className={styles.card}>
+      <h3 className={styles.titulo}>
         <span aria-hidden="true">👥</span> {grupoActivo.nombre}
       </h3>
-      <div className="flex flex-col gap-2 text-sm text-white/80">
-        <p className="flex items-center justify-between">
+      <div className={styles.lista}>
+        <p className={styles.fila}>
           <span>Miembros</span>
-          <span className="font-bold text-white">{cantidadMiembros ?? '—'}</span>
+          <span className={styles.valorDestacado}>{cantidadMiembros ?? '—'}</span>
         </p>
         {proximoPartido ? (
-          <p className="flex items-center justify-between">
+          <p className={styles.fila}>
             <span>Próximo partido</span>
-            <span className="font-bold text-pasto-500">
+            <span className={styles.valorPasto}>
               {titularesOcupados}/{cupoTitulares} titulares
             </span>
           </p>
         ) : (
-          <p className="text-white/60">No hay próximo partido programado.</p>
+          <p className={styles.sinPartido}>No hay próximo partido programado.</p>
         )}
       </div>
     </div>

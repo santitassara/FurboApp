@@ -1,0 +1,17 @@
+@reference "../styles/globals.module.css";
+
+.contenedor {
+  @apply relative;
+}
+
+.contenidoBloqueado {
+  @apply pointer-events-none blur-sm;
+}
+
+.overlay {
+  @apply absolute inset-0 flex items-center justify-center rounded-xl bg-cancha-900/60;
+}
+
+.mensaje {
+  @apply rounded-lg bg-black/70 px-4 py-2 text-sm font-bold uppercase tracking-wide text-white;
+}

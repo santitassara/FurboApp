@@ -1,12 +1,14 @@
 import { useState } from 'react';
+import clsx from 'clsx';
 import { FaFutbol } from 'react-icons/fa';
 import { formatearFechaPartido } from '../utils/fecha';
 import ModalVerGol from './ModalVerGol';
+import styles from './ResultadoPartido.module.css';
 
 function IconoEscudo({ variante }) {
   if (variante === 'B') {
     return (
-      <svg viewBox="0 0 24 24" className="h-9 w-9">
+      <svg viewBox="0 0 24 24" className={styles.escudoIcono}>
         <path
           d="M12 2 4 5v6c0 5 3.4 8.4 8 9 4.6-.6 8-4 8-9V5l-8-3Z"
           fill="#0d1f16"
@@ -19,7 +21,7 @@ function IconoEscudo({ variante }) {
     );
   }
   return (
-    <svg viewBox="0 0 24 24" className="h-9 w-9">
+    <svg viewBox="0 0 24 24" className={styles.escudoIcono}>
       <path
         d="M12 2 4 5v6c0 5 3.4 8.4 8 9 4.6-.6 8-4 8-9V5l-8-3Z"
         fill="white"
@@ -33,7 +35,7 @@ function IconoEscudo({ variante }) {
 
 function IconoTrofeo() {
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6 shrink-0 text-pasto-500">
+    <svg viewBox="0 0 24 24" className={styles.trofeoIcono}>
       <path
         d="M7 4h10v3a5 5 0 0 1-5 5 5 5 0 0 1-5-5V4Z"
         fill="none"
@@ -50,16 +52,16 @@ function IconoTrofeo() {
 }
 
 function IconoTarjeta() {
-  return <span className="h-4 w-3 shrink-0 rounded-[2px] bg-tarjeta shadow-sm" />;
+  return <span className={styles.tarjetaIcono} />;
 }
 
 function BarraRendimiento({ puntaje }) {
   return (
-    <div className="flex shrink-0 gap-[3px]">
+    <div className={styles.barraRendimiento}>
       {Array.from({ length: 10 }, (_, indice) => (
         <span
           key={indice}
-          className={`h-3 w-1.5 rounded-[1px] ${indice < puntaje ? 'bg-pasto-500' : 'bg-white/10'}`}
+          className={clsx(styles.barraSegmento, indice < puntaje ? styles.barraSegmentoActivo : styles.barraSegmentoInactivo)}
         />
       ))}
     </div>
@@ -68,8 +70,8 @@ function BarraRendimiento({ puntaje }) {
 
 function Panel({ titulo, children, className = '' }) {
   return (
-    <div className={`rounded-xl border border-white/10 bg-white/[0.03] p-4 ${className}`}>
-      {titulo && <h4 className="mb-3 text-xs font-bold uppercase tracking-wide text-pasto-500">{titulo}</h4>}
+    <div className={clsx(styles.panel, className)}>
+      {titulo && <h4 className={styles.panelTitulo}>{titulo}</h4>}
       {children}
     </div>
   );
@@ -80,7 +82,7 @@ export default function ResultadoPartido({ partido, resultado }) {
 
   if (!resultado) {
     return (
-      <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 text-sm text-white/50 shadow-lg">
+      <div className={styles.cargando}>
         Cargando resultado…
       </div>
     );
@@ -89,50 +91,50 @@ export default function ResultadoPartido({ partido, resultado }) {
   const { marcador, goles, rendimientos, sanciones, jugadorDestacado } = resultado;
 
   return (
-    <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
-      <div className="mb-4 text-center">
-        <h3 className="text-lg font-bold capitalize text-white">{formatearFechaPartido(partido.fecha)}</h3>
-        <p className="mt-0.5 text-xs font-bold uppercase tracking-widest text-pasto-500">Resultado final</p>
+    <div className={styles.container}>
+      <div className={styles.headerWrap}>
+        <h3 className={styles.fechaTitulo}>{formatearFechaPartido(partido.fecha)}</h3>
+        <p className={styles.subtitulo}>Resultado final</p>
       </div>
 
-      <Panel className="mb-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex flex-1 flex-col items-center gap-1">
+      <Panel className={styles.espaciadoInferior}>
+        <div className={styles.marcadorRow}>
+          <div className={styles.equipoCol}>
             <IconoEscudo variante="A" />
-            <span className="text-xs font-bold uppercase tracking-wide text-pasto-500">Equipo A</span>
+            <span className={styles.equipoLabel}>Equipo A</span>
           </div>
-          <div className="flex items-center gap-3 font-display text-5xl font-bold leading-none text-white">
+          <div className={styles.marcadorNumeros}>
             <span>{marcador.A}</span>
-            <span className="text-white/30">-</span>
+            <span className={styles.marcadorSeparador}>-</span>
             <span>{marcador.B}</span>
           </div>
-          <div className="flex flex-1 flex-col items-center gap-1">
+          <div className={styles.equipoCol}>
             <IconoEscudo variante="B" />
-            <span className="text-xs font-bold uppercase tracking-wide text-pasto-500">Equipo B</span>
+            <span className={styles.equipoLabel}>Equipo B</span>
           </div>
         </div>
 
         {goles.length > 0 && (
-          <div className="mt-4 grid grid-cols-1 gap-4 border-t border-white/10 pt-4 sm:grid-cols-2">
+          <div className={styles.golesGrid}>
             {['A', 'B'].map((equipo) => {
               const golesDelEquipo = goles.filter((gol) => gol.equipo === equipo);
               return (
-                <ul key={equipo} className="mx-auto flex w-fit flex-col gap-2.5">
+                <ul key={equipo} className={styles.golesLista}>
                   {golesDelEquipo.map((gol, indice) => (
-                    <li key={gol.id || indice} className="flex items-start gap-2 text-sm">
-                      <FaFutbol className="mt-0.5 h-4 w-4 shrink-0 text-white/70" />
-                      <p className="text-white/90">
-                        <span className="font-bold text-white">{gol.minuto}&apos;</span>{' '}
-                        <span className="font-bold text-white">{gol.nombre}</span>
-                        {gol.enContra && <span className="text-white/50"> (PP)</span>}
+                    <li key={gol.id || indice} className={styles.golItem}>
+                      <FaFutbol className={styles.golIcono} />
+                      <p className={styles.golTexto}>
+                        <span className={styles.textoBold}>{gol.minuto}&apos;</span>{' '}
+                        <span className={styles.textoBold}>{gol.nombre}</span>
+                        {gol.enContra && <span className={styles.textoTenue}> (PP)</span>}
                         {gol.asistenciaNombre && (
-                          <span className="block text-xs text-white/50">asistencia de {gol.asistenciaNombre}</span>
+                          <span className={styles.asistenciaTexto}>asistencia de {gol.asistenciaNombre}</span>
                         )}
                         {partido.beelupUrl && (
                           <button
                             type="button"
                             onClick={() => setGolSeleccionado(gol)}
-                            className="block text-xs font-semibold text-pasto-500 hover:underline"
+                            className={styles.verGolBtn}
                           >
                             Ver gol
                           </button>
@@ -148,30 +150,30 @@ export default function ResultadoPartido({ partido, resultado }) {
       </Panel>
 
       {jugadorDestacado.jugadores.length > 0 && (
-        <div className="mx-auto mb-4 flex w-fit flex-wrap items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-2.5">
+        <div className={styles.mvpWrap}>
           {jugadorDestacado.jugadores.map((jugador) => (
-            <span key={jugador.usuarioId} className="flex items-center gap-2 text-sm text-white">
+            <span key={jugador.usuarioId} className={styles.mvpItem}>
               <IconoTrofeo />
-              MVP: <span className="font-bold text-pasto-500">{jugador.nombre}</span>
+              MVP: <span className={styles.mvpNombre}>{jugador.nombre}</span>
             </span>
           ))}
         </div>
       )}
 
-      <Panel titulo="Rendimiento de jugadores" className="mb-4">
+      <Panel titulo="Rendimiento de jugadores" className={styles.espaciadoInferior}>
         {rendimientos.length === 0 ? (
-          <p className="text-sm text-white/50">Sin cargar.</p>
+          <p className={styles.textoVacio}>Sin cargar.</p>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className={styles.listaVertical}>
             {rendimientos.map((rendimiento) => (
-              <li key={rendimiento.usuarioId} className="flex items-center justify-between gap-2 text-sm">
-                <span className="truncate text-white/90">{rendimiento.nombre}</span>
+              <li key={rendimiento.usuarioId} className={styles.rendimientoItem}>
+                <span className={styles.rendimientoNombre}>{rendimiento.nombre}</span>
                 {rendimiento.votos === 0 ? (
-                  <span className="text-xs text-white/40">Sin votos</span>
+                  <span className={styles.sinVotos}>Sin votos</span>
                 ) : (
-                  <span className="flex items-center gap-2">
+                  <span className={styles.rendimientoBarraWrap}>
                     <BarraRendimiento puntaje={Math.round(rendimiento.promedio)} />
-                    <span className="w-16 shrink-0 text-right text-xs font-bold text-white/60">
+                    <span className={styles.rendimientoPromedio}>
                       {rendimiento.promedio}/10 ({rendimiento.votos})
                     </span>
                   </span>
@@ -184,12 +186,12 @@ export default function ResultadoPartido({ partido, resultado }) {
 
       {sanciones.length > 0 && (
         <Panel titulo="Sanciones en cancha">
-          <ul className="flex flex-col gap-2">
+          <ul className={styles.listaVertical}>
             {sanciones.map((sancion, indice) => (
-              <li key={indice} className="flex items-center gap-2 text-sm">
+              <li key={indice} className={styles.sancionItem}>
                 <IconoTarjeta />
-                <span className="font-bold text-white">{sancion.nombre}</span>
-                <span className="text-sancion">— {sancion.motivo}</span>
+                <span className={styles.textoBold}>{sancion.nombre}</span>
+                <span className={styles.sancionMotivo}>— {sancion.motivo}</span>
               </li>
             ))}
           </ul>

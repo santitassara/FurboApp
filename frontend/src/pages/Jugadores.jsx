@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { useGrupo } from '../context/GrupoContext';
 import { rutaGrupo } from '../utils/rutasGrupo';
+import styles from './Jugadores.module.css';
 
 const OPCIONES_ORDEN = [
   { valor: 'alfabetico', etiqueta: 'Orden alfabético' },
@@ -72,24 +73,20 @@ export default function Jugadores() {
   }, [usuarios, busqueda, orden]);
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+    <div className={styles.contenedor}>
       <header>
-        <h1 className="font-display text-4xl leading-none text-white">Jugadores</h1>
+        <h1 className={styles.titulo}>Jugadores</h1>
       </header>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className={styles.filtros}>
         <input
           type="text"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Buscar por nombre…"
-          className="flex-1 rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white placeholder:text-white/40"
+          className={styles.inputBusqueda}
         />
-        <select
-          value={orden}
-          onChange={(e) => setOrden(e.target.value)}
-          className="rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white"
-        >
+        <select value={orden} onChange={(e) => setOrden(e.target.value)} className={styles.select}>
           {OPCIONES_ORDEN.map(({ valor, etiqueta }) => (
             <option key={valor} value={valor}>
               {etiqueta}
@@ -98,22 +95,18 @@ export default function Jugadores() {
         </select>
       </div>
 
-      {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
+      {error && <p className={styles.mensajeError}>{error}</p>}
 
       {cargando ? (
-        <p className="text-white/60">Cargando jugadores…</p>
+        <p className={styles.cargando}>Cargando jugadores…</p>
       ) : usuariosFiltrados.length === 0 ? (
-        <p className="text-white/60">No se encontraron jugadores.</p>
+        <p className={styles.sinResultados}>No se encontraron jugadores.</p>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className={styles.lista}>
           {usuariosFiltrados.map((usuario) => (
-            <Link
-              key={usuario.uid}
-              to={`/jugadores/${usuario.uid}`}
-              className="flex items-center justify-between rounded-xl border border-white/10 bg-cancha-800 px-4 py-3 hover:border-white/30"
-            >
-              <span className="font-semibold text-albiceleste hover:underline">{usuario.nombre}</span>
-              <span className="text-sm text-white/60">
+            <Link key={usuario.uid} to={`/jugadores/${usuario.uid}`} className={styles.itemJugador}>
+              <span className={styles.nombreJugador}>{usuario.nombre}</span>
+              <span className={styles.infoJugador}>
                 {usuario.edad != null ? `${usuario.edad} años` : 'Edad no informada'}
                 {' · '}
                 {usuario.promedioHabilidades != null

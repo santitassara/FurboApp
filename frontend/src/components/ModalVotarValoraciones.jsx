@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Boton from './Boton';
 import { formatearFechaPartido } from '../utils/fecha';
+import styles from './ModalVotarValoraciones.module.css';
 
 export default function ModalVotarValoraciones({
   abierto,
@@ -43,17 +44,17 @@ export default function ModalVotarValoraciones({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 px-4 py-8">
-      <div className="w-full max-w-lg rounded-xl border border-white/10 bg-cancha-800 p-6">
-        <h2 className="mb-4 text-lg font-bold capitalize text-white">
+    <div className={styles.overlay}>
+      <div className={styles.modal}>
+        <h2 className={styles.titulo}>
           Calificar jugadores — {formatearFechaPartido(partido.fecha)}
         </h2>
 
-        <section className="mb-6">
-          <h3 className="mb-2 text-sm font-bold uppercase text-white/70">Puntaje (1-10)</h3>
+        <section className={styles.seccion}>
+          <h3 className={styles.subtitulo}>Puntaje (1-10)</h3>
           {elegibles.map((jugador) => (
-            <div key={jugador.usuarioId} className="mb-1 flex items-center justify-between gap-2">
-              <span className="text-sm text-white/90">
+            <div key={jugador.usuarioId} className={styles.filaJugador}>
+              <span className={styles.nombreJugador}>
                 {jugador.nombre} ({jugador.equipo})
               </span>
               <input
@@ -63,18 +64,18 @@ export default function ModalVotarValoraciones({
                 placeholder="Sin calificar"
                 value={puntajes[jugador.usuarioId] ?? ''}
                 onChange={(e) => setPuntajes((anterior) => ({ ...anterior, [jugador.usuarioId]: e.target.value }))}
-                className="w-28 rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white placeholder:text-white/40"
+                className={styles.inputPuntaje}
               />
             </div>
           ))}
         </section>
 
-        <section className="mb-6">
-          <h3 className="mb-2 text-sm font-bold uppercase text-white/70">Tu MVP del partido</h3>
+        <section className={styles.seccion}>
+          <h3 className={styles.subtitulo}>Tu MVP del partido</h3>
           <select
             value={mvpId}
             onChange={(e) => setMvpId(e.target.value)}
-            className="w-full rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white"
+            className={styles.selectMvp}
           >
             <option value="">Sin elegir</option>
             {elegibles.map((j) => (
@@ -86,11 +87,11 @@ export default function ModalVotarValoraciones({
         </section>
 
         {faltanCalificar && (
-          <p className="mb-4 text-sm text-white/50">Tenés que calificar a todos los jugadores para guardar.</p>
+          <p className={styles.textoAyuda}>Tenés que calificar a todos los jugadores para guardar.</p>
         )}
-        {error && <p className="mb-4 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
+        {error && <p className={styles.mensajeError}>{error}</p>}
 
-        <div className="flex justify-end gap-3">
+        <div className={styles.acciones}>
           <Boton variante="ghost" onClick={onCancelar} disabled={procesando}>
             Cancelar
           </Boton>

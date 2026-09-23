@@ -1,0 +1,137 @@
+@reference "../styles/globals.module.css";
+
+.container {
+  @apply mx-auto flex max-w-3xl flex-col gap-8;
+}
+
+.titulo {
+  @apply font-display text-4xl leading-none text-white;
+}
+
+.card {
+  @apply rounded-xl border border-white/10 bg-cancha-800 p-5;
+}
+
+.cardSinPadding {
+  @apply rounded-xl border border-white/10 bg-cancha-800;
+}
+
+.invitacionLabel {
+  @apply text-sm text-white/70 mb-2;
+}
+
+.invitacionCodigo {
+  @apply font-mono text-2xl font-bold;
+}
+
+.mensajeError {
+  @apply rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion;
+}
+
+.mensajeExito {
+  @apply rounded-lg bg-pasto-600/20 px-4 py-2 text-sm text-pasto-500;
+}
+
+.seccionTitulo {
+  @apply mb-4 text-lg font-bold text-white;
+}
+
+.formulario {
+  @apply flex flex-wrap items-end gap-4;
+}
+
+.labelFlexAncho {
+  @apply flex min-w-[200px] flex-1 flex-col gap-1 text-sm text-white/70;
+}
+
+.label {
+  @apply flex flex-col gap-1 text-sm text-white/70;
+}
+
+.labelMedio {
+  @apply flex min-w-[180px] flex-1 flex-col gap-1 text-sm text-white/70;
+}
+
+.labelAncho {
+  @apply flex min-w-[220px] flex-1 flex-col gap-1 text-sm text-white/70;
+}
+
+.input {
+  @apply rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white;
+}
+
+.inputAngosto {
+  @apply w-28 rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white;
+}
+
+.vacio {
+  @apply text-sm text-white/50;
+}
+
+.lista {
+  @apply flex flex-col gap-2;
+}
+
+.filaSancionado {
+  @apply flex items-center justify-between text-sm text-white/90;
+}
+
+.botonAccion {
+  @apply px-3 py-1 text-xs;
+}
+
+.botonPeligro {
+  @apply text-sancion;
+}
+
+.seccionPartidos {
+  @apply flex flex-col gap-4;
+}
+
+.tituloPartidos {
+  @apply text-lg font-bold text-white;
+}
+
+.partidoHeader {
+  @apply mb-3 flex items-center justify-between;
+}
+
+.partidoTitulo {
+  @apply font-bold text-white;
+}
+
+.partidoEstado {
+  @apply ml-2 text-xs font-normal uppercase text-white/40;
+}
+
+.botonesGrupo {
+  @apply flex gap-2;
+}
+
+.toggleMiembros {
+  @apply w-full px-5 py-4 flex items-center justify-between hover:bg-cancha-700/30 transition-colors;
+}
+
+.toggleIcono {
+  @apply text-white/70 text-xl;
+}
+
+.miembrosContenido {
+  @apply border-t border-white/10 px-5 py-4;
+}
+
+.filaMiembro {
+  @apply flex items-center justify-between rounded-lg bg-cancha-900 px-3 py-2;
+}
+
+.miembroInfo {
+  @apply flex flex-col;
+}
+
+.miembroNombre {
+  @apply text-sm font-medium text-white;
+}
+
+.miembroRol {
+  @apply text-xs text-white/50;
+}

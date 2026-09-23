@@ -5,6 +5,7 @@ import api, { SERVER_URL } from '../services/api';
 import { useGrupo } from '../context/GrupoContext';
 import obtenerTokenActual from '../utils/obtenerTokenActual';
 import Boton from '../components/Boton';
+import styles from './MiEquipo.module.css';
 
 export default function MiEquipo() {
   const { partidoId } = useParams();
@@ -87,13 +88,13 @@ export default function MiEquipo() {
   }
 
   if (cargando) {
-    return <p className="text-white/60">Cargando…</p>;
+    return <p className={styles.cargando}>Cargando…</p>;
   }
 
   if (!datos) {
     return (
-      <div className="flex flex-col gap-4">
-        <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error || 'No tenés acceso a este chat'}</p>
+      <div className={styles.contenedorSinAcceso}>
+        <p className={styles.mensajeError}>{error || 'No tenés acceso a este chat'}</p>
         <Boton variante="ghost" onClick={() => navigate('/inicio')}>
           Volver al inicio
         </Boton>
@@ -102,41 +103,38 @@ export default function MiEquipo() {
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4">
-      <h1 className="font-display text-3xl text-white">Mi equipo</h1>
+    <div className={styles.contenedor}>
+      <h1 className={styles.titulo}>Mi equipo</h1>
 
-      <div className="rounded-xl border border-white/10 bg-cancha-800 p-4">
-        <p className="mb-2 text-xs uppercase tracking-wide text-pasto-500">Equipo {datos.equipo}</p>
-        <div className="flex flex-wrap gap-2 text-sm text-white/80">
+      <div className={styles.equipoBox}>
+        <p className={styles.equipoLabel}>Equipo {datos.equipo}</p>
+        <div className={styles.companeros}>
           {datos.companeros.map((companero) => (
-            <span key={companero.uid} className="rounded-full bg-cancha-700 px-3 py-1">
+            <span key={companero.uid} className={styles.companero}>
               {companero.nombre}
             </span>
           ))}
         </div>
       </div>
 
-      {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
+      {error && <p className={styles.mensajeError}>{error}</p>}
 
-      <div
-        ref={listaRef}
-        className="flex h-96 flex-col gap-2 overflow-y-auto rounded-xl border border-white/10 bg-cancha-800 p-4"
-      >
+      <div ref={listaRef} className={styles.chatLista}>
         {mensajes.map((mensaje) => (
-          <div key={mensaje.id} className="text-sm text-white/80">
-            <span className="font-semibold text-white">{mensaje.nombre}: </span>
+          <div key={mensaje.id} className={styles.mensaje}>
+            <span className={styles.mensajeNombre}>{mensaje.nombre}: </span>
             {mensaje.texto}
           </div>
         ))}
       </div>
 
-      <form onSubmit={enviar} className="flex gap-2">
+      <form onSubmit={enviar} className={styles.form}>
         <input
           value={texto}
           onChange={(evento) => setTexto(evento.target.value)}
           maxLength={500}
           placeholder="Escribí un mensaje…"
-          className="flex-1 rounded-lg border border-white/20 bg-cancha-700 px-3 py-2 text-white placeholder:text-white/40"
+          className={styles.inputMensaje}
         />
         <Boton type="submit" disabled={enviando || !texto.trim()}>
           Enviar

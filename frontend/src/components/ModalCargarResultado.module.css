@@ -1,0 +1,85 @@
+@reference "../styles/globals.module.css";
+
+.overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8;
+}
+
+.panel {
+  @apply flex max-h-[90vh] w-full max-w-2xl flex-col rounded-xl border border-white/10 bg-cancha-800;
+}
+
+.contenido {
+  @apply overflow-y-auto p-6;
+}
+
+.titulo {
+  @apply mb-4 text-lg font-bold capitalize text-white;
+}
+
+.mensajeCargando {
+  @apply mb-4 text-sm text-white/50;
+}
+
+.avisoSinElegibles {
+  @apply mb-6 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion;
+}
+
+.seccion {
+  @apply mb-6;
+}
+
+.etiquetaCampo {
+  @apply mb-2 block text-sm font-bold uppercase text-white/70;
+}
+
+.inputTexto {
+  @apply w-full rounded-lg border border-white/20 bg-cancha-900 px-2 py-1.5 text-sm text-white;
+}
+
+.encabezadoSeccion {
+  @apply mb-2 flex items-center justify-between;
+}
+
+.tituloSeccion {
+  @apply text-sm font-bold uppercase text-white/70;
+}
+
+.botonAgregar {
+  @apply px-3 py-1 text-xs;
+}
+
+.filaFormulario {
+  @apply mb-2 flex flex-wrap items-center gap-2;
+}
+
+.select {
+  @apply rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white;
+}
+
+.inputMinuto {
+  @apply w-20 rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white;
+}
+
+.selectAsistencia {
+  @apply rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white disabled:opacity-40;
+}
+
+.labelCheckbox {
+  @apply flex items-center gap-1 text-xs text-white/70;
+}
+
+.botonQuitar {
+  @apply px-2 py-1 text-xs text-sancion;
+}
+
+.inputMotivo {
+  @apply flex-1 rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white;
+}
+
+.error {
+  @apply mb-4 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion;
+}
+
+.pie {
+  @apply flex justify-end gap-3 border-t border-white/10 p-6 pt-4;
+}

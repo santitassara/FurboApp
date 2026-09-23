@@ -1,0 +1,21 @@
+@reference "../styles/globals.module.css";
+
+.contenedor {
+  @apply mx-auto flex max-w-md flex-col gap-6 px-4 py-10;
+}
+
+.header {
+  @apply flex items-center justify-between;
+}
+
+.titulo {
+  @apply font-display text-3xl leading-none text-white;
+}
+
+.subtitulo {
+  @apply mt-2 text-sm text-white/60;
+}
+
+.error {
+  @apply rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion;
+}

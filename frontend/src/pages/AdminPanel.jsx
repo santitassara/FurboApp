@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import clsx from 'clsx';
+import styles from './AdminPanel.module.css';
 import api from '../services/api';
 import { useGrupo } from '../context/GrupoContext';
 import { useAuth } from '../context/AuthContext';
@@ -212,31 +214,31 @@ export default function AdminPanel() {
   }
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-8">
-      <h1 className="font-display text-4xl leading-none text-white">Panel de admin</h1>
+    <div className={styles.container}>
+      <h1 className={styles.titulo}>Panel de admin</h1>
 
-      <div className="rounded-xl border border-white/10 bg-cancha-800 p-5">
-        <p className="text-sm text-white/70 mb-2">Comparte el código para que se unan al grupo:</p>
-        <p className="font-mono text-2xl font-bold text-pasto-400">{grupoActivo?.codigoInvitacion}</p>
+      <div className={styles.card}>
+        <p className={styles.invitacionLabel}>Comparte el código para que se unan al grupo:</p>
+        <p className={styles.invitacionCodigo}>{grupoActivo?.codigoInvitacion}</p>
       </div>
 
-      {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
-      {mensaje && <p className="rounded-lg bg-pasto-600/20 px-4 py-2 text-sm text-pasto-500">{mensaje}</p>}
+      {error && <p className={styles.mensajeError}>{error}</p>}
+      {mensaje && <p className={styles.mensajeExito}>{mensaje}</p>}
 
-      <section className="rounded-xl border border-white/10 bg-cancha-800 p-5">
-        <h2 className="mb-4 text-lg font-bold text-white">Crear partido para {grupoActivo.nombre}</h2>
-        <form onSubmit={crearPartido} className="flex flex-wrap items-end gap-4">
-          <label className="flex min-w-[200px] flex-1 flex-col gap-1 text-sm text-white/70">
+      <section className={styles.card}>
+        <h2 className={styles.seccionTitulo}>Crear partido para {grupoActivo.nombre}</h2>
+        <form onSubmit={crearPartido} className={styles.formulario}>
+          <label className={styles.labelFlexAncho}>
             Fecha y hora
             <input
               type="datetime-local"
               required
               value={formulario.fecha}
               onChange={(evento) => setFormulario({ ...formulario, fecha: evento.target.value })}
-              className="rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white"
+              className={styles.input}
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm text-white/70">
+          <label className={styles.label}>
             Cupo titulares
             <input
               type="number"
@@ -244,10 +246,10 @@ export default function AdminPanel() {
               required
               value={formulario.cupoTitulares}
               onChange={(evento) => setFormulario({ ...formulario, cupoTitulares: evento.target.value })}
-              className="w-28 rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white"
+              className={styles.inputAngosto}
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm text-white/70">
+          <label className={styles.label}>
             Cupo suplentes
             <input
               type="number"
@@ -255,40 +257,40 @@ export default function AdminPanel() {
               required
               value={formulario.cupoSuplentes}
               onChange={(evento) => setFormulario({ ...formulario, cupoSuplentes: evento.target.value })}
-              className="w-28 rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white"
+              className={styles.inputAngosto}
             />
           </label>
-          <label className="flex min-w-[180px] flex-1 flex-col gap-1 text-sm text-white/70">
+          <label className={styles.labelMedio}>
             Estadio
             <input
               type="text"
               value={formulario.estadio}
               onChange={(evento) => setFormulario({ ...formulario, estadio: evento.target.value })}
-              className="rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white"
+              className={styles.input}
               placeholder="Ej. El Monumental F7"
             />
           </label>
-          <label className="flex min-w-[180px] flex-1 flex-col gap-1 text-sm text-white/70">
+          <label className={styles.labelMedio}>
             Tipo de suelo
             <input
               type="text"
               value={formulario.tipoSuelo}
               onChange={(evento) => setFormulario({ ...formulario, tipoSuelo: evento.target.value })}
-              className="rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white"
+              className={styles.input}
               placeholder="Ej. Sintético Cubierto Pro 7vs7"
             />
           </label>
-          <label className="flex min-w-[220px] flex-1 flex-col gap-1 text-sm text-white/70">
+          <label className={styles.labelAncho}>
             Dirección
             <input
               type="text"
               value={formulario.direccion}
               onChange={(evento) => setFormulario({ ...formulario, direccion: evento.target.value })}
-              className="rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white"
+              className={styles.input}
               placeholder="Ej. Av. Álvarez Thomas 1850, CABA"
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm text-white/70">
+          <label className={styles.label}>
             Valor por jugador
             <input
               type="number"
@@ -296,7 +298,7 @@ export default function AdminPanel() {
               step="1"
               value={formulario.valorCuota}
               onChange={(evento) => setFormulario({ ...formulario, valorCuota: evento.target.value })}
-              className="w-28 rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white"
+              className={styles.inputAngosto}
               placeholder="3000"
             />
           </label>
@@ -308,18 +310,18 @@ export default function AdminPanel() {
 
       <ProgramacionPartidos grupoId={grupoActivo.id} />
 
-      <section className="rounded-xl border border-white/10 bg-cancha-800 p-5">
-        <h2 className="mb-4 text-lg font-bold text-white">Sancionados</h2>
+      <section className={styles.card}>
+        <h2 className={styles.seccionTitulo}>Sancionados</h2>
         {sancionados.length === 0 ? (
-          <p className="text-sm text-white/50">No hay jugadores sancionados.</p>
+          <p className={styles.vacio}>No hay jugadores sancionados.</p>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className={styles.lista}>
             {sancionados.map((usuario) => (
-              <li key={usuario.uid} className="flex items-center justify-between text-sm text-white/90">
+              <li key={usuario.uid} className={styles.filaSancionado}>
                 <span>{usuario.nombre}</span>
                 <Boton
                   variante="ghost"
-                  className="px-3 py-1 text-xs"
+                  className={styles.botonAccion}
                   onClick={() => perdonar(usuario.uid)}
                   disabled={accionEnCurso}
                 >
@@ -331,23 +333,23 @@ export default function AdminPanel() {
         )}
       </section>
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-bold text-white">Partidos</h2>
+      <section className={styles.seccionPartidos}>
+        <h2 className={styles.tituloPartidos}>Partidos</h2>
         {partidos.length === 0 ? (
-          <p className="text-sm text-white/50">No hay partidos para mostrar.</p>
+          <p className={styles.vacio}>No hay partidos para mostrar.</p>
         ) : (
           partidos.map((partido) => (
-            <div key={partido.id} className="rounded-xl border border-white/10 bg-cancha-800 p-5">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="font-bold text-white">
+            <div key={partido.id} className={styles.card}>
+              <div className={styles.partidoHeader}>
+                <h3 className={styles.partidoTitulo}>
                   {new Date(partido.fecha).toLocaleString('es-AR')}{' '}
-                  <span className="ml-2 text-xs font-normal uppercase text-white/40">{partido.estado}</span>
+                  <span className={styles.partidoEstado}>{partido.estado}</span>
                 </h3>
-                <div className="flex gap-2">
+                <div className={styles.botonesGrupo}>
                   {(partido.estado === 'cerrado' || partido.estado === 'jugado') && (
                     <Boton
                       variante="primario"
-                      className="px-3 py-1 text-xs"
+                      className={styles.botonAccion}
                       onClick={() => {
                         setError('');
                         setPartidoParaResultado(partido);
@@ -359,7 +361,7 @@ export default function AdminPanel() {
                   )}
                   <Boton
                     variante="ghost"
-                    className="px-3 py-1 text-xs text-sancion"
+                    className={clsx(styles.botonAccion, styles.botonPeligro)}
                     onClick={() => eliminarPartido(partido.id)}
                     disabled={accionEnCurso}
                   >
@@ -388,32 +390,32 @@ export default function AdminPanel() {
       </section>
 
       {grupoActivo?.creadoPor === perfil?.uid && (
-        <section className="rounded-xl border border-white/10 bg-cancha-800">
+        <section className={styles.cardSinPadding}>
           <button
             onClick={() => setMiembrosExpandido(!miembrosExpandido)}
-            className="w-full px-5 py-4 flex items-center justify-between hover:bg-cancha-700/30 transition-colors"
+            className={styles.toggleMiembros}
           >
-            <h2 className="text-lg font-bold text-white">Miembros del equipo</h2>
-            <span className="text-white/70 text-xl">{miembrosExpandido ? '−' : '+'}</span>
+            <h2 className={styles.tituloPartidos}>Miembros del equipo</h2>
+            <span className={styles.toggleIcono}>{miembrosExpandido ? '−' : '+'}</span>
           </button>
           {miembrosExpandido && (
-            <div className="border-t border-white/10 px-5 py-4">
+            <div className={styles.miembrosContenido}>
               {miembros.length === 0 ? (
-                <p className="text-sm text-white/50">No hay miembros en este grupo.</p>
+                <p className={styles.vacio}>No hay miembros en este grupo.</p>
               ) : (
-                <ul className="flex flex-col gap-2">
+                <ul className={styles.lista}>
                   {miembros.map((miembro) => (
-                    <li key={miembro.uid} className="flex items-center justify-between rounded-lg bg-cancha-900 px-3 py-2">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-white">{miembro.nombre}</span>
-                        <span className="text-xs text-white/50">{miembro.rol === 'admin' ? 'Admin' : 'Jugador'}</span>
+                    <li key={miembro.uid} className={styles.filaMiembro}>
+                      <div className={styles.miembroInfo}>
+                        <span className={styles.miembroNombre}>{miembro.nombre}</span>
+                        <span className={styles.miembroRol}>{miembro.rol === 'admin' ? 'Admin' : 'Jugador'}</span>
                       </div>
                       {miembro.uid !== grupoActivo.creadoPor && (
-                        <div className="flex gap-2">
+                        <div className={styles.botonesGrupo}>
                           {miembro.rol === 'jugador' ? (
                             <Boton
                               variante="ghost"
-                              className="px-3 py-1 text-xs"
+                              className={styles.botonAccion}
                               onClick={() => promoverAAdmin(miembro.uid)}
                               disabled={accionEnCurso}
                             >
@@ -422,7 +424,7 @@ export default function AdminPanel() {
                           ) : (
                             <Boton
                               variante="ghost"
-                              className="px-3 py-1 text-xs text-sancion"
+                              className={clsx(styles.botonAccion, styles.botonPeligro)}
                               onClick={() => desporomoverDeAdmin(miembro.uid)}
                               disabled={accionEnCurso}
                             >

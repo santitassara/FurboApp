@@ -20,7 +20,8 @@ import RutaSuperAdmin from './components/RutaSuperAdmin';
 import Layout from './components/Layout';
 import Boton from './components/Boton';
 import InstallAppPrompt from './components/InstallAppPrompt';
-import './components/InstallAppPrompt.css';
+import './components/InstallAppPrompt.module.css';
+import styles from './App.module.css';
 
 export default function App() {
   const { perfil, cargando, errorAuth, cerrarSesion } = useAuth();
@@ -34,13 +35,13 @@ export default function App() {
   }, []);
 
   if (cargando) {
-    return <div className="flex min-h-screen items-center justify-center text-white/70">Cargando…</div>;
+    return <div className={styles.contenedorCargando}>Cargando…</div>;
   }
 
   if (errorAuth) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
-        <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{errorAuth}</p>
+      <div className={styles.contenedorError}>
+        <p className={styles.mensajeError}>{errorAuth}</p>
         <Boton onClick={cerrarSesion}>Reintentar (salir e ingresar de nuevo)</Boton>
       </div>
     );

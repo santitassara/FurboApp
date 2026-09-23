@@ -2,6 +2,7 @@ import BarraCupos from './BarraCupos';
 import Boton from './Boton';
 import ListaJugadores from './ListaJugadores';
 import { formatearFechaPartido } from '../utils/fecha';
+import styles from './TarjetaPartido.module.css';
 
 export default function TarjetaPartido({
   partido,
@@ -19,23 +20,23 @@ export default function TarjetaPartido({
   const partidoCompleto = ocupados.titulares >= partido.cupoTitulares && ocupados.suplentes >= partido.cupoSuplentes;
 
   return (
-    <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-bold capitalize text-white">{formatearFechaPartido(partido.fecha)}</h3>
+    <div className={styles.card}>
+      <div className={styles.headerFila}>
+        <h3 className={styles.titulo}>{formatearFechaPartido(partido.fecha)}</h3>
         {inscripcionUsuario && (
-          <span className="rounded-full bg-pasto-600/20 px-3 py-1 text-xs font-bold uppercase text-pasto-500">
+          <span className={styles.badgeInscripcion}>
             {inscripcionUsuario.tipo === 'titular' ? 'Sos titular' : 'Sos suplente'}
           </span>
         )}
       </div>
 
-      <div className="mb-4 flex flex-col gap-3">
+      <div className={styles.barrasWrapper}>
         <BarraCupos etiqueta="Titulares" ocupados={ocupados.titulares} cupo={partido.cupoTitulares} />
         <BarraCupos etiqueta="Suplentes" ocupados={ocupados.suplentes} cupo={partido.cupoSuplentes} />
       </div>
 
       {jugadores && (
-        <div className="mb-4">
+        <div className={styles.listaJugadoresWrapper}>
           <ListaJugadores
             jugadores={jugadores}
             formacion={formacion}
@@ -46,13 +47,13 @@ export default function TarjetaPartido({
       )}
 
       {inscripcionUsuario ? (
-        <Boton variante="peligro" className="w-full" onClick={onSolicitarBaja} disabled={procesando}>
+        <Boton variante="peligro" className={styles.botonAncho} onClick={onSolicitarBaja} disabled={procesando}>
           {procesando ? 'Procesando…' : 'Darme de baja'}
         </Boton>
       ) : (
         <Boton
           variante="primario"
-          className="w-full"
+          className={styles.botonAncho}
           onClick={onAnotarse}
           disabled={estaSancionado || partidoCompleto || procesando}
         >

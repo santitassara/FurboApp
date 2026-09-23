@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import clsx from 'clsx';
 import api from '../services/api';
 import Boton from './Boton';
 import { etiquetaPosicion } from '../constants/posiciones';
 import { calcularRating } from './TarjetaJugadorFIFA';
+import styles from './ListaJugadores.module.css';
 
 const ABREVIATURA_POSICION = {
   arquero: 'POR',
@@ -17,6 +19,12 @@ const ABREVIATURA_PIERNA = {
   zurdo: 'Z',
 };
 
+const COLOR_GRUPO = {
+  pasto: styles.colorPasto,
+  tarjeta: styles.colorTarjeta,
+  gris: styles.colorGris,
+};
+
 function hashTexto(texto) {
   let hash = 0;
   for (let i = 0; i < texto.length; i += 1) {
@@ -27,9 +35,9 @@ function hashTexto(texto) {
 
 function colorValoracion(rating) {
   const numero = Number(rating);
-  if (numero >= 85) return 'bg-pasto-600/30 text-pasto-500';
-  if (numero >= 75) return 'bg-tarjeta/20 text-tarjeta';
-  return 'bg-white/10 text-white/70';
+  if (numero >= 85) return styles.valoracionAlta;
+  if (numero >= 75) return styles.valoracionMedia;
+  return styles.valoracionBaja;
 }
 
 function FilaJugador({ jugador, accion, onAccion, deshabilitado, grupoId }) {
@@ -49,27 +57,27 @@ function FilaJugador({ jugador, accion, onAccion, deshabilitado, grupoId }) {
   }, [jugador.usuarioId, grupoId]);
 
   return (
-    <li className="flex items-center gap-3 rounded-lg px-2 py-2 odd:bg-white/[0.03]">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cancha-700 text-xs font-bold text-white/90">
+    <li className={styles.fila}>
+      <div className={styles.avatar}>
         {inicial}
       </div>
-      <div className="min-w-0 flex-1">
-        <Link to={`/jugadores/${jugador.usuarioId}`} className="block text-sm font-medium text-white hover:underline">
+      <div className={styles.infoWrapper}>
+        <Link to={`/jugadores/${jugador.usuarioId}`} className={styles.nombreLink}>
           {jugador.nombre}
         </Link>
-        <span className="text-[11px] text-white/50">
+        <span className={styles.subInfo}>
           {ABREVIATURA_POSICION[jugador.posicionPrincipal] || '-'}
           {jugador.posicionSecundaria && ` / ${ABREVIATURA_POSICION[jugador.posicionSecundaria] || '-'}`}
           {jugador.piernaHabil && ` • ${ABREVIATURA_PIERNA[jugador.piernaHabil] || ''}`}
         </span>
       </div>
-      <span className={`flex h-7 min-w-[2.25rem] shrink-0 items-center justify-center rounded px-2 text-sm font-bold leading-none ${colorValoracion(rating)}`}>
+      <span className={clsx(styles.valoracion, colorValoracion(rating))}>
         {rating ?? '–'}
       </span>
       {accion && (
         <Boton
           variante={accion === 'sancionar' ? 'peligro' : 'ghost'}
-          className="shrink-0 px-2 py-1 text-xs"
+          className={styles.accionBoton}
           onClick={() => onAccion(jugador.usuarioId)}
           disabled={deshabilitado}
         >
@@ -82,18 +90,18 @@ function FilaJugador({ jugador, accion, onAccion, deshabilitado, grupoId }) {
 
 function EncabezadoTabla({ mostrarAccion }) {
   return (
-    <div className="flex items-center gap-3 px-2 pb-1 text-[10px] font-bold uppercase tracking-wide text-white/40">
-      <span className="w-8 shrink-0" />
-      <span className="min-w-0 flex-1">Jugador</span>
-      <span className="w-10 shrink-0 text-center">Val</span>
-      {mostrarAccion && <span className="w-16 shrink-0" />}
+    <div className={styles.encabezado}>
+      <span className={styles.colAvatar} />
+      <span className={styles.colNombre}>Jugador</span>
+      <span className={styles.colValor}>Val</span>
+      {mostrarAccion && <span className={styles.colAccion} />}
     </div>
   );
 }
 
 function agruparTitulares(titulares, formacion, equiposDefinidos) {
   if (!formacion || !equiposDefinidos) {
-    return [{ clave: 'titulares', titulo: 'Titulares', color: 'text-pasto-500', jugadores: titulares }];
+    return [{ clave: 'titulares', titulo: 'Titulares', color: 'pasto', jugadores: titulares }];
   }
 
   const equipoPorUsuario = new Map((formacion.jugadores || []).map((jugador) => [jugador.usuarioId, jugador.equipo]));
@@ -102,11 +110,11 @@ function agruparTitulares(titulares, formacion, equiposDefinidos) {
   const sinUbicar = titulares.filter((jugador) => !equipoPorUsuario.get(jugador.usuarioId));
 
   const grupos = [
-    { clave: 'equipoA', titulo: 'Equipo 1', color: 'text-pasto-500', jugadores: equipoA },
-    { clave: 'equipoB', titulo: 'Equipo 2', color: 'text-tarjeta', jugadores: equipoB },
+    { clave: 'equipoA', titulo: 'Equipo 1', color: 'pasto', jugadores: equipoA },
+    { clave: 'equipoB', titulo: 'Equipo 2', color: 'tarjeta', jugadores: equipoB },
   ];
   if (sinUbicar.length > 0) {
-    grupos.push({ clave: 'sinUbicar', titulo: 'Sin ubicar', color: 'text-white/50', jugadores: sinUbicar });
+    grupos.push({ clave: 'sinUbicar', titulo: 'Sin ubicar', color: 'gris', jugadores: sinUbicar });
   }
   return grupos;
 }
@@ -117,23 +125,23 @@ export default function ListaJugadores({ jugadores, formacion, equiposDefinidos,
   const gruposTitulares = agruparTitulares(titulares, formacion, equiposDefinidos);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="rounded-lg bg-cancha-700 px-3 py-2">
-        <h4 className="text-xs font-bold uppercase tracking-wide text-white">
+    <div className={styles.contenedor}>
+      <div className={styles.headerBox}>
+        <h4 className={styles.headerTitulo}>
           Listado de jugadores ({titulares.length})
         </h4>
       </div>
 
       {titulares.length === 0 ? (
-        <p className="px-2 text-sm text-white/50">Todavía no hay titulares.</p>
+        <p className={styles.vacio}>Todavía no hay titulares.</p>
       ) : (
         gruposTitulares.map(
           (grupo) =>
             grupo.jugadores.length > 0 && (
               <div key={grupo.clave}>
-                <h5 className={`mb-1 px-2 text-xs font-bold uppercase tracking-wide ${grupo.color}`}>{grupo.titulo}</h5>
+                <h5 className={clsx(styles.grupoTitulo, COLOR_GRUPO[grupo.color])}>{grupo.titulo}</h5>
                 <EncabezadoTabla mostrarAccion={Boolean(onSancionar)} />
-                <ul className="flex flex-col">
+                <ul className={styles.lista}>
                   {grupo.jugadores.map((jugador) => (
                     <FilaJugador
                       key={jugador.usuarioId}
@@ -151,13 +159,13 @@ export default function ListaJugadores({ jugadores, formacion, equiposDefinidos,
       )}
 
       <div>
-        <h5 className="mb-1 px-2 text-xs font-bold uppercase tracking-wide text-albiceleste">Suplentes</h5>
+        <h5 className={clsx(styles.grupoTitulo, styles.colorAlbiceleste)}>Suplentes</h5>
         {suplentes.length === 0 ? (
-          <p className="px-2 text-sm text-white/50">No hay suplentes anotados.</p>
+          <p className={styles.vacio}>No hay suplentes anotados.</p>
         ) : (
           <>
             <EncabezadoTabla mostrarAccion={Boolean(onPromover)} />
-            <ul className="flex flex-col">
+            <ul className={styles.lista}>
               {suplentes.map((jugador) => (
                 <FilaJugador
                   key={jugador.usuarioId}

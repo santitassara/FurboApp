@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import clsx from 'clsx';
 import { useParams } from 'react-router-dom';
 import { useGrupo } from '../context/GrupoContext';
 import api, { SERVER_URL } from '../services/api';
@@ -8,6 +9,7 @@ import { etiquetaRitmoJuego } from '../constants/ritmoJuego';
 import { etiquetaPiernaHabil } from '../constants/piernaHabil';
 import TarjetaJugadorFIFA from '../components/TarjetaJugadorFIFA';
 import RadarHabilidades from '../components/RadarHabilidades';
+import styles from './PerfilJugador.module.css';
 
 export default function PerfilJugador() {
   const { uid } = useParams();
@@ -67,15 +69,15 @@ export default function PerfilJugador() {
     : [];
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6">
-      <h1 className="font-display text-4xl leading-none text-white">Perfil del jugador</h1>
+    <div className={styles.container}>
+      <h1 className={styles.titulo}>Perfil del jugador</h1>
 
-      {cargando && <p className="text-white/60">Cargando…</p>}
-      {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
+      {cargando && <p className={styles.cargando}>Cargando…</p>}
+      {error && <p className={styles.error}>{error}</p>}
 
       {perfil && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_1fr]">
-          <div className="flex justify-center lg:justify-start">
+        <div className={styles.grid}>
+          <div className={styles.tarjetaWrap}>
             <TarjetaJugadorFIFA
               nombre={perfil.nombreCompleto || perfil.nombre}
               posicion={perfil.posicionPrincipal}
@@ -84,77 +86,75 @@ export default function PerfilJugador() {
             />
           </div>
 
-          <div className="flex flex-col gap-6">
-            <div className="rounded-2xl border border-white/10 bg-cancha-800/60 p-6">
-              <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-pasto-500">Resumen</h2>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className={styles.columnaDerecha}>
+            <div className={styles.panel}>
+              <h2 className={styles.panelTitulo}>Resumen</h2>
+              <div className={styles.tilesGrid}>
                 {tiles.map((tile) => (
                   <div
                     key={tile.etiqueta}
-                    className={`min-w-0 rounded-xl border border-white/10 bg-cancha-900 p-4 text-center ${
-                      tile.ancha ? 'col-span-2' : ''
-                    }`}
+                    className={clsx(styles.tile, tile.ancha && styles.tileAncha)}
                   >
-                    <p className="text-[11px] uppercase tracking-wide text-white/50">{tile.etiqueta}</p>
-                    <p className="mt-1 text-sm font-semibold text-white">{tile.valor}</p>
+                    <p className={styles.tileLabel}>{tile.etiqueta}</p>
+                    <p className={styles.tileValor}>{tile.valor}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             {estadisticas && (
-              <div className="rounded-2xl border border-white/10 bg-cancha-800/60 p-6">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-pasto-500">
+              <div className={styles.panel}>
+                <h2 className={styles.panelTitulo}>
                   Estadísticas en grupo {grupoActivo?.nombre}
                 </h2>
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  <div className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
-                    <p className="text-[11px] uppercase tracking-wide text-white/50">Partidos Jugados</p>
-                    <p className="mt-1 text-2xl font-semibold text-white">{estadisticas.pj}</p>
+                <div className={styles.tilesGrid}>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>Partidos Jugados</p>
+                    <p className={styles.statValor}>{estadisticas.pj}</p>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
-                    <p className="text-[11px] uppercase tracking-wide text-white/50">Goles</p>
-                    <p className="mt-1 text-2xl font-semibold text-white">{estadisticas.goles}</p>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>Goles</p>
+                    <p className={styles.statValor}>{estadisticas.goles}</p>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
-                    <p className="text-[11px] uppercase tracking-wide text-white/50">Asistencias</p>
-                    <p className="mt-1 text-2xl font-semibold text-white">{estadisticas.asistencias}</p>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>Asistencias</p>
+                    <p className={styles.statValor}>{estadisticas.asistencias}</p>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
-                    <p className="text-[11px] uppercase tracking-wide text-white/50">Valoración</p>
-                    <p className="mt-1 text-2xl font-semibold text-white">{estadisticas.valoracion}</p>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>Valoración</p>
+                    <p className={styles.statValor}>{estadisticas.valoracion}</p>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
-                    <p className="text-[11px] uppercase tracking-wide text-white/50">MVPs</p>
-                    <p className="mt-1 text-2xl font-semibold text-white">{estadisticas.mvps}</p>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>MVPs</p>
+                    <p className={styles.statValor}>{estadisticas.mvps}</p>
                   </div>
                 </div>
               </div>
             )}
 
             {estadisticasTotales && (
-              <div className="rounded-2xl border border-white/10 bg-cancha-800/60 p-6">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-pasto-500">Totales</h2>
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  <div className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
-                    <p className="text-[11px] uppercase tracking-wide text-white/50">
+              <div className={styles.panel}>
+                <h2 className={styles.panelTitulo}>Totales</h2>
+                <div className={styles.tilesGrid}>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>
                       Goles en grupo {grupoActivo?.nombre}
                     </p>
-                    <p className="mt-1 text-2xl font-semibold text-white">{estadisticas?.goles || 0}</p>
+                    <p className={styles.statValor}>{estadisticas?.goles || 0}</p>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
-                    <p className="text-[11px] uppercase tracking-wide text-white/50">Goles Totales</p>
-                    <p className="mt-1 text-2xl font-semibold text-white">{estadisticasTotales.goles}</p>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>Goles Totales</p>
+                    <p className={styles.statValor}>{estadisticasTotales.goles}</p>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
-                    <p className="text-[11px] uppercase tracking-wide text-white/50">
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>
                       MVPs en grupo {grupoActivo?.nombre}
                     </p>
-                    <p className="mt-1 text-2xl font-semibold text-white">{estadisticas?.mvps || 0}</p>
+                    <p className={styles.statValor}>{estadisticas?.mvps || 0}</p>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-cancha-900 p-4 text-center">
-                    <p className="text-[11px] uppercase tracking-wide text-white/50">MVPs Totales</p>
-                    <p className="mt-1 text-2xl font-semibold text-white">{estadisticasTotales.mvps}</p>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>MVPs Totales</p>
+                    <p className={styles.statValor}>{estadisticasTotales.mvps}</p>
                   </div>
                 </div>
               </div>

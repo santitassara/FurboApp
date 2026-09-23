@@ -1,0 +1,53 @@
+@reference "../styles/globals.module.css";
+
+.contenedor {
+  @apply relative px-2;
+}
+
+.botonActivo {
+  @apply flex w-full items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-left text-sm font-semibold text-white;
+}
+
+.nombreGrupo {
+  @apply truncate;
+}
+
+.flechaIcono {
+  @apply text-white/50;
+}
+
+.menu {
+  @apply absolute z-10 mt-1 w-full rounded-lg border border-white/10 bg-cancha-900 py-1 shadow-lg;
+}
+
+.opcionGrupo {
+  @apply block w-full px-3 py-2 text-left text-sm;
+}
+
+.opcionActiva {
+  @apply text-pasto-500;
+}
+
+.opcionInactiva {
+  @apply text-white/80 hover:bg-white/5;
+}
+
+.enlaceCrear {
+  @apply block w-full px-3 py-2 text-left text-sm text-white/60 hover:bg-white/5;
+}
+
+.separador {
+  @apply border-t border-white/10;
+}
+
+.botonAbandonar {
+  @apply block w-full px-3 py-2 text-left text-sm text-sancion hover:bg-sancion/10;
+}
+
+.errorContenedor {
+  @apply px-3 py-2;
+}
+
+.errorTexto {
+  @apply text-xs text-sancion;
+}

@@ -3,6 +3,7 @@ import api from '../services/api';
 import { useGrupo } from '../context/GrupoContext';
 import { rutaGrupo } from '../utils/rutasGrupo';
 import ItemHistorialPartido from '../components/ItemHistorialPartido';
+import styles from './UltimosPartidos.module.css';
 
 export default function UltimosPartidos() {
   const { grupoActivo } = useGrupo();
@@ -28,19 +29,19 @@ export default function UltimosPartidos() {
   }, [grupoActivo]);
 
   return (
-    <div className="mx-auto flex flex-col gap-6">
+    <div className={styles.contenedor}>
       <header>
-        <h1 className="font-display text-4xl leading-none text-white">Últimos partidos</h1>
+        <h1 className={styles.titulo}>Últimos partidos</h1>
       </header>
 
-      {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
+      {error && <p className={styles.error}>{error}</p>}
 
       {cargando ? (
-        <p className="text-white/60">Cargando…</p>
+        <p className={styles.mensaje}>Cargando…</p>
       ) : partidos.length === 0 ? (
-        <p className="text-white/60">Todavía no hay partidos jugados.</p>
+        <p className={styles.mensaje}>Todavía no hay partidos jugados.</p>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className={styles.lista}>
           {partidos.map((partido) => (
             <ItemHistorialPartido key={partido.id} partido={partido} />
           ))}

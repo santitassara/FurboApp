@@ -1,0 +1,29 @@
+@reference "../styles/globals.module.css";
+
+.card {
+  @apply rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg;
+}
+
+.headerFila {
+  @apply mb-4 flex items-center justify-between;
+}
+
+.titulo {
+  @apply text-lg font-bold capitalize text-white;
+}
+
+.badgeInscripcion {
+  @apply rounded-full bg-pasto-600/20 px-3 py-1 text-xs font-bold uppercase text-pasto-500;
+}
+
+.barrasWrapper {
+  @apply mb-4 flex flex-col gap-3;
+}
+
+.listaJugadoresWrapper {
+  @apply mb-4;
+}
+
+.botonAncho {
+  @apply w-full;
+}

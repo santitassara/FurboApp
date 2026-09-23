@@ -1,0 +1,49 @@
+@reference "../styles/globals.module.css";
+
+.contenedor {
+  @apply mx-auto flex max-w-2xl flex-col gap-6;
+}
+
+.titulo {
+  @apply font-display text-4xl leading-none text-white;
+}
+
+.filtros {
+  @apply flex flex-col gap-3 sm:flex-row;
+}
+
+.inputBusqueda {
+  @apply flex-1 rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white placeholder:text-white/40;
+}
+
+.select {
+  @apply rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white;
+}
+
+.mensajeError {
+  @apply rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion;
+}
+
+.cargando {
+  @apply text-white/60;
+}
+
+.sinResultados {
+  @apply text-white/60;
+}
+
+.lista {
+  @apply flex flex-col gap-2;
+}
+
+.itemJugador {
+  @apply flex items-center justify-between rounded-xl border border-white/10 bg-cancha-800 px-4 py-3 hover:border-white/30;
+}
+
+.nombreJugador {
+  @apply font-semibold text-albiceleste hover:underline;
+}
+
+.infoJugador {
+  @apply text-sm text-white/60;
+}

@@ -1,18 +1,19 @@
 import Boton from './Boton';
+import styles from './ModalConfirmacionSancionAdmin.module.css';
 
 export default function ModalConfirmacionSancionAdmin({ abierto, nombre, procesando, error, onConfirmar, onCancelar }) {
   if (!abierto) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-      <div className="w-full max-w-sm rounded-xl border border-white/10 bg-cancha-800 p-6 text-center">
-        <h2 className="mb-2 text-lg font-bold text-tarjeta">¿Seguro que querés sancionar a {nombre}?</h2>
-        <p className="mb-6 text-sm text-white/70">
+    <div className={styles.overlay}>
+      <div className={styles.modal}>
+        <h2 className={styles.titulo}>¿Seguro que querés sancionar a {nombre}?</h2>
+        <p className={styles.texto}>
           Va a quedar dado de baja de este partido y sancionado: no va a poder anotarse al próximo partido hasta que
           lo perdones.
         </p>
-        {error && <p className="mb-4 text-sm text-sancion">{error}</p>}
-        <div className="flex justify-center gap-3">
+        {error && <p className={styles.error}>{error}</p>}
+        <div className={styles.acciones}>
           <Boton variante="ghost" onClick={onCancelar} disabled={procesando}>
             Cancelar
           </Boton>

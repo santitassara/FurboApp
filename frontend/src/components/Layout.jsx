@@ -1,8 +1,10 @@
+import clsx from 'clsx';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useGrupo } from '../context/GrupoContext';
 import BadgeSancion from './BadgeSancion';
 import SelectorGrupoActivo from './SelectorGrupoActivo';
+import styles from './Layout.module.css';
 
 const ICONOS = {
   inicio: (
@@ -75,52 +77,47 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="flex shrink-0 flex-col border-white/10 bg-cancha-800 md:h-screen md:w-56 md:border-r md:sticky md:top-0">
-        <div className="px-5 py-5">
-          <p className="font-display text-3xl leading-none tracking-wide text-white">
-            Furbo<span className="text-pasto-500">App</span>
+    <div className={styles.layout}>
+      <aside className={styles.aside}>
+        <div className={styles.logoContenedor}>
+          <p className={styles.logo}>
+            Furbo<span className={styles.logoAcento}>App</span>
           </p>
         </div>
 
-        <div className="px-2 pb-2">
+        <div className={styles.selectorContenedor}>
           <SelectorGrupoActivo />
         </div>
 
-        <nav className="flex flex-1 gap-1 overflow-x-auto px-2 pb-2 md:flex-col md:overflow-visible md:pb-0">
+        <nav className={styles.nav}>
           {items.map((item) => {
             const activo = pathname === item.to;
             return (
               <Link
                 key={item.to}
                 to={item.to}
-                className={`flex items-center gap-3 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
-                  activo ? 'bg-pasto-600/20 text-pasto-500' : 'text-white/70 hover:bg-white/5 hover:text-white'
-                }`}
+                className={clsx(styles.navItem, activo ? styles.navItemActivo : styles.navItemInactivo)}
               >
-                <Icono nombre={item.icono} className="h-5 w-5 shrink-0" />
-                <span className="hidden sm:inline">{item.etiqueta}</span>
+                <Icono nombre={item.icono} className={styles.icono} />
+                <span className={styles.etiqueta}>{item.etiqueta}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="flex flex-col gap-3 border-t border-white/10 px-3 py-4">
-          <div className="flex items-center justify-between gap-2 px-2">
-            <p className="truncate text-sm font-semibold text-white/80">{perfil?.nombre}</p>
+        <div className={styles.pie}>
+          <div className={styles.perfilFila}>
+            <p className={styles.perfilNombre}>{perfil?.nombre}</p>
             <BadgeSancion sancionado={Boolean(grupoActivo?.estaSancionado)} />
           </div>
-          <button
-            onClick={cerrarSesion}
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-white/60 transition hover:bg-white/5 hover:text-white"
-          >
-            <Icono nombre="salir" className="h-5 w-5 shrink-0" />
-            <span className="hidden sm:inline">Salir</span>
+          <button onClick={cerrarSesion} className={styles.botonSalir}>
+            <Icono nombre="salir" className={styles.icono} />
+            <span className={styles.etiqueta}>Salir</span>
           </button>
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-10">{children}</main>
+      <main className={styles.main}>{children}</main>
     </div>
   );
 }

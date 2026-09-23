@@ -1,0 +1,49 @@
+@reference "../styles/globals.module.css";
+
+.contenedor {
+  @apply flex min-h-screen flex-col items-center justify-center gap-6 px-4 text-center;
+}
+
+.titulo {
+  @apply text-4xl font-extrabold tracking-tight text-pasto-500;
+}
+
+.subtitulo {
+  @apply text-white/70;
+}
+
+.botonGoogle {
+  @apply rounded-lg bg-albiceleste px-6 py-3 font-semibold text-cancha-900 transition hover:brightness-110;
+}
+
+.separadorContenedor {
+  @apply flex w-full max-w-xs items-center gap-3 text-white/40;
+}
+
+.lineaSeparador {
+  @apply h-px flex-1 bg-white/20;
+}
+
+.textoSeparador {
+  @apply text-xs uppercase;
+}
+
+.formulario {
+  @apply flex w-full max-w-xs flex-col gap-3;
+}
+
+.input {
+  @apply rounded-lg bg-white/10 px-4 py-2 text-white placeholder-white/40;
+}
+
+.botonSubmit {
+  @apply rounded-lg bg-pasto-500 px-6 py-2 font-semibold text-cancha-900 transition hover:brightness-110;
+}
+
+.enlaceSecundario {
+  @apply text-sm text-white/60 underline;
+}
+
+.mensajeError {
+  @apply rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion;
+}

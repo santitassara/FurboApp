@@ -1,0 +1,13 @@
+@reference "./styles/globals.module.css";
+
+.contenedorCargando {
+  @apply flex min-h-screen items-center justify-center text-white/70;
+}
+
+.contenedorError {
+  @apply flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center;
+}
+
+.mensajeError {
+  @apply rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion;
+}

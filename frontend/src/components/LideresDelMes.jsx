@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 import { rutaGrupo } from '../utils/rutasGrupo';
+import styles from './LideresDelMes.module.css';
 
 export default function LideresDelMes({ grupoId }) {
   const [lideres, setLideres] = useState(null);
@@ -21,24 +22,24 @@ export default function LideresDelMes({ grupoId }) {
   if (!lideres || (lideres.goleadores.length === 0 && !lideres.asistidor)) return null;
 
   return (
-    <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
-      <h3 className="mb-3 flex items-center gap-2 text-lg font-bold text-white">
+    <div className={styles.card}>
+      <h3 className={styles.titulo}>
         <span aria-hidden="true">📊</span> Líderes históricos
       </h3>
       {lideres.goleadores.length > 0 && (
-        <ol className="mb-3 flex flex-col gap-1">
+        <ol className={styles.listaGoleadores}>
           {lideres.goleadores.map((jugador, indice) => (
-            <li key={jugador.usuarioId} className="flex items-center justify-between text-sm text-white/80">
+            <li key={jugador.usuarioId} className={styles.itemGoleador}>
               <span>{indice + 1}. {jugador.nombre}</span>
-              <span className="font-bold text-pasto-500">{jugador.goles} Goles</span>
+              <span className={styles.valorGoles}>{jugador.goles} Goles</span>
             </li>
           ))}
         </ol>
       )}
       {lideres.asistidor && (
-        <p className="flex items-center justify-between text-sm text-albiceleste">
+        <p className={styles.filaAsistidor}>
           <span>★ {lideres.asistidor.nombre}</span>
-          <span className="font-bold">{lideres.asistidor.asistencias} Asistencias</span>
+          <span className={styles.valorAsistencias}>{lideres.asistidor.asistencias} Asistencias</span>
         </p>
       )}
     </div>

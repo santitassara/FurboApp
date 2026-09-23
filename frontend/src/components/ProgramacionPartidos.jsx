@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import clsx from 'clsx';
 import api from '../services/api';
 import { rutaGrupo } from '../utils/rutasGrupo';
 import Boton from './Boton';
+import styles from './ProgramacionPartidos.module.css';
 
 const DIAS = [
   { valor: 0, nombre: 'Domingo' },
@@ -26,9 +28,6 @@ const FORMULARIO_INICIAL = {
   direccion: '',
   valorCuota: '',
 };
-
-const CLASE_INPUT = 'rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white';
-const CLASE_LABEL = 'flex flex-col gap-1 text-sm text-white/70';
 
 function nombreDia(valor) {
   return DIAS.find((dia) => dia.valor === Number(valor))?.nombre ?? '';
@@ -170,36 +169,36 @@ export default function ProgramacionPartidos({ grupoId }) {
   }
 
   return (
-    <section className="rounded-xl border border-white/10 bg-cancha-800 p-5">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 className="text-lg font-bold text-white">Partidos automáticos</h2>
-        <Boton variante="ghost" className="px-3 py-1 text-xs" onClick={abrirAlta} disabled={accionEnCurso}>
+    <section className={styles.seccion}>
+      <div className={styles.encabezado}>
+        <h2 className={styles.tituloSeccion}>Partidos automáticos</h2>
+        <Boton variante="ghost" className={styles.botonCompacto} onClick={abrirAlta} disabled={accionEnCurso}>
           Nueva programación
         </Boton>
       </div>
 
-      {error && <p className="mb-3 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
-      {mensaje && <p className="mb-3 rounded-lg bg-pasto-600/20 px-4 py-2 text-sm text-pasto-500">{mensaje}</p>}
+      {error && <p className={styles.error}>{error}</p>}
+      {mensaje && <p className={styles.mensaje}>{mensaje}</p>}
 
       {programaciones.length === 0 ? (
-        <p className="text-sm text-white/50">
+        <p className={styles.textoTenue}>
           No hay partidos automáticos. Creá una programación para que la fecha se abra sola todas las semanas.
         </p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className={styles.lista}>
           {programaciones.map((programacion) => (
-            <li key={programacion.id} className="rounded-lg border border-white/10 bg-cancha-900 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-[220px] flex-1">
-                  <p className="font-semibold text-white">
+            <li key={programacion.id} className={styles.item}>
+              <div className={styles.itemFila}>
+                <div className={styles.itemInfo}>
+                  <p className={styles.itemNombre}>
                     {programacion.nombre || `Partido de los ${nombreDia(programacion.diaSemanaPartido).toLowerCase()}`}
-                    {!programacion.activa && <span className="ml-2 text-xs text-white/50">(pausada)</span>}
+                    {!programacion.activa && <span className={styles.badgePausada}>(pausada)</span>}
                   </p>
-                  <p className="text-sm text-white/70">
+                  <p className={styles.itemDetalle}>
                     Se crea los {nombreDia(programacion.diaSemanaDisparo).toLowerCase()} {programacion.horaDisparo} →
                     partido {nombreDia(programacion.diaSemanaPartido).toLowerCase()} {programacion.horaPartido}
                   </p>
-                  <p className="text-sm text-white/50">
+                  <p className={styles.textoTenue}>
                     {[
                       programacion.estadio,
                       `${programacion.cupoTitulares}+${programacion.cupoSuplentes}`,
@@ -209,15 +208,15 @@ export default function ProgramacionPartidos({ grupoId }) {
                       .join(' · ')}
                   </p>
                   {Boolean(programacion.activa) && (
-                    <p className="mt-1 text-xs text-white/40">
+                    <p className={styles.proximaCreacion}>
                       Próxima creación: {formatearProximoDisparo(programacion.proximoDisparo)}
                     </p>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className={styles.itemBotones}>
                   <Boton
                     variante="ghost"
-                    className="px-3 py-1 text-xs"
+                    className={styles.botonCompacto}
                     onClick={() => abrirEdicion(programacion)}
                     disabled={accionEnCurso}
                   >
@@ -225,7 +224,7 @@ export default function ProgramacionPartidos({ grupoId }) {
                   </Boton>
                   <Boton
                     variante="ghost"
-                    className="px-3 py-1 text-xs"
+                    className={styles.botonCompacto}
                     onClick={() => alternarActiva(programacion)}
                     disabled={accionEnCurso}
                   >
@@ -233,7 +232,7 @@ export default function ProgramacionPartidos({ grupoId }) {
                   </Boton>
                   <Boton
                     variante="peligro"
-                    className="px-3 py-1 text-xs"
+                    className={styles.botonCompacto}
                     onClick={() => eliminar(programacion)}
                     disabled={accionEnCurso}
                   >
@@ -247,23 +246,23 @@ export default function ProgramacionPartidos({ grupoId }) {
       )}
 
       {formularioVisible && (
-        <form onSubmit={guardar} className="mt-5 flex flex-wrap items-end gap-4 border-t border-white/10 pt-5">
-          <label className={`${CLASE_LABEL} min-w-[200px] flex-1`}>
+        <form onSubmit={guardar} className={styles.formulario}>
+          <label className={clsx(styles.label, styles.labelAncho200)}>
             Nombre (opcional)
             <input
               type="text"
               value={formulario.nombre}
               onChange={(evento) => actualizarCampo('nombre', evento.target.value)}
-              className={CLASE_INPUT}
+              className={styles.input}
               placeholder="Ej. Viernes Parador 4"
             />
           </label>
-          <label className={CLASE_LABEL}>
+          <label className={styles.label}>
             Día de creación
             <select
               value={formulario.diaSemanaDisparo}
               onChange={(evento) => actualizarCampo('diaSemanaDisparo', evento.target.value)}
-              className={CLASE_INPUT}
+              className={styles.input}
             >
               {DIAS.map((dia) => (
                 <option key={dia.valor} value={dia.valor}>
@@ -272,22 +271,22 @@ export default function ProgramacionPartidos({ grupoId }) {
               ))}
             </select>
           </label>
-          <label className={CLASE_LABEL}>
+          <label className={styles.label}>
             Hora de creación
             <input
               type="time"
               required
               value={formulario.horaDisparo}
               onChange={(evento) => actualizarCampo('horaDisparo', evento.target.value)}
-              className={CLASE_INPUT}
+              className={styles.input}
             />
           </label>
-          <label className={CLASE_LABEL}>
+          <label className={styles.label}>
             Día del partido
             <select
               value={formulario.diaSemanaPartido}
               onChange={(evento) => actualizarCampo('diaSemanaPartido', evento.target.value)}
-              className={CLASE_INPUT}
+              className={styles.input}
             >
               {DIAS.map((dia) => (
                 <option key={dia.valor} value={dia.valor}>
@@ -296,17 +295,17 @@ export default function ProgramacionPartidos({ grupoId }) {
               ))}
             </select>
           </label>
-          <label className={CLASE_LABEL}>
+          <label className={styles.label}>
             Hora del partido
             <input
               type="time"
               required
               value={formulario.horaPartido}
               onChange={(evento) => actualizarCampo('horaPartido', evento.target.value)}
-              className={CLASE_INPUT}
+              className={styles.input}
             />
           </label>
-          <label className={CLASE_LABEL}>
+          <label className={styles.label}>
             Cupo titulares
             <input
               type="number"
@@ -314,10 +313,10 @@ export default function ProgramacionPartidos({ grupoId }) {
               required
               value={formulario.cupoTitulares}
               onChange={(evento) => actualizarCampo('cupoTitulares', evento.target.value)}
-              className={`${CLASE_INPUT} w-28`}
+              className={clsx(styles.input, styles.inputAngosto)}
             />
           </label>
-          <label className={CLASE_LABEL}>
+          <label className={styles.label}>
             Cupo suplentes
             <input
               type="number"
@@ -325,40 +324,40 @@ export default function ProgramacionPartidos({ grupoId }) {
               required
               value={formulario.cupoSuplentes}
               onChange={(evento) => actualizarCampo('cupoSuplentes', evento.target.value)}
-              className={`${CLASE_INPUT} w-28`}
+              className={clsx(styles.input, styles.inputAngosto)}
             />
           </label>
-          <label className={`${CLASE_LABEL} min-w-[180px] flex-1`}>
+          <label className={clsx(styles.label, styles.labelAncho180)}>
             Estadio
             <input
               type="text"
               value={formulario.estadio}
               onChange={(evento) => actualizarCampo('estadio', evento.target.value)}
-              className={CLASE_INPUT}
+              className={styles.input}
               placeholder="Ej. Parador 4"
             />
           </label>
-          <label className={`${CLASE_LABEL} min-w-[180px] flex-1`}>
+          <label className={clsx(styles.label, styles.labelAncho180)}>
             Tipo de suelo
             <input
               type="text"
               value={formulario.tipoSuelo}
               onChange={(evento) => actualizarCampo('tipoSuelo', evento.target.value)}
-              className={CLASE_INPUT}
+              className={styles.input}
               placeholder="Ej. Sintético Cubierto Pro 7vs7"
             />
           </label>
-          <label className={`${CLASE_LABEL} min-w-[220px] flex-1`}>
+          <label className={clsx(styles.label, styles.labelAncho220)}>
             Dirección
             <input
               type="text"
               value={formulario.direccion}
               onChange={(evento) => actualizarCampo('direccion', evento.target.value)}
-              className={CLASE_INPUT}
+              className={styles.input}
               placeholder="Ej. Av. Álvarez Thomas 1850, CABA"
             />
           </label>
-          <label className={CLASE_LABEL}>
+          <label className={styles.label}>
             Valor por jugador
             <input
               type="number"
@@ -366,11 +365,11 @@ export default function ProgramacionPartidos({ grupoId }) {
               step="1"
               value={formulario.valorCuota}
               onChange={(evento) => actualizarCampo('valorCuota', evento.target.value)}
-              className={`${CLASE_INPUT} w-28`}
+              className={clsx(styles.input, styles.inputAngosto)}
               placeholder="10000"
             />
           </label>
-          <div className="flex gap-2">
+          <div className={styles.formularioBotones}>
             <Boton type="submit" disabled={accionEnCurso}>
               {accionEnCurso ? 'Procesando…' : editandoId ? 'Guardar cambios' : 'Crear programación'}
             </Boton>

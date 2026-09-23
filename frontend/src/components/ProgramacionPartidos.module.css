@@ -1,0 +1,97 @@
+@reference "../styles/globals.module.css";
+
+.seccion {
+  @apply rounded-xl border border-white/10 bg-cancha-800 p-5;
+}
+
+.encabezado {
+  @apply mb-4 flex items-center justify-between gap-4;
+}
+
+.tituloSeccion {
+  @apply text-lg font-bold text-white;
+}
+
+.botonCompacto {
+  @apply px-3 py-1 text-xs;
+}
+
+.error {
+  @apply mb-3 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion;
+}
+
+.mensaje {
+  @apply mb-3 rounded-lg bg-pasto-600/20 px-4 py-2 text-sm text-pasto-500;
+}
+
+.textoTenue {
+  @apply text-sm text-white/50;
+}
+
+.lista {
+  @apply flex flex-col gap-3;
+}
+
+.item {
+  @apply rounded-lg border border-white/10 bg-cancha-900 p-4;
+}
+
+.itemFila {
+  @apply flex flex-wrap items-start justify-between gap-3;
+}
+
+.itemInfo {
+  @apply min-w-[220px] flex-1;
+}
+
+.itemNombre {
+  @apply font-semibold text-white;
+}
+
+.badgePausada {
+  @apply ml-2 text-xs text-white/50;
+}
+
+.itemDetalle {
+  @apply text-sm text-white/70;
+}
+
+.proximaCreacion {
+  @apply mt-1 text-xs text-white/40;
+}
+
+.itemBotones {
+  @apply flex flex-wrap gap-2;
+}
+
+.formulario {
+  @apply mt-5 flex flex-wrap items-end gap-4 border-t border-white/10 pt-5;
+}
+
+.label {
+  @apply flex flex-col gap-1 text-sm text-white/70;
+}
+
+.labelAncho200 {
+  @apply min-w-[200px] flex-1;
+}
+
+.labelAncho180 {
+  @apply min-w-[180px] flex-1;
+}
+
+.labelAncho220 {
+  @apply min-w-[220px] flex-1;
+}
+
+.input {
+  @apply rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white;
+}
+
+.inputAngosto {
+  @apply w-28;
+}
+
+.formularioBotones {
+  @apply flex gap-2;
+}

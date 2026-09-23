@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Boton from './Boton';
 import { useGrupo } from '../context/GrupoContext';
+import styles from './UnirseGrupoForm.module.css';
 
 export default function UnirseGrupoForm() {
   const { unirseAGrupo } = useGrupo();
@@ -22,9 +23,9 @@ export default function UnirseGrupoForm() {
   }
 
   return (
-    <form onSubmit={enviar} className="flex flex-col gap-3 rounded-xl border border-white/10 bg-cancha-800 p-5">
-      <h2 className="text-lg font-bold text-white">Unirme a un grupo</h2>
-      <label className="flex flex-col gap-1 text-sm text-white/70">
+    <form onSubmit={enviar} className={styles.form}>
+      <h2 className={styles.titulo}>Unirme a un grupo</h2>
+      <label className={styles.label}>
         Código de invitación
         <input
           type="text"
@@ -32,10 +33,10 @@ export default function UnirseGrupoForm() {
           value={codigo}
           onChange={(evento) => setCodigo(evento.target.value)}
           placeholder="JUEVES-A1B2"
-          className="rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 uppercase text-white"
+          className={styles.input}
         />
       </label>
-      {error && <p className="text-sm text-sancion">{error}</p>}
+      {error && <p className={styles.error}>{error}</p>}
       <Boton type="submit" disabled={procesando}>
         {procesando ? 'Uniéndome…' : 'Unirme'}
       </Boton>

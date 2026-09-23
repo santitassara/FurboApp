@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Boton from './Boton';
+import styles from './ModalVerGol.module.css';
 
 const DURACION_JUGADA_MS = 60 * 1000;
 
@@ -34,21 +35,21 @@ export default function ModalVerGol({ abierto, beelupUrl, gol, onCerrar }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 py-8">
-      <div className="w-full max-w-3xl rounded-xl border border-white/10 bg-cancha-800 p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-white">
+    <div className={styles.overlay}>
+      <div className={styles.modal}>
+        <div className={styles.headerFila}>
+          <h2 className={styles.titulo}>
             Gol de {gol.nombre} — {gol.minuto}&apos;
           </h2>
-          <button type="button" onClick={onCerrar} className="text-sm text-white/60 hover:text-white">
+          <button type="button" onClick={onCerrar} className={styles.botonCerrar}>
             ✕ Cerrar
           </button>
         </div>
 
-        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+        <div className={styles.videoWrapper}>
           {finalizado ? (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-3">
-              <p className="text-sm text-white/70">Jugada finalizada</p>
+            <div className={styles.finalizadoWrapper}>
+              <p className={styles.textoFinalizado}>Jugada finalizada</p>
               <Boton variante="primario" onClick={verDeNuevo}>
                 Ver de nuevo
               </Boton>
@@ -58,7 +59,7 @@ export default function ModalVerGol({ abierto, beelupUrl, gol, onCerrar }) {
               key={src}
               src={src}
               title={`Gol de ${gol.nombre}`}
-              className="h-full w-full"
+              className={styles.iframe}
               frameBorder="0"
               allowFullScreen
             />

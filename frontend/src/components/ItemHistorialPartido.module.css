@@ -1,0 +1,77 @@
+@reference "../styles/globals.module.css";
+
+.container {
+  @apply rounded-xl border border-white/10 bg-cancha-800 shadow-lg;
+}
+
+.headerBtn {
+  @apply flex w-full items-center justify-between gap-3 px-5 py-4 text-left;
+}
+
+.fecha {
+  @apply font-bold capitalize text-white;
+}
+
+.cantidadJugadores {
+  @apply text-xs text-white/50;
+}
+
+.chevron {
+  @apply h-5 w-5 shrink-0 text-white/50 transition-transform;
+}
+
+.chevronExpandido {
+  @apply rotate-180;
+}
+
+.detalle {
+  @apply border-t border-white/10 p-4;
+}
+
+.textoCargando {
+  @apply text-sm text-white/50;
+}
+
+.textoError {
+  @apply text-sm text-sancion;
+}
+
+.accionesRow {
+  @apply mt-3 flex gap-2;
+}
+
+.btnCalificar {
+  @apply flex-1 rounded-lg bg-pasto-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-pasto-500;
+}
+
+.btnCerrar {
+  @apply rounded-lg bg-cancha-700 px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50;
+}
+
+.btnEliminar {
+  @apply rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500;
+}
+
+.errorVoto {
+  @apply mt-2 text-sm text-sancion;
+}
+
+.modalOverlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4;
+}
+
+.modalCard {
+  @apply w-full max-w-sm rounded-xl border border-white/10 bg-cancha-800 p-6 text-center;
+}
+
+.modalTitulo {
+  @apply mb-2 text-lg font-bold text-sancion;
+}
+
+.modalTexto {
+  @apply mb-6 text-sm text-white/70;
+}
+
+.modalAcciones {
+  @apply flex justify-center gap-3;
+}
