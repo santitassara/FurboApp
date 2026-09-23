@@ -1,0 +1,13 @@
+@reference "../styles/globals.module.css";
+
+.card {
+  @apply rounded-2xl border border-white/10 bg-cancha-800/60 p-6;
+}
+
+.titulo {
+  @apply mb-6 text-sm font-bold uppercase tracking-wide text-pasto-500;
+}
+
+.chartWrapper {
+  @apply pointer-events-none select-none;
+}

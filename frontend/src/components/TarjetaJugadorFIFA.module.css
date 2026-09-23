@@ -1,0 +1,69 @@
+@reference "../styles/globals.module.css";
+
+.carta {
+  @apply relative mx-auto transition-transform duration-300 hover:scale-105;
+}
+
+.contenido {
+  @apply relative h-full w-full text-[#e9d290];
+}
+
+.bloqueRating {
+  @apply absolute left-[15%] top-[18%] z-20 flex flex-col items-center drop-shadow-md;
+}
+
+.rating {
+  @apply font-display text-5xl font-bold leading-none tracking-tighter;
+}
+
+.posicionAbrev {
+  @apply mt-3 font-display text-xl font-bold uppercase tracking-widest;
+}
+
+.bloqueFoto {
+  @apply absolute right-[10%] top-[12%] z-10 flex h-[45%] w-[65%] justify-center;
+}
+
+.foto {
+  @apply h-full object-cover object-bottom;
+}
+
+.fotoPlaceholder {
+  @apply flex h-full w-full items-center justify-center font-display text-7xl font-bold text-black/20;
+}
+
+.bloqueNombre {
+  @apply absolute top-[55%] z-20 flex w-full flex-col items-center;
+}
+
+.nombreTexto {
+  @apply max-w-[85%] overflow-hidden truncate px-4 text-center font-display font-bold uppercase tracking-widest drop-shadow-md;
+}
+
+.bloqueAtributos {
+  @apply absolute bottom-[16%] z-20 w-full px-[15%];
+}
+
+.gridAtributos {
+  @apply grid grid-cols-2 gap-x-6 gap-y-1;
+}
+
+.columnaIzquierda {
+  @apply flex flex-col gap-1 pr-2;
+}
+
+.columnaDerecha {
+  @apply flex flex-col gap-1 pl-2;
+}
+
+.filaAtributo {
+  @apply flex items-center justify-between font-display text-lg drop-shadow-sm;
+}
+
+.valorAtributo {
+  @apply w-1/2 pr-2 text-right font-bold;
+}
+
+.etiquetaAtributo {
+  @apply w-1/2 text-left font-normal;
+}

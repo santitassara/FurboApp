@@ -2,6 +2,7 @@
  * PWA Install Prompt Component
  * Handles both Android (beforeinstallprompt) and iOS (manual banner)
  */
+import styles from './InstallAppPrompt.module.css';
 
 class InstallAppPrompt {
   constructor(config = {}) {
@@ -144,7 +145,7 @@ class InstallAppPrompt {
     if (!container) {
       container = document.createElement('div');
       container.id = this.config.containerId;
-      container.className = 'install-prompt-container';
+      container.className = styles['install-prompt-container'];
       document.body.appendChild(container);
     }
     return container;

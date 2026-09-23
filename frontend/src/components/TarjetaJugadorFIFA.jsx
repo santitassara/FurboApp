@@ -1,3 +1,5 @@
+import styles from './TarjetaJugadorFIFA.module.css';
+
 const ABREVIATURA_POSICION = {
   arquero: 'ARQ',
   defensor: 'DEF',
@@ -57,7 +59,7 @@ export default function TarjetaJugadorFIFA({ nombre, posicion, habilidades = {},
 
   return (
     <div
-      className="relative mx-auto transition-transform duration-300 hover:scale-105"
+      className={styles.carta}
       style={{
         width: ANCHO,
         height: ALTO,
@@ -67,25 +69,25 @@ export default function TarjetaJugadorFIFA({ nombre, posicion, habilidades = {},
         backgroundRepeat: 'no-repeat',
       }}
     >
-      <div className="relative h-full w-full text-[#e9d290]">
-        <div className="absolute left-[15%] top-[18%] z-20 flex flex-col items-center drop-shadow-md">
-          <p className="font-display text-5xl font-bold leading-none tracking-tighter">{rating ?? '–'}</p>
-          <p className="mt-3 font-display text-xl font-bold uppercase tracking-widest">
+      <div className={styles.contenido}>
+        <div className={styles.bloqueRating}>
+          <p className={styles.rating}>{rating ?? '–'}</p>
+          <p className={styles.posicionAbrev}>
             {ABREVIATURA_POSICION[posicion] || '—'}
           </p>
         </div>
 
-        <div className="absolute right-[10%] top-[12%] z-10 flex h-[45%] w-[65%] justify-center">
+        <div className={styles.bloqueFoto}>
           {fotoUrl ? (
             <img
               src={fotoUrl}
               alt={nombre || 'Jugador'}
-              className="h-full object-cover object-bottom"
+              className={styles.foto}
               style={{ maskImage: MASCARA_FOTO, WebkitMaskImage: MASCARA_FOTO }}
             />
           ) : (
             <div
-              className="flex h-full w-full items-center justify-center font-display text-7xl font-bold text-black/20"
+              className={styles.fotoPlaceholder}
               style={{ maskImage: MASCARA_FOTO, WebkitMaskImage: MASCARA_FOTO }}
             >
               {iniciales(nombre)}
@@ -93,28 +95,28 @@ export default function TarjetaJugadorFIFA({ nombre, posicion, habilidades = {},
           )}
         </div>
 
-        <div className="absolute top-[55%] z-20 flex w-full flex-col items-center">
-          <p className="max-w-[85%] overflow-hidden truncate px-4 text-center font-display font-bold uppercase tracking-widest drop-shadow-md">
+        <div className={styles.bloqueNombre}>
+          <p className={styles.nombreTexto}>
             {nombre || 'Sin nombre'}
           </p>
         </div>
 
-        <div className="absolute bottom-[16%] z-20 w-full px-[15%]">
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-            <div className="flex flex-col gap-1 pr-2">
+        <div className={styles.bloqueAtributos}>
+          <div className={styles.gridAtributos}>
+            <div className={styles.columnaIzquierda}>
               {ATRIBUTOS.slice(0, 3).map(({ campo, etiqueta }) => (
-                <div key={campo} className="flex items-center justify-between font-display text-lg drop-shadow-sm">
-                  <span className="w-1/2 pr-2 text-right font-bold">{formatearAtributo(habilidades[campo])}</span>
-                  <span className="w-1/2 text-left font-normal">{etiqueta}</span>
+                <div key={campo} className={styles.filaAtributo}>
+                  <span className={styles.valorAtributo}>{formatearAtributo(habilidades[campo])}</span>
+                  <span className={styles.etiquetaAtributo}>{etiqueta}</span>
                 </div>
               ))}
             </div>
 
-            <div className="flex flex-col gap-1 pl-2">
+            <div className={styles.columnaDerecha}>
               {ATRIBUTOS.slice(3, 6).map(({ campo, etiqueta }) => (
-                <div key={campo} className="flex items-center justify-between font-display text-lg drop-shadow-sm">
-                  <span className="w-1/2 pr-2 text-right font-bold">{formatearAtributo(habilidades[campo])}</span>
-                  <span className="w-1/2 text-left font-normal">{etiqueta}</span>
+                <div key={campo} className={styles.filaAtributo}>
+                  <span className={styles.valorAtributo}>{formatearAtributo(habilidades[campo])}</span>
+                  <span className={styles.etiquetaAtributo}>{etiqueta}</span>
                 </div>
               ))}
             </div>

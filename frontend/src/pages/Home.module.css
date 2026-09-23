@@ -1,0 +1,61 @@
+@reference "../styles/globals.module.css";
+
+.contenedor {
+  @apply mx-auto flex flex-col gap-6;
+}
+
+.header {
+  @apply flex items-start justify-between gap-4;
+}
+
+.titulo {
+  @apply font-display text-4xl leading-none text-white;
+}
+
+.saludo {
+  @apply mt-1 text-sm text-white/60;
+}
+
+.botonInstalar {
+  @apply mt-1 flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#667eea] to-[#764ba2] px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-95;
+}
+
+.error {
+  @apply rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion;
+}
+
+.mensajeSecundario {
+  @apply text-white/60;
+}
+
+.listaPartidos {
+  @apply flex flex-col gap-6;
+}
+
+.contenidoPrimero {
+  @apply flex flex-col gap-4;
+}
+
+.gridDosColumnas {
+  @apply grid grid-cols-1 gap-4 md:grid-cols-2;
+}
+
+.mapaWrapper {
+  @apply relative;
+}
+
+.bloqueado {
+  @apply pointer-events-none blur-sm;
+}
+
+.overlayEsperando {
+  @apply absolute inset-0 flex items-center justify-center rounded-xl bg-cancha-900/60;
+}
+
+.mensajeEsperando {
+  @apply rounded-lg bg-black/70 px-4 py-2 text-sm font-bold uppercase tracking-wide text-white;
+}
+
+.resumenGrid {
+  @apply grid grid-cols-1 gap-6 md:grid-cols-3;
+}

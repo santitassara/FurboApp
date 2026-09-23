@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
+import styles from './RadarHabilidades.module.css';
 
 const CustomRadarLabel = (props) => {
   const { x, y, value, cx, cy } = props;
@@ -53,9 +54,9 @@ export default function RadarHabilidades({ perfil }) {
     : { top: 40, right: 100, bottom: 40, left: 100 };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-cancha-800/60 p-6">
-      <h2 className="mb-6 text-sm font-bold uppercase tracking-wide text-pasto-500">Habilidades</h2>
-      <div className="pointer-events-none select-none">
+    <div className={styles.card}>
+      <h2 className={styles.titulo}>Habilidades</h2>
+      <div className={styles.chartWrapper}>
         <ResponsiveContainer width="100%" height={chartHeight}>
           <RadarChart data={data} margin={chartMargin}>
             <PolarGrid stroke="rgba(255, 255, 255, 0.1)" radialLines={false} />

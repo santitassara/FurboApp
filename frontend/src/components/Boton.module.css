@@ -1,0 +1,17 @@
+@reference "../styles/globals.module.css";
+
+.boton {
+  @apply rounded-lg px-4 py-2 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.primario {
+  @apply bg-pasto-600 hover:bg-pasto-500 text-white;
+}
+
+.peligro {
+  @apply bg-sancion hover:brightness-110 text-white;
+}
+
+.ghost {
+  @apply bg-transparent border border-white/20 hover:bg-white/10 text-white;
+}

@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaComment } from 'react-icons/fa';
 import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
+import clsx from 'clsx';
 import api from '../services/api';
 import Boton from './Boton';
+import styles from './MapaCancha.module.css';
 import {
   CODIGO_AUTOMATICO,
   CODIGO_LIBRE,
@@ -60,17 +62,15 @@ function Jugador({ usuarioId, nombre, linea, draggable }) {
       ref={setNodeRef}
       style={estilo}
       {...(draggable ? { ...listeners, ...attributes } : {})}
-      className={`group relative flex flex-col items-center gap-0.5 ${draggable ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${
-        isDragging ? 'opacity-50' : ''
-      }`}
+      className={clsx(styles.jugador, 'group', draggable && styles.jugadorDraggable, isDragging && styles.jugadorDragging)}
     >
-      <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-black px-2 py-1 text-xs font-semibold text-white opacity-0 shadow transition-opacity duration-150 group-hover:opacity-100">
+      <span className={styles.jugadorTooltip}>
         {nombre}
       </span>
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/30 bg-cancha-700 text-sm font-bold text-white shadow">
+      <div className={styles.jugadorAvatar}>
         {obtenerIniciales(nombre)}
       </div>
-      <div className="whitespace-nowrap rounded bg-cancha-800 px-1.5 py-0.5 text-center text-[9px] font-semibold uppercase text-white/80 shadow">
+      <div className={styles.jugadorEtiqueta}>
         {linea ? ETIQUETAS_LINEA[linea] : ''}
       </div>
     </div>
@@ -86,9 +86,7 @@ function Asiento({ equipo, linea, ordenLinea, jugador, draggable }) {
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-h-7 w-7 items-center justify-center rounded-lg sm:min-h-14 sm:w-14 ${
-        jugador ? '' : 'border border-dashed border-white/20'
-      } ${isOver ? 'bg-pasto-600/20' : ''}`}
+      className={clsx(styles.asiento, !jugador && styles.asientoVacio, isOver && styles.asientoOver)}
     >
       {jugador && (
         <Jugador usuarioId={jugador.usuarioId} nombre={jugador.nombre} linea={linea} draggable={draggable} />
@@ -105,7 +103,7 @@ function Columna({ equipo, linea, cupo, jugadores, draggable }) {
   const asientos = Array.from({ length: cupoEfectivo }, (_, ordenLinea) => jugadorPorOrden.get(ordenLinea) || null);
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1 self-stretch py-3 sm:gap-3">
+    <div className={styles.columna}>
       {asientos.map((jugador, ordenLinea) => (
         <Asiento
           key={ordenLinea}
@@ -128,14 +126,14 @@ function MitadCancha({ equipo, estructura, ubicaciones, draggable }) {
 
   if (estructura.length === 0 && !hayArqueroUbicado) {
     return (
-      <div className="flex min-w-0 flex-1 items-center justify-center px-2 py-4 text-center text-xs text-white/40">
+      <div className={styles.mitadVacia}>
         Elegí una formación para armar este equipo.
       </div>
     );
   }
 
   return (
-    <div className="flex min-w-0 flex-1 items-stretch gap-1 px-2 py-4">
+    <div className={styles.mitad}>
       {ordenadas.map(({ key, cantidad }) => {
         const jugadoresLinea = ubicaciones.filter((u) => u.equipo === equipo && u.linea === key);
         return (
@@ -198,10 +196,10 @@ function SelectorFormacion({ etiqueta, cantidadJugadores, seleccion, onCambiar, 
   }
 
   return (
-    <div className="mb-2 flex flex-col gap-2">
-      <label className="text-xs uppercase text-white/40">{etiqueta}</label>
+    <div className={styles.selectorWrapper}>
+      <label className={styles.selectorLabel}>{etiqueta}</label>
       <select
-        className="rounded-lg bg-cancha-700 px-2 py-1 text-sm text-white"
+        className={styles.selectFormacion}
         value={seleccion.codigo}
         disabled={disabled}
         onChange={(evento) => {
@@ -223,15 +221,15 @@ function SelectorFormacion({ etiqueta, cantidadJugadores, seleccion, onCambiar, 
       </select>
 
       {seleccion.codigo === CODIGO_LIBRE && (
-        <div className="rounded-lg bg-cancha-800 p-2 text-xs text-white/80">
+        <div className={styles.panelLibre}>
           {seleccion.lineas.map((linea, indice) => {
             const opcionesLinea = keysCompatibles(
               seleccion.lineas.filter((_, i) => i !== indice).map((l) => l.key)
             );
             return (
-              <div key={indice} className="mb-1 flex items-center justify-between gap-2">
+              <div key={indice} className={styles.filaLinea}>
                 <select
-                  className="rounded bg-cancha-700 px-1 py-0.5 text-xs text-white"
+                  className={styles.selectLinea}
                   value={linea.key}
                   disabled={disabled}
                   onChange={(evento) => cambiarKeyLinea(indice, evento.target.value)}
@@ -242,7 +240,7 @@ function SelectorFormacion({ etiqueta, cantidadJugadores, seleccion, onCambiar, 
                     </option>
                   ))}
                 </select>
-                <div className="flex items-center gap-2">
+                <div className={styles.controlesLinea}>
                   <button type="button" disabled={disabled} onClick={() => actualizarLineaLibre(indice, -1)}>
                     -
                   </button>
@@ -261,16 +259,16 @@ function SelectorFormacion({ etiqueta, cantidadJugadores, seleccion, onCambiar, 
               </div>
             );
           })}
-          <div className="mt-1 flex items-center justify-between">
+          <div className={styles.filaResumenLibre}>
             <button
               type="button"
               disabled={disabled || !puedeAgregarLinea}
               onClick={agregarLineaLibre}
-              className="underline"
+              className={styles.enlaceSubrayado}
             >
               + línea
             </button>
-            <span className={sumaLibre === jugadoresDeCampo ? 'text-pasto-500' : 'text-sancion'}>
+            <span className={sumaLibre === jugadoresDeCampo ? styles.contadorOk : styles.contadorError}>
               {sumaLibre}/{jugadoresDeCampo} jugadores de campo
             </span>
           </div>
@@ -287,10 +285,10 @@ const CODIGO_ACTUAL = 'actual';
 function SelectorFormacionVisual({ etiqueta, cantidadJugadores, valor, onCambiar }) {
   const opciones = listarFormaciones(cantidadJugadores);
   return (
-    <div className="mb-2 flex flex-col gap-2">
-      <label className="text-xs uppercase text-white/40">{etiqueta}</label>
+    <div className={styles.selectorWrapper}>
+      <label className={styles.selectorLabel}>{etiqueta}</label>
       <select
-        className="rounded-lg bg-cancha-700 px-2 py-1 text-sm text-white"
+        className={styles.selectFormacion}
         value={valor}
         onChange={(evento) => onCambiar(evento.target.value)}
       >
@@ -371,7 +369,7 @@ export default function MapaCancha({
 
   if (!formacion || !formacion.habilitado) {
     return (
-      <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 text-sm text-white/50 shadow-lg">
+      <div className={styles.avisoDeshabilitado}>
         El mapa se habilita cuando se complete el cupo de titulares.
       </div>
     );
@@ -581,14 +579,14 @@ export default function MapaCancha({
   const puedeVerMiEquipo = Boolean(propuestasInfo?.votacionEquiposCerrada && miEquipo && !modoPreview);
 
   const contenido = (
-    <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h4 className="text-sm font-bold uppercase tracking-wide text-pasto-500">Formación</h4>
+    <div className={styles.contenedor}>
+      <div className={styles.headerFila}>
+        <h4 className={styles.titulo}>Formación</h4>
         {puedeVerMiEquipo && (
           <button
             type="button"
             onClick={() => navigate(`/mi-equipo/${partidoId}`)}
-            className="flex items-center gap-1.5 rounded-lg bg-pasto-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-pasto-500"
+            className={styles.botonMiEquipo}
           >
             <FaComment />
             Mi equipo
@@ -597,16 +595,16 @@ export default function MapaCancha({
       </div>
 
       {modoPreview && (
-        <div className="mb-3 flex items-center justify-between rounded-lg bg-pasto-600/20 px-3 py-2 text-xs text-white">
+        <div className={styles.bannerPreview}>
           <span>Vista previa de una propuesta</span>
-          <button type="button" className="underline" onClick={onSalirPreview}>
+          <button type="button" className={styles.enlaceSubrayado} onClick={onSalirPreview}>
             Volver a formación oficial
           </button>
         </div>
       )}
 
       {esAdmin && !modoPreview && !votacionCerrada && (
-        <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className={styles.gridSelectores}>
           <SelectorFormacion
             etiqueta="Equipo 1"
             cantidadJugadores={formacion.cupoPorEquipo.A}
@@ -625,7 +623,7 @@ export default function MapaCancha({
       )}
 
       {!modoPreview && votacionCerrada && (
-        <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className={styles.gridSelectores}>
           <SelectorFormacionVisual
             etiqueta="Equipo 1"
             cantidadJugadores={formacion.cupoPorEquipo.A}
@@ -642,7 +640,7 @@ export default function MapaCancha({
       )}
 
       <div
-        className="flex aspect-[1.83] w-full overflow-hidden rounded-lg border border-white/10 bg-cover bg-center shadow-inner"
+        className={styles.cancha}
         style={{ backgroundImage: "url('/layout-cancha-futbol.jpeg')" }}
       >
         <MitadCancha
@@ -651,7 +649,7 @@ export default function MapaCancha({
           ubicaciones={ubicacionesMostradas}
           draggable={esAdmin && !modoPreview && !votacionCerrada}
         />
-        <div className="w-px bg-white/20" />
+        <div className={styles.divisor} />
         <MitadCancha
           equipo="B"
           estructura={estructuraB}
@@ -661,9 +659,9 @@ export default function MapaCancha({
       </div>
 
       {esAdmin && !modoPreview && !votacionCerrada && sinUbicar.length > 0 && (
-        <div className="mt-4">
-          <p className="mb-2 text-xs uppercase text-white/40">Sin ubicar</p>
-          <div className="flex flex-wrap gap-2">
+        <div className={styles.bloque}>
+          <p className={styles.seccionLabel}>Sin ubicar</p>
+          <div className={styles.listaSinUbicar}>
             {sinUbicar.map((jugador) => (
               <Jugador key={jugador.usuarioId} usuarioId={jugador.usuarioId} nombre={jugador.nombre} draggable />
             ))}
@@ -672,18 +670,18 @@ export default function MapaCancha({
       )}
 
       {esAdmin && !modoPreview && !votacionCerrada && suplentes.length > 0 && (
-        <div className="mt-4">
-          <p className="mb-2 text-xs uppercase text-white/40">Suplentes</p>
-          <ul className="flex flex-col gap-1.5">
+        <div className={styles.bloque}>
+          <p className={styles.seccionLabel}>Suplentes</p>
+          <ul className={styles.listaSuplentes}>
             {suplentes.map((suplente) => (
               <li
                 key={suplente.usuarioId}
-                className="flex items-center justify-between gap-2 rounded-lg bg-cancha-700 px-3 py-2"
+                className={styles.itemSuplente}
               >
-                <span className="text-sm text-white">{suplente.nombre}</span>
+                <span className={styles.nombreSuplente}>{suplente.nombre}</span>
                 <Boton
                   variante="ghost"
-                  className="shrink-0 px-2 py-1 text-xs"
+                  className={styles.botonPromover}
                   onClick={() => promoverSuplente(suplente.usuarioId)}
                   disabled={!haySlotDeTitularLibre || promoviendoId === suplente.usuarioId}
                 >
@@ -697,11 +695,11 @@ export default function MapaCancha({
 
       {esAdmin && !modoPreview && (
         <>
-          {error && <p className="mt-3 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
+          {error && <p className={styles.mensajeError}>{error}</p>}
           {!votacionCerrada && (
             <Boton
               variante="ghost"
-              className="mt-4 w-full"
+              className={styles.botonMt4Full}
               onClick={generarAutomaticamente}
               disabled={generando || guardando || seleccionInvalida}
             >
@@ -710,7 +708,7 @@ export default function MapaCancha({
           )}
           <Boton
             variante="primario"
-            className="mt-2 w-full"
+            className={styles.botonMt2Full}
             onClick={guardar}
             disabled={guardando || seleccionInvalida || votacionCerrada}
           >
@@ -719,7 +717,7 @@ export default function MapaCancha({
           {!votacionCerrada && (
             <Boton
               variante="ghost"
-              className="mt-2 w-full"
+              className={styles.botonMt2Full}
               onClick={proponerParaVotacion}
               disabled={proponiendo || guardando || seleccionInvalida || (propuestasInfo?.propuestas?.length || 0) >= 5}
             >

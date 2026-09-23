@@ -1,3 +1,5 @@
+import styles from './PartidoConEstado.module.css';
+
 export default function PartidoConEstado({ partido, children }) {
   if (partido.estado === 'jugado') {
     return null;
@@ -5,10 +7,10 @@ export default function PartidoConEstado({ partido, children }) {
 
   if (partido.estado === 'cerrado') {
     return (
-      <div className="relative">
-        <div className="pointer-events-none blur-sm">{children}</div>
-        <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-cancha-900/60">
-          <p className="rounded-lg bg-black/70 px-4 py-2 text-sm font-bold uppercase tracking-wide text-white">
+      <div className={styles.contenedor}>
+        <div className={styles.contenidoBloqueado}>{children}</div>
+        <div className={styles.overlay}>
+          <p className={styles.mensaje}>
             Esperando resultados
           </p>
         </div>

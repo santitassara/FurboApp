@@ -4,6 +4,7 @@ import api from '../services/api';
 import { useGrupo } from '../context/GrupoContext';
 import { rutaGrupo } from '../utils/rutasGrupo';
 import { formatearFechaPartido } from '../utils/fecha';
+import styles from './ModalCargarResultado.module.css';
 
 function golVacio() {
   return { usuarioId: '', equipo: 'A', minuto: '', asistenciaUsuarioId: '', enContra: false };
@@ -113,24 +114,24 @@ export default function ModalCargarResultado({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8">
-      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-xl border border-white/10 bg-cancha-800">
-      <div className="overflow-y-auto p-6">
-        <h2 className="mb-4 text-lg font-bold capitalize text-white">
+    <div className={styles.overlay}>
+      <div className={styles.panel}>
+      <div className={styles.contenido}>
+        <h2 className={styles.titulo}>
           {partido.estado === 'jugado' ? 'Editar resultado' : 'Cargar resultado'} — {formatearFechaPartido(partido.fecha)}
         </h2>
 
-        {cargandoExistente && <p className="mb-4 text-sm text-white/50">Cargando resultado actual…</p>}
+        {cargandoExistente && <p className={styles.mensajeCargando}>Cargando resultado actual…</p>}
 
         {elegibles.length === 0 && (
-          <p className="mb-6 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">
+          <p className={styles.avisoSinElegibles}>
             Este partido no tiene formación guardada, así que no hay jugadores elegibles. Guardá la formación desde
             el inicio antes de cargar el resultado.
           </p>
         )}
 
-        <section className="mb-6">
-          <label className="mb-2 block text-sm font-bold uppercase text-white/70" htmlFor="beelupUrl">
+        <section className={styles.seccion}>
+          <label className={styles.etiquetaCampo} htmlFor="beelupUrl">
             URL del video (Beelup)
           </label>
           <input
@@ -139,23 +140,23 @@ export default function ModalCargarResultado({
             placeholder="https://beelup.com/player.php?id=..."
             value={beelupUrl}
             onChange={(e) => setBeelupUrl(e.target.value)}
-            className="w-full rounded-lg border border-white/20 bg-cancha-900 px-2 py-1.5 text-sm text-white"
+            className={styles.inputTexto}
           />
         </section>
 
-        <section className="mb-6">
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-bold uppercase text-white/70">Goles</h3>
-            <Boton variante="ghost" className="px-3 py-1 text-xs" onClick={() => setGoles((a) => [...a, golVacio()])}>
+        <section className={styles.seccion}>
+          <div className={styles.encabezadoSeccion}>
+            <h3 className={styles.tituloSeccion}>Goles</h3>
+            <Boton variante="ghost" className={styles.botonAgregar} onClick={() => setGoles((a) => [...a, golVacio()])}>
               + Agregar gol
             </Boton>
           </div>
           {goles.map((gol, indice) => (
-            <div key={indice} className="mb-2 flex flex-wrap items-center gap-2">
+            <div key={indice} className={styles.filaFormulario}>
               <select
                 value={gol.usuarioId}
                 onChange={(e) => actualizarGol(indice, 'usuarioId', e.target.value)}
-                className="rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white"
+                className={styles.select}
               >
                 <option value="">Jugador</option>
                 {elegibles.map((j) => (
@@ -167,7 +168,7 @@ export default function ModalCargarResultado({
               <select
                 value={gol.equipo}
                 onChange={(e) => actualizarGol(indice, 'equipo', e.target.value)}
-                className="rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white"
+                className={styles.select}
               >
                 <option value="A">Equipo A</option>
                 <option value="B">Equipo B</option>
@@ -178,13 +179,13 @@ export default function ModalCargarResultado({
                 placeholder="Minuto"
                 value={gol.minuto}
                 onChange={(e) => actualizarGol(indice, 'minuto', e.target.value)}
-                className="w-20 rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white"
+                className={styles.inputMinuto}
               />
               <select
                 value={gol.asistenciaUsuarioId}
                 onChange={(e) => actualizarGol(indice, 'asistenciaUsuarioId', e.target.value)}
                 disabled={gol.enContra}
-                className="rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white disabled:opacity-40"
+                className={styles.selectAsistencia}
               >
                 <option value="">Sin asistencia</option>
                 {elegibles
@@ -195,7 +196,7 @@ export default function ModalCargarResultado({
                     </option>
                   ))}
               </select>
-              <label className="flex items-center gap-1 text-xs text-white/70">
+              <label className={styles.labelCheckbox}>
                 <input
                   type="checkbox"
                   checked={gol.enContra}
@@ -205,7 +206,7 @@ export default function ModalCargarResultado({
               </label>
               <Boton
                 variante="ghost"
-                className="px-2 py-1 text-xs text-sancion"
+                className={styles.botonQuitar}
                 onClick={() => setGoles((a) => a.filter((_, i) => i !== indice))}
               >
                 Quitar
@@ -214,23 +215,23 @@ export default function ModalCargarResultado({
           ))}
         </section>
 
-        <section className="mb-6">
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-bold uppercase text-white/70">Sanciones en cancha</h3>
+        <section className={styles.seccion}>
+          <div className={styles.encabezadoSeccion}>
+            <h3 className={styles.tituloSeccion}>Sanciones en cancha</h3>
             <Boton
               variante="ghost"
-              className="px-3 py-1 text-xs"
+              className={styles.botonAgregar}
               onClick={() => setSanciones((a) => [...a, sancionVacia()])}
             >
               + Agregar sanción
             </Boton>
           </div>
           {sanciones.map((sancion, indice) => (
-            <div key={indice} className="mb-2 flex flex-wrap items-center gap-2">
+            <div key={indice} className={styles.filaFormulario}>
               <select
                 value={sancion.usuarioId}
                 onChange={(e) => actualizarSancion(indice, 'usuarioId', e.target.value)}
-                className="rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white"
+                className={styles.select}
               >
                 <option value="">Jugador</option>
                 {elegibles.map((j) => (
@@ -244,11 +245,11 @@ export default function ModalCargarResultado({
                 placeholder="Motivo (ej: Tarjeta roja)"
                 value={sancion.motivo}
                 onChange={(e) => actualizarSancion(indice, 'motivo', e.target.value)}
-                className="flex-1 rounded-lg border border-white/20 bg-cancha-900 px-2 py-1 text-sm text-white"
+                className={styles.inputMotivo}
               />
               <Boton
                 variante="ghost"
-                className="px-2 py-1 text-xs text-sancion"
+                className={styles.botonQuitar}
                 onClick={() => setSanciones((a) => a.filter((_, i) => i !== indice))}
               >
                 Quitar
@@ -257,10 +258,10 @@ export default function ModalCargarResultado({
           ))}
         </section>
 
-        {error && <p className="mb-4 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
+        {error && <p className={styles.error}>{error}</p>}
       </div>
 
-      <div className="flex justify-end gap-3 border-t border-white/10 p-6 pt-4">
+      <div className={styles.pie}>
         <Boton variante="ghost" onClick={onCancelar} disabled={procesando}>
           Cancelar
         </Boton>

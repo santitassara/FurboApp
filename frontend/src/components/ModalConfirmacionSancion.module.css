@@ -1,0 +1,21 @@
+@reference "../styles/globals.module.css";
+
+.overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4;
+}
+
+.modal {
+  @apply w-full max-w-sm rounded-xl border border-white/10 bg-cancha-800 p-6 text-center;
+}
+
+.titulo {
+  @apply mb-2 text-lg font-bold text-tarjeta;
+}
+
+.texto {
+  @apply mb-6 text-sm text-white/70;
+}
+
+.acciones {
+  @apply flex justify-center gap-3;
+}

@@ -1,0 +1,13 @@
+@reference "../styles/globals.module.css";
+
+.contenedor {
+  @apply rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg;
+}
+
+.titulo {
+  @apply mb-3 flex items-center gap-2 text-lg font-bold text-white;
+}
+
+.scroll {
+  @apply max-h-80 overflow-y-auto pr-1;
+}

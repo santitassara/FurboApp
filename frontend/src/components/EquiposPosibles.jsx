@@ -2,6 +2,7 @@ import { useState } from 'react';
 import api from '../services/api';
 import Boton from './Boton';
 import { rutaGrupo } from '../utils/rutasGrupo';
+import styles from './EquiposPosibles.module.css';
 
 export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, soyTitular, onActualizado, onVerEnCancha }) {
   const [procesando, setProcesando] = useState(null);
@@ -65,9 +66,9 @@ export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, so
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
-      <div className="mb-3 flex items-center justify-between">
-        <h4 className="text-sm font-bold uppercase tracking-wide text-pasto-500">Equipos posibles</h4>
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <h4 className={styles.titulo}>Equipos posibles</h4>
         {esAdmin && !votacionEquiposCerrada && (
           <Boton variante="ghost" onClick={cerrarVotacion} disabled={procesando === 'cerrar'}>
             {procesando === 'cerrar' ? 'Cerrando…' : 'Cerrar votación'}
@@ -80,49 +81,49 @@ export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, so
         )}
       </div>
 
-      {error && <p className="mb-3 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
+      {error && <p className={styles.error}>{error}</p>}
 
-      <div className="flex flex-col gap-2">
+      <div className={styles.lista}>
         {propuestas.map((propuesta) => {
           const expandido = expandidoId === propuesta.id;
           const esGanadora = propuestaGanadoraId === propuesta.id;
           const esMiVoto = miVoto === propuesta.id;
 
           return (
-            <div key={propuesta.id} className="rounded-lg border border-white/10 bg-cancha-700">
+            <div key={propuesta.id} className={styles.propuesta}>
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm text-white"
+                className={styles.propuestaHeader}
                 onClick={() => setExpandidoId(expandido ? null : propuesta.id)}
               >
-                <span className="font-semibold">
+                <span className={styles.propuestaNombre}>
                   Equipos posibles {propuesta.numero}
-                  {esGanadora && <span className="ml-2 rounded bg-pasto-600 px-2 py-0.5 text-xs">Ganadora</span>}
-                  {esMiVoto && !esGanadora && <span className="ml-2 text-xs text-pasto-500">Tu voto</span>}
+                  {esGanadora && <span className={styles.badgeGanadora}>Ganadora</span>}
+                  {esMiVoto && !esGanadora && <span className={styles.badgeMiVoto}>Tu voto</span>}
                 </span>
-                <span className="text-white/60">
+                <span className={styles.votos}>
                   {propuesta.votos} voto{propuesta.votos === 1 ? '' : 's'}
                 </span>
               </button>
 
               {expandido && (
-                <div className="border-t border-white/10 px-4 py-3 text-sm text-white/80">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className={styles.detalle}>
+                  <div className={styles.equiposGrid}>
                     <div>
-                      <p className="mb-1 text-xs uppercase text-white/40">Equipo A</p>
+                      <p className={styles.equipoLabel}>Equipo A</p>
                       {propuesta.equipoA.map((jugador) => (
                         <p key={jugador.usuarioId}>{jugador.nombre}</p>
                       ))}
                     </div>
                     <div>
-                      <p className="mb-1 text-xs uppercase text-white/40">Equipo B</p>
+                      <p className={styles.equipoLabel}>Equipo B</p>
                       {propuesta.equipoB.map((jugador) => (
                         <p key={jugador.usuarioId}>{jugador.nombre}</p>
                       ))}
                     </div>
                   </div>
 
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className={styles.acciones}>
                     <Boton variante="ghost" onClick={() => onVerEnCancha(propuesta)}>
                       Ver en cancha
                     </Boton>

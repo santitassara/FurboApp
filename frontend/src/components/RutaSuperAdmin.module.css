@@ -1,0 +1,5 @@
+@reference "../styles/globals.module.css";
+
+.cargando {
+  @apply flex min-h-screen items-center justify-center text-white/70;
+}

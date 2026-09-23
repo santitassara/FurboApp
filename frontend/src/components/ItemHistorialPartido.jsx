@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import clsx from 'clsx';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useGrupo } from '../context/GrupoContext';
@@ -7,6 +8,7 @@ import { formatearFechaPartido } from '../utils/fecha';
 import ResultadoPartido from './ResultadoPartido';
 import ModalVotarValoraciones from './ModalVotarValoraciones';
 import Boton from './Boton';
+import styles from './ItemHistorialPartido.module.css';
 
 export default function ItemHistorialPartido({ partido }) {
   const { perfil } = useAuth();
@@ -108,15 +110,15 @@ export default function ItemHistorialPartido({ partido }) {
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-cancha-800 shadow-lg">
+    <div className={styles.container}>
       <button
         type="button"
         onClick={alternar}
-        className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+        className={styles.headerBtn}
       >
         <div>
-          <p className="font-bold capitalize text-white">{formatearFechaPartido(partido.fecha)}</p>
-          <p className="text-xs text-white/50">{cantidadJugadores} jugadores</p>
+          <p className={styles.fecha}>{formatearFechaPartido(partido.fecha)}</p>
+          <p className={styles.cantidadJugadores}>{cantidadJugadores} jugadores</p>
         </div>
         <svg
           viewBox="0 0 24 24"
@@ -125,27 +127,27 @@ export default function ItemHistorialPartido({ partido }) {
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className={`h-5 w-5 shrink-0 text-white/50 transition-transform ${expandido ? 'rotate-180' : ''}`}
+          className={clsx(styles.chevron, expandido && styles.chevronExpandido)}
         >
           <path d="m6 9 6 6 6-6" />
         </svg>
       </button>
 
       {expandido && (
-        <div className="border-t border-white/10 p-4">
+        <div className={styles.detalle}>
           {cargando ? (
-            <p className="text-sm text-white/50">Cargando resultado…</p>
+            <p className={styles.textoCargando}>Cargando resultado…</p>
           ) : error ? (
-            <p className="text-sm text-sancion">{error}</p>
+            <p className={styles.textoError}>{error}</p>
           ) : (
             <>
               <ResultadoPartido partido={partido} resultado={resultado} />
-              <div className="mt-3 flex gap-2">
+              <div className={styles.accionesRow}>
                 {soyElegible && !partido.votacionCerrada && (
                   <button
                     type="button"
                     onClick={abrirVotacion}
-                    className="flex-1 rounded-lg bg-pasto-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-pasto-500"
+                    className={styles.btnCalificar}
                   >
                     Calificar jugadores
                   </button>
@@ -155,7 +157,7 @@ export default function ItemHistorialPartido({ partido }) {
                     type="button"
                     onClick={confirmarCerrarVotacion}
                     disabled={cerrandoVotacion}
-                    className="rounded-lg bg-cancha-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cancha-600 disabled:opacity-50"
+                    className={styles.btnCerrar}
                   >
                     {cerrandoVotacion ? 'Cerrando…' : 'Cerrar votación'}
                   </button>
@@ -164,13 +166,13 @@ export default function ItemHistorialPartido({ partido }) {
                   <button
                     type="button"
                     onClick={() => setEliminarAbierto(true)}
-                    className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500"
+                    className={styles.btnEliminar}
                   >
                     Eliminar
                   </button>
                 )}
               </div>
-              {errorVoto && !votoAbierto && <p className="mt-2 text-sm text-sancion">{errorVoto}</p>}
+              {errorVoto && !votoAbierto && <p className={styles.errorVoto}>{errorVoto}</p>}
             </>
           )}
         </div>
@@ -191,11 +193,11 @@ export default function ItemHistorialPartido({ partido }) {
       />
 
       {eliminarAbierto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-sm rounded-xl border border-white/10 bg-cancha-800 p-6 text-center">
-            <h2 className="mb-2 text-lg font-bold text-sancion">Eliminar partido</h2>
-            <p className="mb-6 text-sm text-white/70">Esta acción es irreversible, ¿estás seguro de hacerlo?</p>
-            <div className="flex justify-center gap-3">
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalCard}>
+            <h2 className={styles.modalTitulo}>Eliminar partido</h2>
+            <p className={styles.modalTexto}>Esta acción es irreversible, ¿estás seguro de hacerlo?</p>
+            <div className={styles.modalAcciones}>
               <Boton variante="ghost" onClick={() => setEliminarAbierto(false)} disabled={eliminando}>
                 Cancelar
               </Boton>

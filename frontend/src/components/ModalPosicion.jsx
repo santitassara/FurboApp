@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Boton from './Boton';
 import { POSICIONES } from '../constants/posiciones';
+import styles from './ModalPosicion.module.css';
 
 export default function ModalPosicion({
   abierto,
@@ -28,43 +29,43 @@ export default function ModalPosicion({
   const puedeConfirmar = posicionPrincipal && posicionSecundaria && !posicionesIguales && !procesando;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-      <div className="w-full max-w-sm rounded-xl border border-white/10 bg-cancha-800 p-6">
-        <h2 className="mb-2 text-lg font-bold text-tarjeta">¿En qué posición jugás?</h2>
-        <p className="mb-4 text-sm text-white/70">
+    <div className={styles.overlay}>
+      <div className={styles.modal}>
+        <h2 className={styles.titulo}>¿En qué posición jugás?</h2>
+        <p className={styles.descripcion}>
           Elegí tu posición principal y una secundaria, por si en algún momento hace falta rotar.
         </p>
 
-        <div className="mb-3 flex flex-col gap-1 text-left">
-          <label className="text-xs uppercase text-white/50">Posición principal</label>
+        <div className={styles.campoPrincipal}>
+          <label className={styles.etiquetaCampo}>Posición principal</label>
           <select
             value={posicionPrincipal}
             onChange={(evento) => setPosicionPrincipal(evento.target.value)}
-            className="rounded-lg bg-white/10 px-4 py-2 text-white"
+            className={styles.select}
           >
-            <option value="" disabled className="bg-cancha-800 text-white">
+            <option value="" disabled className={styles.opcion}>
               Elegí una posición
             </option>
             {POSICIONES.map((posicion) => (
-              <option key={posicion.valor} value={posicion.valor} className="bg-cancha-800 text-white">
+              <option key={posicion.valor} value={posicion.valor} className={styles.opcion}>
                 {posicion.etiqueta}
               </option>
             ))}
           </select>
         </div>
 
-        <div className="mb-2 flex flex-col gap-1 text-left">
-          <label className="text-xs uppercase text-white/50">Posición secundaria</label>
+        <div className={styles.campoSecundario}>
+          <label className={styles.etiquetaCampo}>Posición secundaria</label>
           <select
             value={posicionSecundaria}
             onChange={(evento) => setPosicionSecundaria(evento.target.value)}
-            className="rounded-lg bg-white/10 px-4 py-2 text-white"
+            className={styles.select}
           >
-            <option value="" disabled className="bg-cancha-800 text-white">
+            <option value="" disabled className={styles.opcion}>
               Elegí una posición
             </option>
             {POSICIONES.map((posicion) => (
-              <option key={posicion.valor} value={posicion.valor} className="bg-cancha-800 text-white">
+              <option key={posicion.valor} value={posicion.valor} className={styles.opcion}>
                 {posicion.etiqueta}
               </option>
             ))}
@@ -72,12 +73,12 @@ export default function ModalPosicion({
         </div>
 
         {posicionesIguales && (
-          <p className="mb-2 text-sm text-sancion">La secundaria tiene que ser distinta de la principal.</p>
+          <p className={styles.mensajeError}>La secundaria tiene que ser distinta de la principal.</p>
         )}
 
-        {error && <p className="mb-2 text-sm text-sancion">{error}</p>}
+        {error && <p className={styles.mensajeError}>{error}</p>}
 
-        <div className="mt-4 flex justify-center gap-3">
+        <div className={styles.acciones}>
           {permitirCancelar && (
             <Boton variante="ghost" onClick={onCancelar} disabled={procesando}>
               Cancelar

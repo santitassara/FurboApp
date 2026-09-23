@@ -1,0 +1,29 @@
+@reference "../styles/globals.module.css";
+
+.card {
+  @apply rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg;
+}
+
+.titulo {
+  @apply mb-3 flex items-center gap-2 text-lg font-bold text-white;
+}
+
+.lista {
+  @apply flex flex-col gap-2 text-sm text-white/80;
+}
+
+.fila {
+  @apply flex items-center justify-between;
+}
+
+.valorDestacado {
+  @apply font-bold text-white;
+}
+
+.valorPasto {
+  @apply font-bold text-pasto-500;
+}
+
+.sinPartido {
+  @apply text-white/60;
+}

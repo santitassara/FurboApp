@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import clsx from 'clsx';
+import styles from './Home.module.css';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useGrupo } from '../context/GrupoContext';
@@ -152,16 +154,16 @@ export default function Home() {
   }
 
   return (
-    <div className="mx-auto flex flex-col gap-6">
-      <header className="flex items-start justify-between gap-4">
+    <div className={styles.contenedor}>
+      <header className={styles.header}>
         <div>
-          <h1 className="font-display text-4xl leading-none text-white">Próximos partidos</h1>
-          <p className="mt-1 text-sm text-white/60">Hola, {perfil?.nombre}</p>
+          <h1 className={styles.titulo}>Próximos partidos</h1>
+          <p className={styles.saludo}>Hola, {perfil?.nombre}</p>
         </div>
         {canInstall && (
           <button
             onClick={triggerInstall}
-            className="mt-1 flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#667eea] to-[#764ba2] px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-95"
+            className={styles.botonInstalar}
             aria-label="Instalar aplicación"
           >
             <svg
@@ -183,18 +185,18 @@ export default function Home() {
         )}
       </header>
 
-      {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
+      {error && <p className={styles.error}>{error}</p>}
 
       {cargando ? (
-        <p className="text-white/60">Cargando partidos…</p>
+        <p className={styles.mensajeSecundario}>Cargando partidos…</p>
       ) : partidos.length === 0 ? (
-        <p className="text-white/60">No hay partidos para mostrar por ahora.</p>
+        <p className={styles.mensajeSecundario}>No hay partidos para mostrar por ahora.</p>
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className={styles.listaPartidos}>
           {partidos.map((partido, indice) =>
             indice === 0 ? (
               <PartidoConEstado key={partido.id} partido={partido}>
-                <div className="flex flex-col gap-4">
+                <div className={styles.contenidoPrimero}>
                   <HeroPartido
                     partido={partido}
                     inscripcionUsuario={inscripcionDelUsuario(partido.id)}
@@ -207,7 +209,7 @@ export default function Home() {
                   <TarjetaInfoPartido partido={partido} />
 
                   <div
-                    className={formacionesPorPartido[partido.id] ? 'grid grid-cols-1 gap-4 md:grid-cols-2' : ''}
+                    className={clsx(formacionesPorPartido[partido.id] && styles.gridDosColumnas)}
                   >
                     <div>
                       <ListaConvocadosScroll
@@ -223,8 +225,8 @@ export default function Home() {
                       const esperandoTitulares = ocupados.titulares < partido.cupoTitulares;
                       if (!formacionesPorPartido[partido.id]) return null;
                       return (
-                        <div id={`mapa-cancha-${partido.id}`} className="relative">
-                          <div className={esperandoTitulares ? 'pointer-events-none blur-sm' : ''}>
+                        <div id={`mapa-cancha-${partido.id}`} className={styles.mapaWrapper}>
+                          <div className={clsx(esperandoTitulares && styles.bloqueado)}>
                             <MapaCancha
                               partidoId={partido.id}
                               formacion={formacionesPorPartido[partido.id]}
@@ -243,8 +245,8 @@ export default function Home() {
                             />
                           </div>
                           {esperandoTitulares && (
-                            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-cancha-900/60">
-                              <p className="rounded-lg bg-black/70 px-4 py-2 text-sm font-bold uppercase tracking-wide text-white">
+                            <div className={styles.overlayEsperando}>
+                              <p className={styles.mensajeEsperando}>
                                 Esperando a todos los titulares
                               </p>
                             </div>
@@ -278,7 +280,7 @@ export default function Home() {
             ) : (
               <PartidoConEstado key={partido.id} partido={partido}>
                 <div
-                  className={formacionesPorPartido[partido.id] ? 'grid grid-cols-1 gap-4 md:grid-cols-2' : ''}
+                  className={clsx(formacionesPorPartido[partido.id] && styles.gridDosColumnas)}
                 >
                   {formacionesPorPartido[partido.id] && (
                     <div id={`mapa-cancha-${partido.id}`}>
@@ -335,7 +337,7 @@ export default function Home() {
       )}
 
       {!cargando && partidos.length > 0 && (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className={styles.resumenGrid}>
           <MvpUltimaFecha grupoId={grupoActivo.id} />
           <LideresDelMes grupoId={grupoActivo.id} />
           <InfoGeneralGrupo grupoActivo={grupoActivo} proximoPartido={partidos[0]} />

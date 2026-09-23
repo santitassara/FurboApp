@@ -6,6 +6,7 @@ import { POSICIONES } from '../constants/posiciones';
 import { RESISTENCIA } from '../constants/resistencia';
 import { RITMO_JUEGO } from '../constants/ritmoJuego';
 import { SERVER_URL } from '../services/api';
+import styles from './Perfil.module.css';
 
 const HABILIDADES = [
   { campo: 'velocidad', etiqueta: 'Velocidad' },
@@ -100,11 +101,11 @@ export default function Perfil() {
   }
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6">
-      <h1 className="font-display text-4xl leading-none text-white">Mi Perfil</h1>
+    <div className={styles.pagina}>
+      <h1 className={styles.titulo}>Mi Perfil</h1>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_1fr]">
-        <div className="flex flex-col items-center gap-3 lg:sticky lg:top-10 lg:h-fit lg:items-start">
+      <div className={styles.grilla}>
+        <div className={styles.columnaFoto}>
           <TarjetaJugadorFIFA
             nombre={datos.nombreCompleto || perfil?.nombre}
             posicion={datos.posicionPrincipal}
@@ -115,67 +116,67 @@ export default function Perfil() {
             ref={inputFotoRef}
             type="file"
             accept="image/jpeg,image/png,image/webp"
-            className="hidden"
+            className={styles.inputFotoOculto}
             onChange={manejarSeleccionFoto}
           />
           <Boton type="button" onClick={() => inputFotoRef.current?.click()} disabled={subiendoFoto}>
             {subiendoFoto ? 'Subiendo…' : 'Subir foto'}
           </Boton>
-          {errorFoto && <p className="text-sm text-sancion">{errorFoto}</p>}
+          {errorFoto && <p className={styles.errorFoto}>{errorFoto}</p>}
         </div>
 
-        <form onSubmit={guardar} className="flex flex-col gap-5 rounded-2xl border border-white/10 bg-cancha-800/60 p-6">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs uppercase text-white/50">Nombre completo</label>
+        <form onSubmit={guardar} className={styles.formulario}>
+        <div className={styles.campo}>
+          <label className={styles.etiqueta}>Nombre completo</label>
           <input
             type="text"
             value={datos.nombreCompleto}
             onChange={(evento) => actualizarCampo('nombreCompleto', evento.target.value)}
             placeholder={perfil?.nombre}
-            className="rounded-lg bg-white/10 px-4 py-2 text-white placeholder:text-white/40"
+            className={styles.input}
           />
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs uppercase text-white/50">Fecha de nacimiento</label>
+        <div className={styles.campo}>
+          <label className={styles.etiqueta}>Fecha de nacimiento</label>
           <input
             type="date"
             value={datos.fechaNacimiento}
             onChange={(evento) => actualizarCampo('fechaNacimiento', evento.target.value)}
-            className="rounded-lg bg-white/10 px-4 py-2 text-white"
+            className={styles.inputFecha}
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs uppercase text-white/50">Posición principal</label>
+        <div className={styles.grillaPosiciones}>
+          <div className={styles.campo}>
+            <label className={styles.etiqueta}>Posición principal</label>
             <select
               value={datos.posicionPrincipal}
               onChange={(evento) => actualizarCampo('posicionPrincipal', evento.target.value)}
-              className="rounded-lg bg-white/10 px-4 py-2 text-white"
+              className={styles.select}
             >
-              <option value="" disabled className="bg-cancha-800 text-white">
+              <option value="" disabled className={styles.opcion}>
                 Elegí una posición
               </option>
               {POSICIONES.map((posicion) => (
-                <option key={posicion.valor} value={posicion.valor} className="bg-cancha-800 text-white">
+                <option key={posicion.valor} value={posicion.valor} className={styles.opcion}>
                   {posicion.etiqueta}
                 </option>
               ))}
             </select>
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs uppercase text-white/50">Posición secundaria</label>
+          <div className={styles.campo}>
+            <label className={styles.etiqueta}>Posición secundaria</label>
             <select
               value={datos.posicionSecundaria}
               onChange={(evento) => actualizarCampo('posicionSecundaria', evento.target.value)}
-              className="rounded-lg bg-white/10 px-4 py-2 text-white"
+              className={styles.select}
             >
-              <option value="" disabled className="bg-cancha-800 text-white">
+              <option value="" disabled className={styles.opcion}>
                 Elegí una posición
               </option>
               {POSICIONES.map((posicion) => (
-                <option key={posicion.valor} value={posicion.valor} className="bg-cancha-800 text-white">
+                <option key={posicion.valor} value={posicion.valor} className={styles.opcion}>
                   {posicion.etiqueta}
                 </option>
               ))}
@@ -183,88 +184,88 @@ export default function Perfil() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs uppercase text-white/50">Pierna hábil</label>
-          <div className="flex gap-3">
-            <label className="flex items-center gap-2 cursor-pointer">
+        <div className={styles.campo}>
+          <label className={styles.etiqueta}>Pierna hábil</label>
+          <div className={styles.filaRadios}>
+            <label className={styles.labelRadio}>
               <input
                 type="radio"
                 name="piernaHabil"
                 value="diestro"
                 checked={datos.piernaHabil === 'diestro'}
                 onChange={(evento) => actualizarCampo('piernaHabil', evento.target.value)}
-                className="w-4 h-4"
+                className={styles.inputRadio}
               />
-              <span className="text-sm text-white">Diestro</span>
+              <span className={styles.textoRadio}>Diestro</span>
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className={styles.labelRadio}>
               <input
                 type="radio"
                 name="piernaHabil"
                 value="zurdo"
                 checked={datos.piernaHabil === 'zurdo'}
                 onChange={(evento) => actualizarCampo('piernaHabil', evento.target.value)}
-                className="w-4 h-4"
+                className={styles.inputRadio}
               />
-              <span className="text-sm text-white">Zurdo</span>
+              <span className={styles.textoRadio}>Zurdo</span>
             </label>
           </div>
         </div>
         {posicionesIguales && (
-          <p className="text-sm text-sancion">La secundaria tiene que ser distinta de la principal.</p>
+          <p className={styles.mensajeError}>La secundaria tiene que ser distinta de la principal.</p>
         )}
         {posicionesSinElegir && (
-          <p className="text-sm text-sancion">Elegí posición principal y secundaria para poder guardar.</p>
+          <p className={styles.mensajeError}>Elegí posición principal y secundaria para poder guardar.</p>
         )}
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs uppercase text-white/50">Resistencia</label>
+        <div className={styles.campo}>
+          <label className={styles.etiqueta}>Resistencia</label>
           <select
             value={datos.resistencia}
             onChange={(evento) => actualizarCampo('resistencia', evento.target.value)}
-            className="rounded-lg bg-white/10 px-4 py-2 text-white"
+            className={styles.select}
           >
-            <option value="" className="bg-cancha-800 text-white">
+            <option value="" className={styles.opcion}>
               Sin especificar
             </option>
             {RESISTENCIA.map((opcion) => (
-              <option key={opcion.valor} value={opcion.valor} className="bg-cancha-800 text-white">
+              <option key={opcion.valor} value={opcion.valor} className={styles.opcion}>
                 {opcion.etiqueta}
               </option>
             ))}
           </select>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs uppercase text-white/50">Ritmo de juego</label>
+        <div className={styles.campo}>
+          <label className={styles.etiqueta}>Ritmo de juego</label>
           <select
             value={datos.ritmoJuego}
             onChange={(evento) => actualizarCampo('ritmoJuego', evento.target.value)}
-            className="rounded-lg bg-white/10 px-4 py-2 text-white"
+            className={styles.select}
           >
-            <option value="" className="bg-cancha-800 text-white">
+            <option value="" className={styles.opcion}>
               Sin especificar
             </option>
             {RITMO_JUEGO.map((opcion) => (
-              <option key={opcion.valor} value={opcion.valor} className="bg-cancha-800 text-white">
+              <option key={opcion.valor} value={opcion.valor} className={styles.opcion}>
                 {opcion.etiqueta}
               </option>
             ))}
           </select>
         </div>
 
-        <div className="flex flex-col gap-4">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-pasto-500">Habilidades</h2>
+        <div className={styles.grupoHabilidades}>
+          <h2 className={styles.tituloHabilidades}>Habilidades</h2>
           {habilidadesBloqueadas && (
-            <p className="text-sm text-white/50">
+            <p className={styles.avisoHabilidadesBloqueadas}>
               Ya cargaste tus habilidades una vez, no se pueden volver a editar.
             </p>
           )}
           {HABILIDADES.map(({ campo, etiqueta }) => (
-            <div key={campo} className="flex flex-col gap-1">
-              <div className="flex items-center justify-between text-xs uppercase text-white/50">
+            <div key={campo} className={styles.filaHabilidad}>
+              <div className={styles.encabezadoHabilidad}>
                 <span>{etiqueta}</span>
-                <span className="text-white/90">{datos[campo]}</span>
+                <span className={styles.valorHabilidad}>{datos[campo]}</span>
               </div>
               <input
                 type="range"
@@ -273,14 +274,14 @@ export default function Perfil() {
                 value={datos[campo]}
                 onChange={(evento) => actualizarHabilidad(campo, evento.target.value)}
                 disabled={habilidadesBloqueadas}
-                className="w-full disabled:opacity-40"
+                className={styles.sliderHabilidad}
               />
             </div>
           ))}
         </div>
 
-        {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
-        {guardado && !error && <p className="text-sm text-pasto-500">Perfil guardado.</p>}
+        {error && <p className={styles.error}>{error}</p>}
+        {guardado && !error && <p className={styles.exito}>Perfil guardado.</p>}
 
         <Boton type="submit" disabled={habilidadesBloqueadas || !puedeGuardar}>
           {habilidadesBloqueadas ? 'Perfil guardado' : guardando ? 'Guardando…' : 'Guardar perfil'}

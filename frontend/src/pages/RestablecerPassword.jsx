@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
+import styles from './RestablecerPassword.module.css';
 
 export default function RestablecerPassword() {
   const [searchParams] = useSearchParams();
@@ -33,11 +34,11 @@ export default function RestablecerPassword() {
 
   if (!token) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
-        <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">
+      <div className={styles.paginaCentrada}>
+        <p className={styles.avisoError}>
           Falta el token del link. Pedí uno nuevo desde "Olvidé mi contraseña".
         </p>
-        <Link to="/olvide-password" className="text-sm text-white/60 underline">
+        <Link to="/olvide-password" className={styles.enlaceSecundario}>
           Ir a Olvidé mi contraseña
         </Link>
       </div>
@@ -45,21 +46,21 @@ export default function RestablecerPassword() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4 text-center">
-      <h1 className="text-3xl font-extrabold tracking-tight text-pasto-500">Restablecer contraseña</h1>
+    <div className={styles.pagina}>
+      <h1 className={styles.titulo}>Restablecer contraseña</h1>
 
       {listo ? (
-        <p className="rounded-lg bg-pasto-500/20 px-4 py-2 text-sm text-pasto-500">
+        <p className={styles.mensajeExito}>
           Contraseña actualizada. Redirigiendo al login…
         </p>
       ) : (
-        <form onSubmit={manejarSubmit} className="flex w-full max-w-xs flex-col gap-3">
+        <form onSubmit={manejarSubmit} className={styles.formulario}>
           <input
             type="password"
             placeholder="Contraseña nueva"
             value={password}
             onChange={(evento) => setPassword(evento.target.value)}
-            className="rounded-lg bg-white/10 px-4 py-2 text-white placeholder-white/40"
+            className={styles.input}
             required
           />
           <input
@@ -67,20 +68,20 @@ export default function RestablecerPassword() {
             placeholder="Confirmar contraseña"
             value={confirmarPassword}
             onChange={(evento) => setConfirmarPassword(evento.target.value)}
-            className="rounded-lg bg-white/10 px-4 py-2 text-white placeholder-white/40"
+            className={styles.input}
             required
           />
           <button
             type="submit"
             disabled={enviando}
-            className="rounded-lg bg-pasto-500 px-6 py-2 font-semibold text-cancha-900 transition hover:brightness-110 disabled:opacity-50"
+            className={styles.botonEnviar}
           >
             Guardar
           </button>
         </form>
       )}
 
-      {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
+      {error && <p className={styles.error}>{error}</p>}
     </div>
   );
 }

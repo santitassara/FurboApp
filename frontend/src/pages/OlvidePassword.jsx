@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
+import styles from './OlvidePassword.module.css';
 
 export default function OlvidePassword() {
   const [email, setEmail] = useState('');
@@ -24,32 +25,32 @@ export default function OlvidePassword() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4 text-center">
-      <h1 className="text-3xl font-extrabold tracking-tight text-pasto-500">Olvidé mi contraseña</h1>
-      <p className="max-w-xs text-white/70">Ingresá tu email y te mandamos un link para restablecerla.</p>
+    <div className={styles.container}>
+      <h1 className={styles.titulo}>Olvidé mi contraseña</h1>
+      <p className={styles.descripcion}>Ingresá tu email y te mandamos un link para restablecerla.</p>
 
-      <form onSubmit={manejarSubmit} className="flex w-full max-w-xs flex-col gap-3">
+      <form onSubmit={manejarSubmit} className={styles.form}>
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(evento) => setEmail(evento.target.value)}
-          className="rounded-lg bg-white/10 px-4 py-2 text-white placeholder-white/40"
+          className={styles.input}
           required
         />
         <button
           type="submit"
           disabled={enviando}
-          className="rounded-lg bg-pasto-500 px-6 py-2 font-semibold text-cancha-900 transition hover:brightness-110 disabled:opacity-50"
+          className={styles.botonSubmit}
         >
           Enviar link
         </button>
       </form>
 
-      {mensaje && <p className="rounded-lg bg-pasto-500/20 px-4 py-2 text-sm text-pasto-500">{mensaje}</p>}
-      {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
+      {mensaje && <p className={styles.mensajeExito}>{mensaje}</p>}
+      {error && <p className={styles.mensajeError}>{error}</p>}
 
-      <Link to="/" className="text-sm text-white/60 underline">
+      <Link to="/" className={styles.linkVolver}>
         Volver al login
       </Link>
     </div>

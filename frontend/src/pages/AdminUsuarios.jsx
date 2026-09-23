@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 import Boton from '../components/Boton';
+import styles from './AdminUsuarios.module.css';
 
 export default function AdminUsuarios() {
   const [usuarios, setUsuarios] = useState([]);
@@ -74,10 +75,10 @@ export default function AdminUsuarios() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={styles.contenedor}>
       <div>
-        <h1 className="text-2xl font-bold text-white">Usuarios (Super Admin)</h1>
-        <p className="text-sm text-white/60">Resetear la contraseña de un usuario que no puede ingresar.</p>
+        <h1 className={styles.titulo}>Usuarios (Super Admin)</h1>
+        <p className={styles.subtitulo}>Resetear la contraseña de un usuario que no puede ingresar.</p>
       </div>
 
       <input
@@ -85,22 +86,22 @@ export default function AdminUsuarios() {
         placeholder="Buscar por nombre o email"
         value={busqueda}
         onChange={(evento) => setBusqueda(evento.target.value)}
-        className="w-full max-w-sm rounded-lg bg-white/10 px-4 py-2 text-white placeholder-white/40"
+        className={styles.inputBusqueda}
       />
 
-      {mensaje && <p className="rounded-lg bg-pasto-500/20 px-4 py-2 text-sm text-pasto-500">{mensaje}</p>}
-      {error && <p className="rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion">{error}</p>}
+      {mensaje && <p className={styles.mensajeExito}>{mensaje}</p>}
+      {error && <p className={styles.mensajeError}>{error}</p>}
 
       {cargando ? (
-        <p className="text-white/60">Cargando…</p>
+        <p className={styles.cargando}>Cargando…</p>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className={styles.lista}>
           {usuariosFiltrados.map((usuario) => (
-            <div key={usuario.uid} className="rounded-lg bg-white/5 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            <div key={usuario.uid} className={styles.tarjetaUsuario}>
+              <div className={styles.filaUsuario}>
                 <div>
-                  <p className="font-semibold text-white">{usuario.nombre}</p>
-                  <p className="text-sm text-white/60">{usuario.email}</p>
+                  <p className={styles.nombreUsuario}>{usuario.nombre}</p>
+                  <p className={styles.emailUsuario}>{usuario.email}</p>
                 </div>
                 {uidEnEdicion !== usuario.uid && (
                   <Boton variante="ghost" onClick={() => abrirEdicion(usuario.uid)}>
@@ -110,23 +111,23 @@ export default function AdminUsuarios() {
               </div>
 
               {uidEnEdicion === usuario.uid && (
-                <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-4">
+                <div className={styles.formEdicion}>
                   <input
                     type="password"
                     placeholder="Contraseña nueva"
                     value={passwordNueva}
                     onChange={(evento) => setPasswordNueva(evento.target.value)}
-                    className="rounded-lg bg-white/10 px-4 py-2 text-white placeholder-white/40"
+                    className={styles.inputPassword}
                   />
                   <input
                     type="password"
                     placeholder="Confirmar contraseña"
                     value={confirmarPassword}
                     onChange={(evento) => setConfirmarPassword(evento.target.value)}
-                    className="rounded-lg bg-white/10 px-4 py-2 text-white placeholder-white/40"
+                    className={styles.inputPassword}
                   />
-                  {errorPassword && <p className="text-sm text-sancion">{errorPassword}</p>}
-                  <div className="flex gap-2">
+                  {errorPassword && <p className={styles.errorPassword}>{errorPassword}</p>}
+                  <div className={styles.filaBotones}>
                     <Boton onClick={() => guardarPassword(usuario.uid)} disabled={guardando}>
                       Guardar
                     </Boton>
@@ -138,7 +139,7 @@ export default function AdminUsuarios() {
               )}
             </div>
           ))}
-          {usuariosFiltrados.length === 0 && <p className="text-white/60">No se encontraron usuarios.</p>}
+          {usuariosFiltrados.length === 0 && <p className={styles.sinResultados}>No se encontraron usuarios.</p>}
         </div>
       )}
     </div>

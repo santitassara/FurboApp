@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import clsx from 'clsx';
 import Boton from './Boton';
 import { useGrupo } from '../context/GrupoContext';
+import styles from './SelectorGrupoActivo.module.css';
 
 export default function SelectorGrupoActivo() {
   const { misGrupos, grupoActivo, seleccionarGrupo, abandonarGrupo } = useGrupo();
@@ -26,16 +28,16 @@ export default function SelectorGrupoActivo() {
   }
 
   return (
-    <div className="relative px-2">
+    <div className={styles.contenedor}>
       <button
         onClick={() => setAbierto((valor) => !valor)}
-        className="flex w-full items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-left text-sm font-semibold text-white"
+        className={styles.botonActivo}
       >
-        <span className="truncate">{grupoActivo.nombre}</span>
-        <span className="text-white/50">▾</span>
+        <span className={styles.nombreGrupo}>{grupoActivo.nombre}</span>
+        <span className={styles.flechaIcono}>▾</span>
       </button>
       {abierto && (
-        <ul className="absolute z-10 mt-1 w-full rounded-lg border border-white/10 bg-cancha-900 py-1 shadow-lg">
+        <ul className={styles.menu}>
           {misGrupos.map((grupo) => (
             <li key={grupo.id}>
               <button
@@ -43,9 +45,10 @@ export default function SelectorGrupoActivo() {
                   seleccionarGrupo(grupo.id);
                   setAbierto(false);
                 }}
-                className={`block w-full px-3 py-2 text-left text-sm ${
-                  grupo.id === grupoActivo.id ? 'text-pasto-500' : 'text-white/80 hover:bg-white/5'
-                }`}
+                className={clsx(
+                  styles.opcionGrupo,
+                  grupo.id === grupoActivo.id ? styles.opcionActiva : styles.opcionInactiva
+                )}
               >
                 {grupo.nombre}
               </button>
@@ -54,23 +57,23 @@ export default function SelectorGrupoActivo() {
           <li>
             <Link
               to="/grupos"
-              className="block w-full px-3 py-2 text-left text-sm text-white/60 hover:bg-white/5"
+              className={styles.enlaceCrear}
             >
               Crear o unirme a otro grupo
             </Link>
           </li>
-          <li className="border-t border-white/10">
+          <li className={styles.separador}>
             <button
               onClick={manejarAbandonar}
               disabled={procesando}
-              className="block w-full px-3 py-2 text-left text-sm text-sancion hover:bg-sancion/10"
+              className={styles.botonAbandonar}
             >
               {procesando ? 'Abandonando…' : 'Abandonar grupo'}
             </button>
           </li>
           {error && (
-            <li className="px-3 py-2">
-              <p className="text-xs text-sancion">{error}</p>
+            <li className={styles.errorContenedor}>
+              <p className={styles.errorTexto}>{error}</p>
             </li>
           )}
         </ul>

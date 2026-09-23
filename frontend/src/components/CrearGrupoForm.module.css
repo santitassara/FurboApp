@@ -1,0 +1,33 @@
+@reference "../styles/globals.module.css";
+
+.card {
+  @apply flex flex-col gap-3 rounded-xl border border-white/10 bg-cancha-800 p-5;
+}
+
+.titulo {
+  @apply text-lg font-bold text-white;
+}
+
+.descripcion {
+  @apply text-sm text-white/70;
+}
+
+.codigoFila {
+  @apply flex items-center gap-2;
+}
+
+.codigoTexto {
+  @apply flex-1 rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-lg font-bold tracking-wide text-pasto-500;
+}
+
+.label {
+  @apply flex flex-col gap-1 text-sm text-white/70;
+}
+
+.input {
+  @apply rounded-lg border border-white/20 bg-cancha-900 px-3 py-2 text-white;
+}
+
+.error {
+  @apply text-sm text-sancion;
+}

@@ -1,0 +1,61 @@
+@reference "../styles/globals.module.css";
+
+.container {
+  @apply rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg;
+}
+
+.header {
+  @apply mb-3 flex items-center justify-between;
+}
+
+.titulo {
+  @apply text-sm font-bold uppercase tracking-wide text-pasto-500;
+}
+
+.error {
+  @apply mb-3 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion;
+}
+
+.lista {
+  @apply flex flex-col gap-2;
+}
+
+.propuesta {
+  @apply rounded-lg border border-white/10 bg-cancha-700;
+}
+
+.propuestaHeader {
+  @apply flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm text-white;
+}
+
+.propuestaNombre {
+  @apply font-semibold;
+}
+
+.badgeGanadora {
+  @apply ml-2 rounded bg-pasto-600 px-2 py-0.5 text-xs;
+}
+
+.badgeMiVoto {
+  @apply ml-2 text-xs text-pasto-500;
+}
+
+.votos {
+  @apply text-white/60;
+}
+
+.detalle {
+  @apply border-t border-white/10 px-4 py-3 text-sm text-white/80;
+}
+
+.equiposGrid {
+  @apply grid grid-cols-1 gap-3 sm:grid-cols-2;
+}
+
+.equipoLabel {
+  @apply mb-1 text-xs uppercase text-white/40;
+}
+
+.acciones {
+  @apply mt-3 flex flex-wrap gap-2;
+}

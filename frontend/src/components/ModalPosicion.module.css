@@ -1,0 +1,45 @@
+@reference "../styles/globals.module.css";
+
+.overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4;
+}
+
+.modal {
+  @apply w-full max-w-sm rounded-xl border border-white/10 bg-cancha-800 p-6;
+}
+
+.titulo {
+  @apply mb-2 text-lg font-bold text-tarjeta;
+}
+
+.descripcion {
+  @apply mb-4 text-sm text-white/70;
+}
+
+.campoPrincipal {
+  @apply mb-3 flex flex-col gap-1 text-left;
+}
+
+.campoSecundario {
+  @apply mb-2 flex flex-col gap-1 text-left;
+}
+
+.etiquetaCampo {
+  @apply text-xs uppercase text-white/50;
+}
+
+.select {
+  @apply rounded-lg bg-white/10 px-4 py-2 text-white;
+}
+
+.opcion {
+  @apply bg-cancha-800 text-white;
+}
+
+.mensajeError {
+  @apply mb-2 text-sm text-sancion;
+}
+
+.acciones {
+  @apply mt-4 flex justify-center gap-3;
+}

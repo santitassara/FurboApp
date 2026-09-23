@@ -1,0 +1,113 @@
+@reference "../styles/globals.module.css";
+
+.pagina {
+  @apply mx-auto flex max-w-4xl flex-col gap-6;
+}
+
+.titulo {
+  @apply font-display text-4xl leading-none text-white;
+}
+
+.grilla {
+  @apply grid grid-cols-1 gap-6 lg:grid-cols-[300px_1fr];
+}
+
+.columnaFoto {
+  @apply flex flex-col items-center gap-3 lg:sticky lg:top-10 lg:h-fit lg:items-start;
+}
+
+.inputFotoOculto {
+  @apply hidden;
+}
+
+.errorFoto {
+  @apply text-sm text-sancion;
+}
+
+.formulario {
+  @apply flex flex-col gap-5 rounded-2xl border border-white/10 bg-cancha-800/60 p-6;
+}
+
+.campo {
+  @apply flex flex-col gap-1;
+}
+
+.etiqueta {
+  @apply text-xs uppercase text-white/50;
+}
+
+.input {
+  @apply rounded-lg bg-white/10 px-4 py-2 text-white placeholder:text-white/40;
+}
+
+.inputFecha {
+  @apply rounded-lg bg-white/10 px-4 py-2 text-white;
+}
+
+.grillaPosiciones {
+  @apply grid grid-cols-2 gap-3;
+}
+
+.select {
+  @apply rounded-lg bg-white/10 px-4 py-2 text-white;
+}
+
+.opcion {
+  @apply bg-cancha-800 text-white;
+}
+
+.filaRadios {
+  @apply flex gap-3;
+}
+
+.labelRadio {
+  @apply flex items-center gap-2 cursor-pointer;
+}
+
+.inputRadio {
+  @apply w-4 h-4;
+}
+
+.textoRadio {
+  @apply text-sm text-white;
+}
+
+.mensajeError {
+  @apply text-sm text-sancion;
+}
+
+.grupoHabilidades {
+  @apply flex flex-col gap-4;
+}
+
+.tituloHabilidades {
+  @apply text-sm font-bold uppercase tracking-wide text-pasto-500;
+}
+
+.avisoHabilidadesBloqueadas {
+  @apply text-sm text-white/50;
+}
+
+.filaHabilidad {
+  @apply flex flex-col gap-1;
+}
+
+.encabezadoHabilidad {
+  @apply flex items-center justify-between text-xs uppercase text-white/50;
+}
+
+.valorHabilidad {
+  @apply text-white/90;
+}
+
+.sliderHabilidad {
+  @apply w-full disabled:opacity-40;
+}
+
+.error {
+  @apply rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion;
+}
+
+.exito {
+  @apply text-sm text-pasto-500;
+}

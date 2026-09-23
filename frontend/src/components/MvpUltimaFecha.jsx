@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import clsx from 'clsx';
 import api from '../services/api';
 import { rutaGrupo } from '../utils/rutasGrupo';
+import styles from './MvpUltimaFecha.module.css';
 
 export default function MvpUltimaFecha({ grupoId }) {
   const [mvp, setMvp] = useState(null);
@@ -51,28 +53,28 @@ export default function MvpUltimaFecha({ grupoId }) {
   if (!mvp) return null;
 
   return (
-    <div className="relative rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg">
-      <h3 className="mb-3 flex items-center gap-2 text-lg font-bold text-white">
+    <div className={styles.card}>
+      <h3 className={styles.titulo}>
         <span aria-hidden="true">🏆</span> MVP de la última fecha
       </h3>
-      <div className={`flex items-center gap-3 ${votacionCerrada ? '' : 'pointer-events-none blur-sm'}`}>
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cancha-700 text-lg font-bold text-white">
+      <div className={clsx(styles.contenido, !votacionCerrada && styles.bloqueado)}>
+        <div className={styles.avatar}>
           {mvp.nombre?.trim()?.[0]?.toUpperCase() || '?'}
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="font-bold text-white">{mvp.nombre}</p>
-          <p className="text-sm text-white/60">
+        <div className={styles.infoWrapper}>
+          <p className={styles.nombre}>{mvp.nombre}</p>
+          <p className={styles.detalle}>
             {mvp.goles} Goles • {mvp.asistencias} Asistencias
             {mvp.valoracion !== null && ` • Calificación ${mvp.valoracion}`}
           </p>
         </div>
-        <span className="shrink-0 rounded-full bg-pasto-600/20 px-3 py-1 text-xs font-bold text-pasto-500">
+        <span className={styles.badgeVotos}>
           {mvp.porcentajeVotos}% votos
         </span>
       </div>
       {!votacionCerrada && (
-        <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-cancha-900/60">
-          <p className="rounded-lg bg-black/70 px-4 py-2 text-sm font-bold uppercase tracking-wide text-white">
+        <div className={styles.overlay}>
+          <p className={styles.overlayTexto}>
             Disponible cuando cierre la votación
           </p>
         </div>
