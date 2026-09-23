@@ -1,4 +1,4 @@
-@reference "../styles/globals.module.css";
+@reference "../styles/globals.css";
 
 .jugador {
   @apply relative flex flex-col items-center gap-0.5;

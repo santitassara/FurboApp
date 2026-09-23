@@ -1,4 +1,4 @@
-@reference "../styles/globals.module.css";
+@reference "../styles/globals.css";
 
 .cargando {
   @apply flex min-h-screen items-center justify-center text-white/70;

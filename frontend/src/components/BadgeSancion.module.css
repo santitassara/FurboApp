@@ -1,4 +1,4 @@
-@reference "../styles/globals.module.css";
+@reference "../styles/globals.css";
 
 .badge {
   @apply rounded-full bg-sancion/20 px-3 py-1 text-xs font-bold uppercase tracking-wide text-sancion;
