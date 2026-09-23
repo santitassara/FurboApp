@@ -5,7 +5,7 @@ import App from './App.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { GrupoProvider } from './context/GrupoContext.jsx';
 import { ToastProvider } from './components/ToastProvider.jsx';
-import './styles/globals.module.css';
+import './styles/globals.css';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

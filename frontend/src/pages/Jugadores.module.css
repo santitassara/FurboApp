@@ -1,4 +1,4 @@
-@reference "../styles/globals.module.css";
+@reference "../styles/globals.css";
 
 .contenedor {
   @apply mx-auto flex max-w-2xl flex-col gap-6;

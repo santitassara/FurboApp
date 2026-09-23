@@ -1,4 +1,4 @@
-@reference "../styles/globals.module.css";
+@reference "../styles/globals.css";
 
 .layout {
   @apply flex min-h-screen flex-col md:flex-row;

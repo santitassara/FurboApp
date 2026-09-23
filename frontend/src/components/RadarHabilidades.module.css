@@ -1,4 +1,4 @@
-@reference "../styles/globals.module.css";
+@reference "../styles/globals.css";
 
 .card {
   @apply rounded-2xl border border-white/10 bg-cancha-800/60 p-6;
