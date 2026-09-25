@@ -22,6 +22,11 @@ function claveUbicacion(equipo, linea, ordenLinea) {
   return `${equipo}-${linea}-${ordenLinea}`;
 }
 
+// Identidad de asiento: un jugador real o un invitado, nunca ambos.
+function claveJugador(jugador) {
+  return jugador.usuarioId || jugador.invitadoId;
+}
+
 function ordenarLineas(lineas) {
   return [...lineas].sort((a, b) => ORDEN_LINEAS_CAMPO.indexOf(a.key) - ORDEN_LINEAS_CAMPO.indexOf(b.key));
 }
@@ -50,9 +55,9 @@ function obtenerIniciales(nombre) {
   return (palabras[0][0] + palabras[palabras.length - 1][0]).toUpperCase();
 }
 
-function Jugador({ usuarioId, nombre, linea, draggable }) {
+function Jugador({ usuarioId, invitadoId, nombre, linea, draggable }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: usuarioId,
+    id: usuarioId || invitadoId,
     disabled: !draggable,
   });
   const estilo = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 10 } : undefined;
@@ -89,7 +94,13 @@ function Asiento({ equipo, linea, ordenLinea, jugador, draggable }) {
       className={clsx(styles.asiento, !jugador && styles.asientoVacio, isOver && styles.asientoOver)}
     >
       {jugador && (
-        <Jugador usuarioId={jugador.usuarioId} nombre={jugador.nombre} linea={linea} draggable={draggable} />
+        <Jugador
+          usuarioId={jugador.usuarioId}
+          invitadoId={jugador.invitadoId}
+          nombre={jugador.nombre}
+          linea={linea}
+          draggable={draggable}
+        />
       )}
     </div>
   );
@@ -351,8 +362,8 @@ export default function MapaCancha({
   useEffect(() => {
     const jugadoresActuales = formacion?.jugadores || [];
     setUbicaciones((anterior) => {
-      const anteriorPorId = new Map(anterior.map((jugador) => [jugador.usuarioId, jugador]));
-      const fusionados = jugadoresActuales.map((jugador) => anteriorPorId.get(jugador.usuarioId) || jugador);
+      const anteriorPorId = new Map(anterior.map((jugador) => [claveJugador(jugador), jugador]));
+      const fusionados = jugadoresActuales.map((jugador) => anteriorPorId.get(claveJugador(jugador)) || jugador);
 
       const ubicacionesVistas = new Set();
       return fusionados.map((jugador) => {
@@ -400,8 +411,8 @@ export default function MapaCancha({
     ? previewPropuesta
     : reflowA || reflowB
       ? ubicaciones.map((jugador) => {
-          if (jugador.equipo === 'A' && reflowA) return reflowA.find((r) => r.usuarioId === jugador.usuarioId) || jugador;
-          if (jugador.equipo === 'B' && reflowB) return reflowB.find((r) => r.usuarioId === jugador.usuarioId) || jugador;
+          if (jugador.equipo === 'A' && reflowA) return reflowA.find((r) => claveJugador(r) === claveJugador(jugador)) || jugador;
+          if (jugador.equipo === 'B' && reflowB) return reflowB.find((r) => claveJugador(r) === claveJugador(jugador)) || jugador;
           return jugador;
         })
       : ubicaciones;
@@ -475,7 +486,7 @@ export default function MapaCancha({
     const activoId = active.id;
 
     setUbicaciones((anterior) => {
-      const activo = anterior.find((jugador) => jugador.usuarioId === activoId);
+      const activo = anterior.find((jugador) => claveJugador(jugador) === activoId);
       if (!activo) return anterior;
       if (activo.equipo === equipo && activo.linea === linea && activo.ordenLinea === ordenLinea) return anterior;
 
@@ -485,8 +496,8 @@ export default function MapaCancha({
       const posicionAnterior = { equipo: activo.equipo, linea: activo.linea, ordenLinea: activo.ordenLinea };
 
       return anterior.map((jugador) => {
-        if (jugador.usuarioId === activoId) return { ...jugador, equipo, linea, ordenLinea };
-        if (ocupante && jugador.usuarioId === ocupante.usuarioId) return { ...jugador, ...posicionAnterior };
+        if (claveJugador(jugador) === activoId) return { ...jugador, equipo, linea, ordenLinea };
+        if (ocupante && claveJugador(jugador) === claveJugador(ocupante)) return { ...jugador, ...posicionAnterior };
         return jugador;
       });
     });
@@ -516,7 +527,8 @@ export default function MapaCancha({
       const asignaciones = ubicaciones
         .filter((jugador) => jugador.equipo)
         .map((jugador) => ({
-          usuarioId: jugador.usuarioId,
+          usuarioId: jugador.usuarioId ?? null,
+          invitadoId: jugador.invitadoId ?? null,
           equipo: jugador.equipo,
           linea: jugador.linea,
           ordenLinea: jugador.ordenLinea,
@@ -542,7 +554,8 @@ export default function MapaCancha({
       const asignaciones = ubicaciones
         .filter((jugador) => jugador.equipo)
         .map((jugador) => ({
-          usuarioId: jugador.usuarioId,
+          usuarioId: jugador.usuarioId ?? null,
+          invitadoId: jugador.invitadoId ?? null,
           equipo: jugador.equipo,
           linea: jugador.linea,
           ordenLinea: jugador.ordenLinea,
@@ -663,7 +676,13 @@ export default function MapaCancha({
           <p className={styles.seccionLabel}>Sin ubicar</p>
           <div className={styles.listaSinUbicar}>
             {sinUbicar.map((jugador) => (
-              <Jugador key={jugador.usuarioId} usuarioId={jugador.usuarioId} nombre={jugador.nombre} draggable />
+              <Jugador
+                key={claveJugador(jugador)}
+                usuarioId={jugador.usuarioId}
+                invitadoId={jugador.invitadoId}
+                nombre={jugador.nombre}
+                draggable
+              />
             ))}
           </div>
         </div>
@@ -675,18 +694,20 @@ export default function MapaCancha({
           <ul className={styles.listaSuplentes}>
             {suplentes.map((suplente) => (
               <li
-                key={suplente.usuarioId}
+                key={suplente.usuarioId || suplente.invitadoId}
                 className={styles.itemSuplente}
               >
                 <span className={styles.nombreSuplente}>{suplente.nombre}</span>
-                <Boton
-                  variante="ghost"
-                  className={styles.botonPromover}
-                  onClick={() => promoverSuplente(suplente.usuarioId)}
-                  disabled={!haySlotDeTitularLibre || promoviendoId === suplente.usuarioId}
-                >
-                  {promoviendoId === suplente.usuarioId ? 'Poniendo…' : 'Poner de titular'}
-                </Boton>
+                {!suplente.esInvitado && (
+                  <Boton
+                    variante="ghost"
+                    className={styles.botonPromover}
+                    onClick={() => promoverSuplente(suplente.usuarioId)}
+                    disabled={!haySlotDeTitularLibre || promoviendoId === suplente.usuarioId}
+                  >
+                    {promoviendoId === suplente.usuarioId ? 'Poniendo…' : 'Poner de titular'}
+                  </Boton>
+                )}
               </li>
             ))}
           </ul>

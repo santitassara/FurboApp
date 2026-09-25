@@ -18,6 +18,7 @@ import ListaConvocadosScroll from '../components/ListaConvocadosScroll';
 import MvpUltimaFecha from '../components/MvpUltimaFecha';
 import LideresDelMes from '../components/LideresDelMes';
 import InfoGeneralGrupo from '../components/InfoGeneralGrupo';
+import ListaInvitadosGrupo from '../components/ListaInvitadosGrupo';
 
 export default function Home() {
   const { perfil, actualizarPosicionesPerfil } = useAuth();
@@ -342,6 +343,18 @@ export default function Home() {
           <LideresDelMes grupoId={grupoActivo.id} />
           <InfoGeneralGrupo grupoActivo={grupoActivo} proximoPartido={partidos[0]} />
         </div>
+      )}
+
+      {!cargando && (
+        <ListaInvitadosGrupo
+          grupoId={grupoActivo.id}
+          esAdmin={grupoActivo?.rol === 'admin'}
+          partidoActivo={partidos.find((partido) => partido.estado === 'abierto') || null}
+          inscripcionesPartidoActivo={
+            inscripcionesPorPartido[partidos.find((partido) => partido.estado === 'abierto')?.id] || []
+          }
+          onCambio={cargarPartidos}
+        />
       )}
 
       <ModalConfirmacionSancion

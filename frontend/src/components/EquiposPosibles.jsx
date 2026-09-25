@@ -112,13 +112,13 @@ export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, so
                     <div>
                       <p className={styles.equipoLabel}>Equipo A</p>
                       {propuesta.equipoA.map((jugador) => (
-                        <p key={jugador.usuarioId}>{jugador.nombre}</p>
+                        <p key={jugador.usuarioId || jugador.invitadoId}>{jugador.nombre}</p>
                       ))}
                     </div>
                     <div>
                       <p className={styles.equipoLabel}>Equipo B</p>
                       {propuesta.equipoB.map((jugador) => (
-                        <p key={jugador.usuarioId}>{jugador.nombre}</p>
+                        <p key={jugador.usuarioId || jugador.invitadoId}>{jugador.nombre}</p>
                       ))}
                     </div>
                   </div>

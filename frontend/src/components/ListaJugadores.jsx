@@ -42,9 +42,10 @@ function colorValoracion(rating) {
 
 function FilaJugador({ jugador, accion, onAccion, deshabilitado, grupoId }) {
   const inicial = jugador.nombre?.trim()?.[0]?.toUpperCase() || '?';
-  const [rating, setRating] = useState(null);
+  const [rating, setRating] = useState(jugador.esInvitado ? calcularRating(jugador.habilidades || {}) : null);
 
   useEffect(() => {
+    if (jugador.esInvitado) return;
     const cargarRating = async () => {
       try {
         const res = await api.get(`/usuarios/${jugador.usuarioId}/perfil`);
@@ -54,7 +55,7 @@ function FilaJugador({ jugador, accion, onAccion, deshabilitado, grupoId }) {
       }
     };
     cargarRating();
-  }, [jugador.usuarioId, grupoId]);
+  }, [jugador.usuarioId, jugador.esInvitado, grupoId]);
 
   return (
     <li className={styles.fila}>
@@ -62,9 +63,13 @@ function FilaJugador({ jugador, accion, onAccion, deshabilitado, grupoId }) {
         {inicial}
       </div>
       <div className={styles.infoWrapper}>
-        <Link to={`/jugadores/${jugador.usuarioId}`} className={styles.nombreLink}>
-          {jugador.nombre}
-        </Link>
+        {jugador.esInvitado ? (
+          <span className={styles.nombreLink}>{jugador.nombre} (invitado)</span>
+        ) : (
+          <Link to={`/jugadores/${jugador.usuarioId}`} className={styles.nombreLink}>
+            {jugador.nombre}
+          </Link>
+        )}
         <span className={styles.subInfo}>
           {ABREVIATURA_POSICION[jugador.posicionPrincipal] || '-'}
           {jugador.posicionSecundaria && ` / ${ABREVIATURA_POSICION[jugador.posicionSecundaria] || '-'}`}
@@ -79,7 +84,7 @@ function FilaJugador({ jugador, accion, onAccion, deshabilitado, grupoId }) {
           variante={accion === 'sancionar' ? 'peligro' : 'ghost'}
           className={styles.accionBoton}
           onClick={() => onAccion(jugador.usuarioId)}
-          disabled={deshabilitado}
+          disabled={deshabilitado || jugador.esInvitado}
         >
           {accion === 'sancionar' ? 'Sancionar' : 'Promover'}
         </Boton>
@@ -99,15 +104,19 @@ function EncabezadoTabla({ mostrarAccion }) {
   );
 }
 
+function claveJugador(jugador) {
+  return jugador.usuarioId || jugador.invitadoId;
+}
+
 function agruparTitulares(titulares, formacion, equiposDefinidos) {
   if (!formacion || !equiposDefinidos) {
     return [{ clave: 'titulares', titulo: 'Titulares', color: 'pasto', jugadores: titulares }];
   }
 
-  const equipoPorUsuario = new Map((formacion.jugadores || []).map((jugador) => [jugador.usuarioId, jugador.equipo]));
-  const equipoA = titulares.filter((jugador) => equipoPorUsuario.get(jugador.usuarioId) === 'A');
-  const equipoB = titulares.filter((jugador) => equipoPorUsuario.get(jugador.usuarioId) === 'B');
-  const sinUbicar = titulares.filter((jugador) => !equipoPorUsuario.get(jugador.usuarioId));
+  const equipoPorJugador = new Map((formacion.jugadores || []).map((jugador) => [claveJugador(jugador), jugador.equipo]));
+  const equipoA = titulares.filter((jugador) => equipoPorJugador.get(claveJugador(jugador)) === 'A');
+  const equipoB = titulares.filter((jugador) => equipoPorJugador.get(claveJugador(jugador)) === 'B');
+  const sinUbicar = titulares.filter((jugador) => !equipoPorJugador.get(claveJugador(jugador)));
 
   const grupos = [
     { clave: 'equipoA', titulo: 'Equipo 1', color: 'pasto', jugadores: equipoA },
@@ -144,7 +153,7 @@ export default function ListaJugadores({ jugadores, formacion, equiposDefinidos,
                 <ul className={styles.lista}>
                   {grupo.jugadores.map((jugador) => (
                     <FilaJugador
-                      key={jugador.usuarioId}
+                      key={claveJugador(jugador)}
                       jugador={jugador}
                       accion={onSancionar ? 'sancionar' : null}
                       onAccion={onSancionar}
@@ -168,7 +177,7 @@ export default function ListaJugadores({ jugadores, formacion, equiposDefinidos,
             <ul className={styles.lista}>
               {suplentes.map((jugador) => (
                 <FilaJugador
-                  key={jugador.usuarioId}
+                  key={claveJugador(jugador)}
                   jugador={jugador}
                   accion={onPromover ? 'promover' : null}
                   onAccion={onPromover}

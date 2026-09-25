@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 const { db } = require('../config/db');
 const partidosService = require('./partidosService');
 const usuariosService = require('./usuariosService');
+const invitadosService = require('./invitadosService');
 const notificacionesService = require('./notificacionesService');
 const whatsappNotificacionesService = require('./whatsappNotificacionesService');
 
@@ -20,7 +21,7 @@ function contarTitularesActivos(partidoId) {
 function listarTitularesConAsiento(partidoId) {
   return db
     .prepare(
-      `SELECT usuarioId, equipo, linea, ordenLinea, lado FROM Inscripciones
+      `SELECT usuarioId, invitadoId, equipo, linea, ordenLinea, lado FROM Inscripciones
        WHERE partidoId = ? AND estado = 'anotado' AND tipo = 'titular'`
     )
     .all(partidoId);
@@ -61,8 +62,8 @@ async function crearPropuesta(partidoId, grupoId, creadoPor) {
 
     for (const titular of titulares) {
       db.prepare(
-        `INSERT INTO FormacionesPropuestasDetalle (id, propuestaId, usuarioId, equipo, linea, ordenLinea, lado)
-         VALUES (@id, @propuestaId, @usuarioId, @equipo, @linea, @ordenLinea, @lado)`
+        `INSERT INTO FormacionesPropuestasDetalle (id, propuestaId, usuarioId, invitadoId, equipo, linea, ordenLinea, lado)
+         VALUES (@id, @propuestaId, @usuarioId, @invitadoId, @equipo, @linea, @ordenLinea, @lado)`
       ).run({ id: crypto.randomUUID(), propuestaId, ...titular });
     }
   });
@@ -89,12 +90,17 @@ async function listarPropuestas(partidoId, grupoId, usuarioId) {
   const propuestasConDetalle = await Promise.all(
     propuestas.map(async (propuesta) => {
       const detalle = db
-        .prepare('SELECT usuarioId, equipo, linea, ordenLinea, lado FROM FormacionesPropuestasDetalle WHERE propuestaId = ?')
+        .prepare('SELECT usuarioId, invitadoId, equipo, linea, ordenLinea, lado FROM FormacionesPropuestasDetalle WHERE propuestaId = ?')
         .all(propuesta.id);
       const conNombre = await Promise.all(
         detalle.map(async (fila) => {
-          const usuario = await usuariosService.obtenerUsuario(fila.usuarioId);
-          return { ...fila, nombre: usuario?.nombre || 'Jugador', posicionPrincipal: usuario?.posicionPrincipal || null };
+          const usuario = fila.usuarioId ? await usuariosService.obtenerUsuario(fila.usuarioId) : null;
+          const invitado = fila.invitadoId ? invitadosService.obtenerInvitado(grupoId, fila.invitadoId) : null;
+          return {
+            ...fila,
+            nombre: usuario?.nombre || invitado?.nombre || 'Jugador',
+            posicionPrincipal: usuario?.posicionPrincipal || invitado?.posicionPrincipal || null,
+          };
         })
       );
       const votos = db.prepare('SELECT COUNT(*) AS total FROM VotosFormacion WHERE propuestaId = ?').get(propuesta.id).total;
@@ -156,14 +162,15 @@ function elegirGanadora(partidoId) {
 
 function aplicarGanadora(partidoId, ganadoraId) {
   const detalle = db
-    .prepare('SELECT usuarioId, equipo, linea, ordenLinea, lado FROM FormacionesPropuestasDetalle WHERE propuestaId = ?')
+    .prepare('SELECT usuarioId, invitadoId, equipo, linea, ordenLinea, lado FROM FormacionesPropuestasDetalle WHERE propuestaId = ?')
     .all(ganadoraId);
 
   const cerrar = db.transaction(() => {
     for (const asiento of detalle) {
       db.prepare(
         `UPDATE Inscripciones SET equipo = @equipo, linea = @linea, ordenLinea = @ordenLinea, lado = @lado
-         WHERE partidoId = @partidoId AND usuarioId = @usuarioId AND estado = 'anotado'`
+         WHERE partidoId = @partidoId AND estado = 'anotado'
+           AND ((usuarioId IS NOT NULL AND usuarioId = @usuarioId) OR (invitadoId IS NOT NULL AND invitadoId = @invitadoId))`
       ).run({ ...asiento, partidoId });
     }
     db.prepare('UPDATE Partidos SET votacionEquiposCerrada = 1, propuestaGanadoraId = ? WHERE id = ?').run(ganadoraId, partidoId);

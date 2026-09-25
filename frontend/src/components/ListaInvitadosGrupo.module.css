@@ -1,0 +1,65 @@
+@reference "../styles/globals.css";
+
+.contenedor {
+  @apply flex flex-col gap-4 rounded-xl border border-white/10 bg-cancha-800 p-5;
+}
+
+.header {
+  @apply flex items-center justify-between;
+}
+
+.titulo {
+  @apply text-lg font-bold text-white;
+}
+
+.vacio {
+  @apply text-sm text-white/50;
+}
+
+.mensajeError {
+  @apply rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion;
+}
+
+.lista {
+  @apply flex flex-col gap-3;
+}
+
+.fila {
+  @apply flex flex-wrap items-center justify-between gap-2 rounded-lg bg-cancha-900 px-3 py-2;
+}
+
+.infoWrapper {
+  @apply flex flex-col;
+}
+
+.nombre {
+  @apply text-sm font-medium text-white;
+}
+
+.subInfo {
+  @apply text-xs text-white/50;
+}
+
+.estado {
+  @apply mt-1 w-fit rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide;
+}
+
+.estado_pendiente {
+  @apply bg-white/10 text-white/70;
+}
+
+.estado_aprobado {
+  @apply bg-pasto-600/20 text-pasto-500;
+}
+
+.estado_rechazado {
+  @apply bg-sancion/20 text-sancion;
+}
+
+.acciones {
+  @apply flex flex-wrap gap-2;
+}
+
+.botonChico {
+  @apply px-3 py-1 text-xs;
+}

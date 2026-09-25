@@ -367,6 +367,28 @@ async function enviarNotificacionPerdonSancion(usuarioId) {
   await notificarUsuario(usuario, titulo, opciones);
 }
 
+async function enviarNotificacionResolucionInvitado(usuarioId, nombreInvitado, aprobado) {
+  const usuario = db
+    .prepare('SELECT uid, suscripcionPush, fcmToken FROM Usuarios WHERE uid = ?')
+    .get(usuarioId);
+  if (!usuario || (!usuario.suscripcionPush && !usuario.fcmToken)) return;
+
+  const titulo = aprobado ? 'Invitado aprobado' : 'Invitado rechazado';
+  const opciones = {
+    body: aprobado
+      ? `El admin aprobó a ${nombreInvitado} como invitado del grupo`
+      : `El admin rechazó a ${nombreInvitado} como invitado del grupo`,
+    icon: '/favicon.svg',
+    badge: '/favicon.svg',
+    tag: `resolucion-invitado-${usuarioId}-${nombreInvitado}`,
+    data: {
+      url: '/inicio',
+    },
+  };
+
+  await notificarUsuario(usuario, titulo, opciones);
+}
+
 module.exports = {
   enviarNotificacionesPrePartido,
   enviarNotificacionesPostPartido,
@@ -375,4 +397,5 @@ module.exports = {
   enviarNotificacionVotacionCerrada,
   enviarRecordatoriosVotacion,
   enviarNotificacionPerdonSancion,
+  enviarNotificacionResolucionInvitado,
 };
