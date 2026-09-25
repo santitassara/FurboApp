@@ -3,6 +3,7 @@ const { db } = require('../config/db');
 const usuariosService = require('./usuariosService');
 const partidosService = require('./partidosService');
 const gruposService = require('./gruposService');
+const invitadosService = require('./invitadosService');
 const { sonPosicionesValidas } = require('../constants/posiciones');
 const { LINEAS, POSICION_A_LINEA, splitEquipos } = require('../utils/formacion');
 const formacionesPropuestasService = require('./formacionesPropuestasService');
@@ -11,6 +12,11 @@ function crearError(mensaje, status) {
   const error = new Error(mensaje);
   error.status = status;
   return error;
+}
+
+// Identidad de asiento: un jugador real o un invitado, nunca ambos (ver CHECK de Inscripciones).
+function claveJugador(usuarioId, invitadoId) {
+  return usuarioId ? `u:${usuarioId}` : `i:${invitadoId}`;
 }
 
 const DOS_DIAS_MS = 2 * 24 * 60 * 60 * 1000;
@@ -24,6 +30,14 @@ async function obtenerInscripcionActiva(partidoId, usuarioId) {
     db
       .prepare(`SELECT * FROM Inscripciones WHERE partidoId = ? AND usuarioId = ? AND estado = 'anotado'`)
       .get(partidoId, usuarioId) || null
+  );
+}
+
+async function obtenerInscripcionActivaInvitado(partidoId, invitadoId) {
+  return (
+    db
+      .prepare(`SELECT * FROM Inscripciones WHERE partidoId = ? AND invitadoId = ? AND estado = 'anotado'`)
+      .get(partidoId, invitadoId) || null
   );
 }
 
@@ -107,6 +121,68 @@ async function bajarse(partidoId, grupoId, usuarioId) {
   return { ...inscripcion, estado: 'dado_de_baja' };
 }
 
+async function anotarInvitado(partidoId, grupoId, invitadoId, { posicionPrincipal, posicionSecundaria } = {}) {
+  if (!sonPosicionesValidas(posicionPrincipal, posicionSecundaria)) {
+    throw crearError('Posiciones inválidas', 400);
+  }
+
+  const invitado = invitadosService.obtenerInvitado(grupoId, invitadoId);
+  if (!invitado) throw crearError('Invitado no encontrado', 404);
+  if (invitado.estado !== 'aprobado') throw crearError('El invitado no está aprobado', 403);
+
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
+  if (!partido) throw crearError('Partido no encontrado', 404);
+  if (partido.estado !== 'abierto') throw crearError('El partido no está abierto', 400);
+
+  const inscripcionActiva = await obtenerInscripcionActivaInvitado(partidoId, invitadoId);
+  if (inscripcionActiva) throw crearError('El invitado ya está anotado en este partido', 400);
+
+  const ocupados = await contarOcupados(partidoId);
+  let tipo;
+  if (ocupados.titulares < partido.cupoTitulares) {
+    tipo = 'titular';
+  } else if (ocupados.suplentes < partido.cupoSuplentes) {
+    tipo = 'suplente';
+  } else {
+    throw crearError('Partido completo', 400);
+  }
+
+  const nuevaInscripcion = {
+    id: crypto.randomUUID(),
+    partidoId,
+    invitadoId,
+    estado: 'anotado',
+    tipo,
+    orden: ocupados.titulares + ocupados.suplentes,
+    fechaInscripcion: new Date().toISOString(),
+    posicionPrincipal,
+    posicionSecundaria,
+  };
+  db.prepare(
+    `INSERT INTO Inscripciones (id, partidoId, invitadoId, estado, tipo, orden, fechaInscripcion, posicionPrincipal, posicionSecundaria)
+     VALUES (@id, @partidoId, @invitadoId, @estado, @tipo, @orden, @fechaInscripcion, @posicionPrincipal, @posicionSecundaria)`
+  ).run(nuevaInscripcion);
+  return nuevaInscripcion;
+}
+
+async function bajarInvitado(partidoId, grupoId, invitadoId) {
+  const inscripcion = await obtenerInscripcionActivaInvitado(partidoId, invitadoId);
+  if (!inscripcion) throw crearError('El invitado no está anotado en este partido', 400);
+
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
+  if (!partido) throw crearError('Partido no encontrado', 404);
+  if (partido.estado !== 'abierto') throw crearError('El partido ya no está abierto', 400);
+
+  db.prepare("UPDATE Inscripciones SET estado = 'dado_de_baja' WHERE id = ?").run(inscripcion.id);
+
+  // Sin sanción: el invitado no tiene fila en UsuariosGrupos (ver invitadosService).
+  if (inscripcion.tipo === 'titular') {
+    formacionesPropuestasService.manejarBajaDeTitular(partidoId);
+  }
+
+  return { ...inscripcion, estado: 'dado_de_baja' };
+}
+
 async function sancionarManualmente(partidoId, grupoId, usuarioId) {
   const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
@@ -177,10 +253,12 @@ async function obtenerFormacion(partidoId, grupoId) {
   const titulares = await listarTitularesActivos(partidoId);
   const jugadores = await Promise.all(
     titulares.map(async (inscripcion) => {
-      const usuario = await usuariosService.obtenerUsuario(inscripcion.usuarioId);
+      const usuario = inscripcion.usuarioId ? await usuariosService.obtenerUsuario(inscripcion.usuarioId) : null;
+      const invitado = inscripcion.invitadoId ? invitadosService.obtenerInvitado(grupoId, inscripcion.invitadoId) : null;
       return {
         usuarioId: inscripcion.usuarioId,
-        nombre: usuario?.nombre || 'Jugador',
+        invitadoId: inscripcion.invitadoId,
+        nombre: usuario?.nombre || invitado?.nombre || 'Jugador',
         posicionPrincipal: inscripcion.posicionPrincipal,
         equipo: inscripcion.equipo,
         linea: inscripcion.linea,
@@ -276,11 +354,15 @@ async function generarFormacionAutomatica(partidoId, grupoId, seleccion = {}) {
   const titulares = await listarTitularesActivos(partidoId);
   const jugadores = await Promise.all(
     titulares.map(async (inscripcion) => {
-      const usuario = await usuariosService.obtenerUsuario(inscripcion.usuarioId);
-      const habilidad = (usuario && usuariosService.calcularPromedioHabilidades(usuario)) ?? 50;
+      const usuario = inscripcion.usuarioId ? await usuariosService.obtenerUsuario(inscripcion.usuarioId) : null;
+      const invitado = inscripcion.invitadoId ? invitadosService.obtenerInvitado(grupoId, inscripcion.invitadoId) : null;
+      const habilidad = usuario
+        ? usuariosService.calcularPromedioHabilidades(usuario) ?? 50
+        : invitado?.habilidadPromedio ?? 50;
       return {
         usuarioId: inscripcion.usuarioId,
-        nombre: usuario?.nombre || 'Jugador',
+        invitadoId: inscripcion.invitadoId,
+        nombre: usuario?.nombre || invitado?.nombre || 'Jugador',
         posicionPrincipal: inscripcion.posicionPrincipal,
         posicionSecundaria: inscripcion.posicionSecundaria,
         lineaBroad: POSICION_A_LINEA[inscripcion.posicionPrincipal] || 'medio',
@@ -365,6 +447,7 @@ async function generarFormacionAutomatica(partidoId, grupoId, seleccion = {}) {
 
     return {
       usuarioId: jugador.usuarioId,
+      invitadoId: jugador.invitadoId,
       nombre: jugador.nombre,
       posicionPrincipal: jugador.posicionPrincipal,
       equipo: jugador.equipo,
@@ -390,7 +473,7 @@ async function guardarFormacion(partidoId, grupoId, asignaciones) {
   }
 
   const titulares = await listarTitularesActivos(partidoId);
-  const idsTitulares = new Set(titulares.map((t) => t.usuarioId));
+  const idsTitulares = new Set(titulares.map((t) => claveJugador(t.usuarioId, t.invitadoId)));
 
   if (asignaciones.length !== idsTitulares.size) {
     throw crearError('La formación debe incluir a todos los titulares, sin repetidos', 400);
@@ -402,11 +485,12 @@ async function guardarFormacion(partidoId, grupoId, asignaciones) {
     if (!asignacion || typeof asignacion !== 'object') {
       throw crearError('La formación debe incluir a todos los titulares, sin repetidos', 400);
     }
-    const { usuarioId, equipo, linea, ordenLinea } = asignacion;
-    if (!idsTitulares.has(usuarioId) || idsVistos.has(usuarioId)) {
+    const { usuarioId = null, invitadoId = null, equipo, linea, ordenLinea } = asignacion;
+    const clave = claveJugador(usuarioId, invitadoId);
+    if (!idsTitulares.has(clave) || idsVistos.has(clave)) {
       throw crearError('La formación debe incluir a todos los titulares, sin repetidos', 400);
     }
-    idsVistos.add(usuarioId);
+    idsVistos.add(clave);
     if (equipo !== 'A' && equipo !== 'B') {
       throw crearError('equipo debe ser "A" o "B"', 400);
     }
@@ -436,8 +520,9 @@ async function guardarFormacion(partidoId, grupoId, asignaciones) {
     for (const asignacion of lista) {
       db.prepare(
         `UPDATE Inscripciones SET equipo = @equipo, linea = @linea, ordenLinea = @ordenLinea, lado = @lado
-         WHERE partidoId = @partidoId AND usuarioId = @usuarioId AND estado = 'anotado'`
-      ).run({ ...asignacion, partidoId });
+         WHERE partidoId = @partidoId AND estado = 'anotado'
+           AND ((usuarioId IS NOT NULL AND usuarioId = @usuarioId) OR (invitadoId IS NOT NULL AND invitadoId = @invitadoId))`
+      ).run({ ...asignacion, partidoId, usuarioId: asignacion.usuarioId || null, invitadoId: asignacion.invitadoId || null });
     }
   });
   actualizar(asignaciones);
@@ -448,10 +533,13 @@ async function guardarFormacion(partidoId, grupoId, asignaciones) {
 module.exports = {
   anotarse,
   bajarse,
+  anotarInvitado,
+  bajarInvitado,
   sancionarManualmente,
   promover,
   contarOcupados,
   obtenerInscripcionActiva,
+  obtenerInscripcionActivaInvitado,
   listarActivas,
   eliminarPorPartido,
   obtenerFormacion,

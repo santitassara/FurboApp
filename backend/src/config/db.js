@@ -296,4 +296,46 @@ for (const [columna, tipo] of Object.entries(columnasPartidosExtendido)) {
   }
 }
 
+// Los invitados ocupan un asiento en Inscripciones/FormacionesPropuestasDetalle sin
+// tener fila en Usuarios: usuarioId pasa a nullable y se agrega invitadoId, con un
+// CHECK que exige cargar exactamente uno de los dos. SQLite no permite relajar NOT
+// NULL ni agregar CHECK vía ALTER TABLE, así que se reconstruye la tabla completa
+// (mismo patrón que la migración de Usuarios más arriba).
+function permitirInvitadoComoJugador(nombreTabla, sqlRecrearIndices) {
+  const columnas = db.prepare(`PRAGMA table_info(${nombreTabla})`).all();
+  if (columnas.some((columna) => columna.name === 'invitadoId')) return;
+
+  const definiciones = columnas.map((columna) => {
+    const partes = [`"${columna.name}"`, columna.type];
+    if (columna.pk) partes.push('PRIMARY KEY');
+    if (columna.notnull && columna.name !== 'usuarioId') partes.push('NOT NULL');
+    if (columna.dflt_value !== null) partes.push(`DEFAULT ${columna.dflt_value}`);
+    return `      ${partes.filter(Boolean).join(' ')}`;
+  });
+  definiciones.push('      "invitadoId" TEXT REFERENCES Invitados(id)');
+  const listaColumnas = columnas.map((columna) => `"${columna.name}"`).join(', ');
+  const tablaNueva = `${nombreTabla}_nueva`;
+
+  const reconstruir = db.transaction(() => {
+    db.exec(
+      `CREATE TABLE ${tablaNueva} (\n${definiciones.join(',\n')},\n      CHECK ((usuarioId IS NOT NULL AND invitadoId IS NULL) OR (usuarioId IS NULL AND invitadoId IS NOT NULL))\n    )`
+    );
+    db.exec(`INSERT INTO ${tablaNueva} (${listaColumnas}) SELECT ${listaColumnas} FROM ${nombreTabla}`);
+    db.exec(`DROP TABLE ${nombreTabla}`);
+    db.exec(`ALTER TABLE ${tablaNueva} RENAME TO ${nombreTabla}`);
+  });
+  reconstruir();
+
+  if (sqlRecrearIndices) db.exec(sqlRecrearIndices);
+}
+
+permitirInvitadoComoJugador(
+  'Inscripciones',
+  'CREATE INDEX IF NOT EXISTS idx_inscripciones_partido_estado ON Inscripciones (partidoId, estado)'
+);
+permitirInvitadoComoJugador(
+  'FormacionesPropuestasDetalle',
+  'CREATE INDEX IF NOT EXISTS idx_formaciones_propuestas_detalle_propuesta ON FormacionesPropuestasDetalle (propuestaId)'
+);
+
 module.exports = { db, DB_PATH };

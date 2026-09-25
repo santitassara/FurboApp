@@ -1,6 +1,7 @@
 const inscripcionesService = require('../services/inscripcionesService');
 const partidosService = require('../services/partidosService');
 const usuariosService = require('../services/usuariosService');
+const invitadosService = require('../services/invitadosService');
 
 async function anotarse(req, res) {
   const inscripcion = await inscripcionesService.anotarse(
@@ -14,6 +15,25 @@ async function anotarse(req, res) {
 
 async function bajarse(req, res) {
   const inscripcion = await inscripcionesService.bajarse(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  res.json(inscripcion);
+}
+
+async function anotarInvitado(req, res) {
+  const inscripcion = await inscripcionesService.anotarInvitado(
+    req.params.partidoId,
+    req.params.grupoId,
+    req.params.invitadoId,
+    req.body
+  );
+  res.status(201).json(inscripcion);
+}
+
+async function bajarInvitado(req, res) {
+  const inscripcion = await inscripcionesService.bajarInvitado(
+    req.params.partidoId,
+    req.params.grupoId,
+    req.params.invitadoId
+  );
   res.json(inscripcion);
 }
 
@@ -45,13 +65,28 @@ async function listarPorPartido(req, res) {
   const inscripciones = await inscripcionesService.listarActivas(req.params.partidoId);
   const conNombre = await Promise.all(
     inscripciones.map(async (inscripcion) => {
-      const usuario = await usuariosService.obtenerUsuario(inscripcion.usuarioId);
+      const usuario = inscripcion.usuarioId ? await usuariosService.obtenerUsuario(inscripcion.usuarioId) : null;
+      const invitado = inscripcion.invitadoId
+        ? invitadosService.obtenerInvitado(req.params.grupoId, inscripcion.invitadoId)
+        : null;
       return {
         usuarioId: inscripcion.usuarioId,
-        nombre: usuario?.nombre || 'Jugador',
+        invitadoId: inscripcion.invitadoId,
+        nombre: usuario?.nombre || invitado?.nombre || 'Jugador',
+        esInvitado: Boolean(inscripcion.invitadoId),
         tipo: inscripcion.tipo,
         posicionPrincipal: inscripcion.posicionPrincipal,
         posicionSecundaria: inscripcion.posicionSecundaria,
+        habilidades: invitado
+          ? {
+              velocidad: invitado.velocidad,
+              pegada: invitado.pegada,
+              tocaPase: invitado.tocaPase,
+              gambeta: invitado.gambeta,
+              marcaDefensa: invitado.marcaDefensa,
+              fisico: invitado.fisico,
+            }
+          : undefined,
       };
     })
   );
@@ -84,6 +119,8 @@ async function generarFormacionAutomatica(req, res) {
 module.exports = {
   anotarse,
   bajarse,
+  anotarInvitado,
+  bajarInvitado,
   promover,
   sancionarManualmente,
   listarPorPartido,

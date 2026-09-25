@@ -18,6 +18,18 @@ router.post('/', verificarToken, verificarMiembroGrupo('admin'), envolverAsync(p
 router.delete('/:partidoId', verificarToken, verificarMiembroGrupo('admin'), envolverAsync(partidosController.eliminar));
 router.post('/:partidoId/anotarse', verificarToken, verificarMiembroGrupo(), envolverAsync(inscripcionesController.anotarse));
 router.post('/:partidoId/bajarse', verificarToken, verificarMiembroGrupo(), envolverAsync(inscripcionesController.bajarse));
+router.post(
+  '/:partidoId/invitados/:invitadoId/anotar',
+  verificarToken,
+  verificarMiembroGrupo(),
+  envolverAsync(inscripcionesController.anotarInvitado)
+);
+router.post(
+  '/:partidoId/invitados/:invitadoId/bajar',
+  verificarToken,
+  verificarMiembroGrupo(),
+  envolverAsync(inscripcionesController.bajarInvitado)
+);
 router.get('/:partidoId/inscripciones', verificarToken, verificarMiembroGrupo(), envolverAsync(inscripcionesController.listarPorPartido));
 router.get('/:partidoId/formacion', verificarToken, verificarMiembroGrupo(), envolverAsync(inscripcionesController.verFormacion));
 router.put(

@@ -42,6 +42,30 @@ CREATE TABLE IF NOT EXISTS UsuariosGrupos (
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_grupos_unico ON UsuariosGrupos (grupoId, usuarioId);
 
+CREATE TABLE IF NOT EXISTS Invitados (
+  id TEXT PRIMARY KEY,
+  grupoId TEXT NOT NULL REFERENCES Grupos(id),
+  propuestoPor TEXT NOT NULL REFERENCES Usuarios(uid),
+  nombre TEXT NOT NULL,
+  edad INTEGER,
+  posicionPrincipal TEXT NOT NULL,
+  posicionSecundaria TEXT,
+  resistencia TEXT,
+  habilidadPromedio REAL NOT NULL,
+  velocidad REAL NOT NULL,
+  pegada REAL NOT NULL,
+  tocaPase REAL NOT NULL,
+  gambeta REAL NOT NULL,
+  marcaDefensa REAL NOT NULL,
+  fisico REAL NOT NULL,
+  estado TEXT NOT NULL CHECK (estado IN ('pendiente', 'aprobado', 'rechazado')),
+  fechaCreacion TEXT NOT NULL,
+  fechaResolucion TEXT,
+  resueltoPor TEXT REFERENCES Usuarios(uid)
+);
+
+CREATE INDEX IF NOT EXISTS idx_invitados_grupo_estado ON Invitados (grupoId, estado);
+
 CREATE TABLE IF NOT EXISTS Partidos (
   id TEXT PRIMARY KEY,
   fecha TEXT NOT NULL,
@@ -66,7 +90,8 @@ CREATE TABLE IF NOT EXISTS Partidos (
 CREATE TABLE IF NOT EXISTS Inscripciones (
   id TEXT PRIMARY KEY,
   partidoId TEXT NOT NULL REFERENCES Partidos(id),
-  usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
+  usuarioId TEXT REFERENCES Usuarios(uid),
+  invitadoId TEXT REFERENCES Invitados(id),
   estado TEXT NOT NULL CHECK (estado IN ('anotado', 'dado_de_baja')),
   tipo TEXT NOT NULL CHECK (tipo IN ('titular', 'suplente')),
   orden INTEGER NOT NULL,
@@ -76,7 +101,8 @@ CREATE TABLE IF NOT EXISTS Inscripciones (
   equipo TEXT,
   linea TEXT,
   ordenLinea INTEGER,
-  lado TEXT
+  lado TEXT,
+  CHECK ((usuarioId IS NOT NULL AND invitadoId IS NULL) OR (usuarioId IS NULL AND invitadoId IS NOT NULL))
 );
 
 CREATE INDEX IF NOT EXISTS idx_inscripciones_partido_estado
@@ -132,11 +158,13 @@ CREATE TABLE IF NOT EXISTS FormacionesPropuestas (
 CREATE TABLE IF NOT EXISTS FormacionesPropuestasDetalle (
   id TEXT PRIMARY KEY,
   propuestaId TEXT NOT NULL REFERENCES FormacionesPropuestas(id),
-  usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
+  usuarioId TEXT REFERENCES Usuarios(uid),
+  invitadoId TEXT REFERENCES Invitados(id),
   equipo TEXT NOT NULL CHECK (equipo IN ('A', 'B')),
   linea TEXT,
   ordenLinea INTEGER,
-  lado TEXT
+  lado TEXT,
+  CHECK ((usuarioId IS NOT NULL AND invitadoId IS NULL) OR (usuarioId IS NULL AND invitadoId IS NOT NULL))
 );
 
 CREATE TABLE IF NOT EXISTS VotosFormacion (
