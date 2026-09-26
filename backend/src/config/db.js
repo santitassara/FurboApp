@@ -118,9 +118,8 @@ const tieneVotanteId = columnasRendimientosActualizadas.some((columna) => column
 if (!tieneVotanteId) {
   db.exec('ALTER TABLE RendimientosJugador ADD COLUMN votanteId TEXT REFERENCES Usuarios(uid)');
 }
-db.exec(
-  'CREATE UNIQUE INDEX IF NOT EXISTS idx_rendimientos_voto_unico ON RendimientosJugador (partidoId, jugadorId, votanteId)'
-);
+// idx_rendimientos_voto_unico se recrea más abajo como índice parcial (junto con
+// su par para invitados) al agregar soporte de invitados a RendimientosJugador.
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_votos_mvp_unico ON VotosMvp (partidoId, votanteId)');
 
 const columnasPartidos = db.prepare('PRAGMA table_info(Partidos)').all();
@@ -301,8 +300,80 @@ for (const [columna, tipo] of Object.entries(columnasPartidosExtendido)) {
 // CHECK que exige cargar exactamente uno de los dos. SQLite no permite relajar NOT
 // NULL ni agregar CHECK vía ALTER TABLE, así que se reconstruye la tabla completa
 // (mismo patrón que la migración de Usuarios más arriba).
-function permitirInvitadoComoJugador(nombreTabla, sqlRecrearIndices) {
+function permitirInvitadoComoJugador(nombreTabla, columnaJugador, columnaInvitado, sqlRecrearIndices) {
   const columnas = db.prepare(`PRAGMA table_info(${nombreTabla})`).all();
+  // La columna puede ya existir en una instalación nueva (viene en schema.sql):
+  // igual hay que asegurar los índices de abajo, que no viven en schema.sql.
+  if (!columnas.some((columna) => columna.name === columnaInvitado)) {
+    const definiciones = columnas.map((columna) => {
+      const partes = [`"${columna.name}"`, columna.type];
+      if (columna.pk) partes.push('PRIMARY KEY');
+      if (columna.notnull && columna.name !== columnaJugador) partes.push('NOT NULL');
+      if (columna.dflt_value !== null) partes.push(`DEFAULT ${columna.dflt_value}`);
+      return `      ${partes.filter(Boolean).join(' ')}`;
+    });
+    definiciones.push(`      "${columnaInvitado}" TEXT REFERENCES Invitados(id)`);
+    const listaColumnas = columnas.map((columna) => `"${columna.name}"`).join(', ');
+    const tablaNueva = `${nombreTabla}_nueva`;
+
+    const reconstruir = db.transaction(() => {
+      db.exec(
+        `CREATE TABLE ${tablaNueva} (\n${definiciones.join(',\n')},\n      CHECK ((${columnaJugador} IS NOT NULL AND ${columnaInvitado} IS NULL) OR (${columnaJugador} IS NULL AND ${columnaInvitado} IS NOT NULL))\n    )`
+      );
+      db.exec(`INSERT INTO ${tablaNueva} (${listaColumnas}) SELECT ${listaColumnas} FROM ${nombreTabla}`);
+      db.exec(`DROP TABLE ${nombreTabla}`);
+      db.exec(`ALTER TABLE ${tablaNueva} RENAME TO ${nombreTabla}`);
+    });
+    reconstruir();
+  }
+
+  if (sqlRecrearIndices) db.exec(sqlRecrearIndices);
+}
+
+permitirInvitadoComoJugador(
+  'Inscripciones',
+  'usuarioId',
+  'invitadoId',
+  'CREATE INDEX IF NOT EXISTS idx_inscripciones_partido_estado ON Inscripciones (partidoId, estado)'
+);
+permitirInvitadoComoJugador(
+  'FormacionesPropuestasDetalle',
+  'usuarioId',
+  'invitadoId',
+  'CREATE INDEX IF NOT EXISTS idx_formaciones_propuestas_detalle_propuesta ON FormacionesPropuestasDetalle (propuestaId)'
+);
+
+// El resultado de un partido (goles, rendimiento, MVP, sanciones) tampoco soportaba
+// invitados: estas 4 tablas solo tenían columna para Usuarios reales, así que un
+// invitado no podía anotar goles/asistencias ni ser puntuado/sancionado. Mismo
+// patrón de reconstrucción que arriba.
+permitirInvitadoComoJugador(
+  'RendimientosJugador',
+  'jugadorId',
+  'invitadoId',
+  `CREATE INDEX IF NOT EXISTS idx_rendimientos_partido ON RendimientosJugador (partidoId);
+   CREATE UNIQUE INDEX IF NOT EXISTS idx_rendimientos_voto_unico ON RendimientosJugador (partidoId, jugadorId, votanteId) WHERE jugadorId IS NOT NULL;
+   CREATE UNIQUE INDEX IF NOT EXISTS idx_rendimientos_voto_unico_invitado ON RendimientosJugador (partidoId, invitadoId, votanteId) WHERE invitadoId IS NOT NULL;`
+);
+permitirInvitadoComoJugador(
+  'VotosMvp',
+  'jugadorId',
+  'invitadoId',
+  `CREATE INDEX IF NOT EXISTS idx_votos_mvp_partido ON VotosMvp (partidoId);
+   CREATE UNIQUE INDEX IF NOT EXISTS idx_votos_mvp_unico ON VotosMvp (partidoId, votanteId);`
+);
+permitirInvitadoComoJugador(
+  'SancionesPartido',
+  'usuarioId',
+  'invitadoId',
+  'CREATE INDEX IF NOT EXISTS idx_sanciones_partido_partido ON SancionesPartido (partidoId)'
+);
+
+// Goles necesita dos pares jugador/invitado (quién la hizo, quién asistió) y la
+// asistencia es opcional (puede no haber). Se resuelven juntos en una sola
+// reconstrucción para no perder el CHECK del primer par al reconstruir de nuevo.
+function agregarInvitadosAGoles() {
+  const columnas = db.prepare('PRAGMA table_info(Goles)').all();
   if (columnas.some((columna) => columna.name === 'invitadoId')) return;
 
   const definiciones = columnas.map((columna) => {
@@ -313,29 +384,24 @@ function permitirInvitadoComoJugador(nombreTabla, sqlRecrearIndices) {
     return `      ${partes.filter(Boolean).join(' ')}`;
   });
   definiciones.push('      "invitadoId" TEXT REFERENCES Invitados(id)');
+  definiciones.push('      "asistenciaInvitadoId" TEXT REFERENCES Invitados(id)');
   const listaColumnas = columnas.map((columna) => `"${columna.name}"`).join(', ');
-  const tablaNueva = `${nombreTabla}_nueva`;
 
   const reconstruir = db.transaction(() => {
     db.exec(
-      `CREATE TABLE ${tablaNueva} (\n${definiciones.join(',\n')},\n      CHECK ((usuarioId IS NOT NULL AND invitadoId IS NULL) OR (usuarioId IS NULL AND invitadoId IS NOT NULL))\n    )`
+      `CREATE TABLE Goles_nueva (\n${definiciones.join(',\n')},\n` +
+        '      CHECK ((usuarioId IS NOT NULL AND invitadoId IS NULL) OR (usuarioId IS NULL AND invitadoId IS NOT NULL)),\n' +
+        '      CHECK (NOT (asistenciaUsuarioId IS NOT NULL AND asistenciaInvitadoId IS NOT NULL))\n' +
+        '    )'
     );
-    db.exec(`INSERT INTO ${tablaNueva} (${listaColumnas}) SELECT ${listaColumnas} FROM ${nombreTabla}`);
-    db.exec(`DROP TABLE ${nombreTabla}`);
-    db.exec(`ALTER TABLE ${tablaNueva} RENAME TO ${nombreTabla}`);
+    db.exec(`INSERT INTO Goles_nueva (${listaColumnas}) SELECT ${listaColumnas} FROM Goles`);
+    db.exec('DROP TABLE Goles');
+    db.exec('ALTER TABLE Goles_nueva RENAME TO Goles');
   });
   reconstruir();
 
-  if (sqlRecrearIndices) db.exec(sqlRecrearIndices);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_goles_partido ON Goles (partidoId)');
 }
-
-permitirInvitadoComoJugador(
-  'Inscripciones',
-  'CREATE INDEX IF NOT EXISTS idx_inscripciones_partido_estado ON Inscripciones (partidoId, estado)'
-);
-permitirInvitadoComoJugador(
-  'FormacionesPropuestasDetalle',
-  'CREATE INDEX IF NOT EXISTS idx_formaciones_propuestas_detalle_propuesta ON FormacionesPropuestasDetalle (propuestaId)'
-);
+agregarInvitadosAGoles();
 
 module.exports = { db, DB_PATH };

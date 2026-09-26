@@ -118,33 +118,43 @@ CREATE TABLE IF NOT EXISTS Resultados (
 CREATE TABLE IF NOT EXISTS Goles (
   id TEXT PRIMARY KEY,
   partidoId TEXT NOT NULL REFERENCES Partidos(id),
-  usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
+  usuarioId TEXT REFERENCES Usuarios(uid),
+  invitadoId TEXT REFERENCES Invitados(id),
   asistenciaUsuarioId TEXT REFERENCES Usuarios(uid),
+  asistenciaInvitadoId TEXT REFERENCES Invitados(id),
   equipo TEXT NOT NULL CHECK (equipo IN ('A', 'B')),
   minuto INTEGER NOT NULL,
-  enContra INTEGER NOT NULL DEFAULT 0
+  enContra INTEGER NOT NULL DEFAULT 0,
+  CHECK ((usuarioId IS NOT NULL AND invitadoId IS NULL) OR (usuarioId IS NULL AND invitadoId IS NOT NULL)),
+  CHECK (NOT (asistenciaUsuarioId IS NOT NULL AND asistenciaInvitadoId IS NOT NULL))
 );
 
 CREATE TABLE IF NOT EXISTS RendimientosJugador (
   id TEXT PRIMARY KEY,
   partidoId TEXT NOT NULL REFERENCES Partidos(id),
-  jugadorId TEXT NOT NULL REFERENCES Usuarios(uid),
+  jugadorId TEXT REFERENCES Usuarios(uid),
+  invitadoId TEXT REFERENCES Invitados(id),
   votanteId TEXT REFERENCES Usuarios(uid),
-  puntaje INTEGER NOT NULL
+  puntaje INTEGER NOT NULL,
+  CHECK ((jugadorId IS NOT NULL AND invitadoId IS NULL) OR (jugadorId IS NULL AND invitadoId IS NOT NULL))
 );
 
 CREATE TABLE IF NOT EXISTS VotosMvp (
   id TEXT PRIMARY KEY,
   partidoId TEXT NOT NULL REFERENCES Partidos(id),
   votanteId TEXT NOT NULL REFERENCES Usuarios(uid),
-  jugadorId TEXT NOT NULL REFERENCES Usuarios(uid)
+  jugadorId TEXT REFERENCES Usuarios(uid),
+  invitadoId TEXT REFERENCES Invitados(id),
+  CHECK ((jugadorId IS NOT NULL AND invitadoId IS NULL) OR (jugadorId IS NULL AND invitadoId IS NOT NULL))
 );
 
 CREATE TABLE IF NOT EXISTS SancionesPartido (
   id TEXT PRIMARY KEY,
   partidoId TEXT NOT NULL REFERENCES Partidos(id),
-  usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
-  motivo TEXT NOT NULL
+  usuarioId TEXT REFERENCES Usuarios(uid),
+  invitadoId TEXT REFERENCES Invitados(id),
+  motivo TEXT NOT NULL,
+  CHECK ((usuarioId IS NOT NULL AND invitadoId IS NULL) OR (usuarioId IS NULL AND invitadoId IS NOT NULL))
 );
 
 CREATE TABLE IF NOT EXISTS FormacionesPropuestas (
