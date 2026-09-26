@@ -6,12 +6,26 @@ import { rutaGrupo } from '../utils/rutasGrupo';
 import { formatearFechaPartido } from '../utils/fecha';
 import styles from './ModalCargarResultado.module.css';
 
+// Identidad de un jugador elegible: real o invitado, nunca ambos (ver backend
+// claveJugador). Los <select> usan esta clave como value/key para no colisionar
+// cuando usuarioId es null en varias filas de invitados.
+function clave(usuarioId, invitadoId) {
+  if (!usuarioId && !invitadoId) return '';
+  return usuarioId ? `u:${usuarioId}` : `i:${invitadoId}`;
+}
+
+function declave(valor) {
+  if (!valor) return { usuarioId: null, invitadoId: null };
+  if (valor.startsWith('u:')) return { usuarioId: valor.slice(2), invitadoId: null };
+  return { usuarioId: null, invitadoId: valor.slice(2) };
+}
+
 function golVacio() {
-  return { usuarioId: '', equipo: 'A', minuto: '', asistenciaUsuarioId: '', enContra: false };
+  return { clave: '', equipo: 'A', minuto: '', asistenciaClave: '', enContra: false };
 }
 
 function sancionVacia() {
-  return { usuarioId: '', motivo: '' };
+  return { clave: '', motivo: '' };
 }
 
 export default function ModalCargarResultado({
@@ -48,16 +62,16 @@ export default function ModalCargarResultado({
         if (cancelado) return;
         setGoles(
           (data.goles || []).map((gol) => ({
-            usuarioId: gol.usuarioId,
+            clave: clave(gol.usuarioId, gol.invitadoId),
             equipo: gol.equipo,
             minuto: String(gol.minuto),
-            asistenciaUsuarioId: gol.asistenciaUsuarioId || '',
+            asistenciaClave: clave(gol.asistenciaUsuarioId, gol.asistenciaInvitadoId),
             enContra: !!gol.enContra,
           }))
         );
         setSanciones(
           (data.sanciones || []).map((sancion) => ({
-            usuarioId: sancion.usuarioId,
+            clave: clave(sancion.usuarioId, sancion.invitadoId),
             motivo: sancion.motivo,
           }))
         );
@@ -78,13 +92,13 @@ export default function ModalCargarResultado({
     setGoles((anterior) => anterior.map((gol, i) => {
       if (i === indice) {
         const actualizado = { ...gol, [campo]: valor };
-        // Si se cambió usuarioId y asistenciaUsuarioId es igual al nuevo usuarioId, limpiar asistencia
-        if (campo === 'usuarioId' && actualizado.asistenciaUsuarioId === valor) {
-          actualizado.asistenciaUsuarioId = '';
+        // Si se cambió el jugador y la asistencia quedó igual al nuevo jugador, limpiar asistencia
+        if (campo === 'clave' && actualizado.asistenciaClave === valor) {
+          actualizado.asistenciaClave = '';
         }
         // Un gol en contra no lleva asistencia (nadie "asiste" un autogol)
         if (campo === 'enContra' && valor) {
-          actualizado.asistenciaUsuarioId = '';
+          actualizado.asistenciaClave = '';
         }
         return actualizado;
       }
@@ -99,15 +113,21 @@ export default function ModalCargarResultado({
   function confirmar() {
     const payload = {
       goles: goles
-        .filter((gol) => gol.usuarioId && gol.minuto !== '')
-        .map((gol) => ({
-          usuarioId: gol.usuarioId,
-          equipo: gol.equipo,
-          minuto: Number(gol.minuto),
-          asistenciaUsuarioId: gol.enContra ? null : gol.asistenciaUsuarioId || null,
-          enContra: gol.enContra,
-        })),
-      sanciones: sanciones.filter((sancion) => sancion.usuarioId && sancion.motivo.trim()),
+        .filter((gol) => gol.clave && gol.minuto !== '')
+        .map((gol) => {
+          const asistencia = gol.enContra ? { usuarioId: null, invitadoId: null } : declave(gol.asistenciaClave);
+          return {
+            ...declave(gol.clave),
+            equipo: gol.equipo,
+            minuto: Number(gol.minuto),
+            asistenciaUsuarioId: asistencia.usuarioId,
+            asistenciaInvitadoId: asistencia.invitadoId,
+            enContra: gol.enContra,
+          };
+        }),
+      sanciones: sanciones
+        .filter((sancion) => sancion.clave && sancion.motivo.trim())
+        .map((sancion) => ({ ...declave(sancion.clave), motivo: sancion.motivo })),
       beelupUrl: beelupUrl.trim(),
     };
     onConfirmar(payload);
@@ -154,13 +174,13 @@ export default function ModalCargarResultado({
           {goles.map((gol, indice) => (
             <div key={indice} className={styles.filaFormulario}>
               <select
-                value={gol.usuarioId}
-                onChange={(e) => actualizarGol(indice, 'usuarioId', e.target.value)}
+                value={gol.clave}
+                onChange={(e) => actualizarGol(indice, 'clave', e.target.value)}
                 className={styles.select}
               >
                 <option value="">Jugador</option>
                 {elegibles.map((j) => (
-                  <option key={j.usuarioId} value={j.usuarioId}>
+                  <option key={clave(j.usuarioId, j.invitadoId)} value={clave(j.usuarioId, j.invitadoId)}>
                     {j.nombre} ({j.equipo})
                   </option>
                 ))}
@@ -182,16 +202,16 @@ export default function ModalCargarResultado({
                 className={styles.inputMinuto}
               />
               <select
-                value={gol.asistenciaUsuarioId}
-                onChange={(e) => actualizarGol(indice, 'asistenciaUsuarioId', e.target.value)}
+                value={gol.asistenciaClave}
+                onChange={(e) => actualizarGol(indice, 'asistenciaClave', e.target.value)}
                 disabled={gol.enContra}
                 className={styles.selectAsistencia}
               >
                 <option value="">Sin asistencia</option>
                 {elegibles
-                  .filter((j) => j.usuarioId !== gol.usuarioId)
+                  .filter((j) => clave(j.usuarioId, j.invitadoId) !== gol.clave)
                   .map((j) => (
-                    <option key={j.usuarioId} value={j.usuarioId}>
+                    <option key={clave(j.usuarioId, j.invitadoId)} value={clave(j.usuarioId, j.invitadoId)}>
                       {j.nombre}
                     </option>
                   ))}
@@ -229,13 +249,13 @@ export default function ModalCargarResultado({
           {sanciones.map((sancion, indice) => (
             <div key={indice} className={styles.filaFormulario}>
               <select
-                value={sancion.usuarioId}
-                onChange={(e) => actualizarSancion(indice, 'usuarioId', e.target.value)}
+                value={sancion.clave}
+                onChange={(e) => actualizarSancion(indice, 'clave', e.target.value)}
                 className={styles.select}
               >
                 <option value="">Jugador</option>
                 {elegibles.map((j) => (
-                  <option key={j.usuarioId} value={j.usuarioId}>
+                  <option key={clave(j.usuarioId, j.invitadoId)} value={clave(j.usuarioId, j.invitadoId)}>
                     {j.nombre}
                   </option>
                 ))}

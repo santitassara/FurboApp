@@ -152,7 +152,7 @@ export default function ResultadoPartido({ partido, resultado }) {
       {jugadorDestacado.jugadores.length > 0 && (
         <div className={styles.mvpWrap}>
           {jugadorDestacado.jugadores.map((jugador) => (
-            <span key={jugador.usuarioId} className={styles.mvpItem}>
+            <span key={jugador.usuarioId || jugador.invitadoId} className={styles.mvpItem}>
               <IconoTrofeo />
               MVP: <span className={styles.mvpNombre}>{jugador.nombre}</span>
             </span>
@@ -166,7 +166,7 @@ export default function ResultadoPartido({ partido, resultado }) {
         ) : (
           <ul className={styles.listaVertical}>
             {rendimientos.map((rendimiento) => (
-              <li key={rendimiento.usuarioId} className={styles.rendimientoItem}>
+              <li key={rendimiento.usuarioId || rendimiento.invitadoId} className={styles.rendimientoItem}>
                 <span className={styles.rendimientoNombre}>{rendimiento.nombre}</span>
                 {rendimiento.votos === 0 ? (
                   <span className={styles.sinVotos}>Sin votos</span>

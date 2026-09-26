@@ -19,7 +19,7 @@ export default function ItemHistorialPartido({ partido }) {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
   const [votoAbierto, setVotoAbierto] = useState(false);
-  const [votosPropios, setVotosPropios] = useState({ valoraciones: [], mvpId: null });
+  const [votosPropios, setVotosPropios] = useState({ valoraciones: [], mvpUsuarioId: null, mvpInvitadoId: null });
   const [votando, setVotando] = useState(false);
   const [errorVoto, setErrorVoto] = useState('');
   const [eliminarAbierto, setEliminarAbierto] = useState(false);
