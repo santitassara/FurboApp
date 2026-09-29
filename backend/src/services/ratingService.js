@@ -5,20 +5,12 @@ const usuariosService = require('./usuariosService');
 const notificacionesInternasService = require('./notificacionesInternasService');
 const { CAMPOS_HABILIDAD } = usuariosService;
 const { K_RATING, PESOS_POSICION } = require('../constants/pesosPosicion');
+const { calcularPromedioOlimpico } = require('../utils/promedioOlimpico');
 
 function crearError(mensaje, status) {
   const error = new Error(mensaje);
   error.status = status;
   return error;
-}
-
-function calcularMediana(numeros) {
-  const ordenados = [...numeros].sort((a, b) => a - b);
-  const medio = Math.floor(ordenados.length / 2);
-  if (ordenados.length % 2 === 0) {
-    return (ordenados[medio - 1] + ordenados[medio]) / 2;
-  }
-  return ordenados[medio];
 }
 
 function clamp(valor, minimo, maximo) {
@@ -66,8 +58,8 @@ function procesarPartido(partidoId, elegibles) {
       continue;
     }
 
-    const mediana = calcularMediana(puntajes);
-    const puntajeEscalado = mediana * 10;
+    const promedioOlimpico = calcularPromedioOlimpico(puntajes);
+    const puntajeEscalado = promedioOlimpico * 10;
     const ovrPrevio =
       CAMPOS_HABILIDAD.reduce((suma, campo) => suma + usuario[campo], 0) / CAMPOS_HABILIDAD.length;
 
@@ -89,7 +81,7 @@ function procesarPartido(partidoId, elegibles) {
 
     procesados.push({
       usuarioId: jugadorId,
-      mediana,
+      promedioOlimpico,
       ovrPrevio: Math.round(ovrPrevio * 10) / 10,
       cambios,
     });
@@ -171,4 +163,4 @@ async function cerrarVotacionesVencidas() {
   }
 }
 
-module.exports = { calcularMediana, cerrarVotacion, cerrarVotacionesVencidas };
+module.exports = { calcularPromedioOlimpico, cerrarVotacion, cerrarVotacionesVencidas };

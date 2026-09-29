@@ -3,6 +3,7 @@ const { db } = require('../config/db');
 const partidosService = require('./partidosService');
 const usuariosService = require('./usuariosService');
 const invitadosService = require('./invitadosService');
+const { calcularPromedioOlimpico } = require('../utils/promedioOlimpico');
 
 function crearError(mensaje, status) {
   const error = new Error(mensaje);
@@ -198,23 +199,22 @@ async function obtenerResultado(partidoId, grupoId) {
 
   const elegibles = await obtenerElegibles(partidoId);
   const elegiblesObjetivo = await obtenerElegiblesJugadores(partidoId, grupoId);
-  const promediosPorJugador = new Map(
-    db
-      .prepare(
-        `SELECT jugadorId, invitadoId, AVG(puntaje) as promedio, COUNT(*) as votos
-         FROM RendimientosJugador WHERE partidoId = ? GROUP BY jugadorId, invitadoId`
-      )
-      .all(partidoId)
-      .map((fila) => [claveJugador(fila.jugadorId, fila.invitadoId), fila])
-  );
+  const puntajesPorJugador = new Map();
+  for (const fila of db
+    .prepare(`SELECT jugadorId, invitadoId, puntaje FROM RendimientosJugador WHERE partidoId = ?`)
+    .all(partidoId)) {
+    const clave = claveJugador(fila.jugadorId, fila.invitadoId);
+    if (!puntajesPorJugador.has(clave)) puntajesPorJugador.set(clave, []);
+    puntajesPorJugador.get(clave).push(fila.puntaje);
+  }
   const rendimientos = elegiblesObjetivo.map((jugador) => {
-    const fila = promediosPorJugador.get(claveJugador(jugador.usuarioId, jugador.invitadoId));
+    const puntajes = puntajesPorJugador.get(claveJugador(jugador.usuarioId, jugador.invitadoId));
     return {
       usuarioId: jugador.usuarioId,
       invitadoId: jugador.invitadoId,
       nombre: jugador.nombre,
-      promedio: fila ? Math.round(fila.promedio * 10) / 10 : null,
-      votos: fila ? fila.votos : 0,
+      promedio: puntajes ? Math.round(calcularPromedioOlimpico(puntajes) * 10) / 10 : null,
+      votos: puntajes ? puntajes.length : 0,
     };
   });
 
