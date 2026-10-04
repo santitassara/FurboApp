@@ -3,7 +3,12 @@ const { db } = require('../config/db');
 const partidosService = require('./partidosService');
 const usuariosService = require('./usuariosService');
 const invitadosService = require('./invitadosService');
+const gruposService = require('./gruposService');
 const { calcularPromedioOlimpico } = require('../utils/promedioOlimpico');
+
+// En modo plantel los goles de nuestros jugadores se guardan con equipo fijo 'A'
+// (nuestro propio equipo); el rival del resultado se carga como número.
+const EQUIPO_PLANEL = 'A';
 
 function crearError(mensaje, status) {
   const error = new Error(mensaje);
@@ -55,6 +60,11 @@ async function guardarResultado(partidoId, grupoId, payload = {}) {
   const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
   if (partido.estado === 'abierto') throw crearError('El partido todavía no cerró', 400);
+
+  const grupo = gruposService.obtenerGrupo(grupoId);
+  if (grupo?.modo === 'plantel') {
+    return guardarResultadoPlantel(partido, grupoId, payload);
+  }
 
   const elegiblesObjetivo = await obtenerElegiblesJugadores(partidoId, grupoId);
   const clavesElegibles = new Set(elegiblesObjetivo.map((j) => claveJugador(j.usuarioId, j.invitadoId)));
@@ -153,6 +163,134 @@ async function guardarResultado(partidoId, grupoId, payload = {}) {
   return obtenerResultado(partidoId, grupoId);
 }
 
+// Resultado de un partido de plantel: goles de nuestros jugadores (sin elegir equipo),
+// goles del rival como número y figura (MVP) elegida directamente por el admin.
+async function guardarResultadoPlantel(partido, grupoId, payload = {}) {
+  const partidoId = partido.id;
+  const beelupUrl = typeof payload.beelupUrl === 'string' ? payload.beelupUrl.trim() : '';
+  if (beelupUrl && !/^https?:\/\//i.test(beelupUrl)) {
+    throw crearError('beelupUrl debe ser una URL válida', 400);
+  }
+
+  // Elegibles: todos los anotados titulares (no depende de que la pizarra esté guardada).
+  const filasTitulares = db
+    .prepare(
+      `SELECT usuarioId, invitadoId FROM Inscripciones
+       WHERE partidoId = ? AND estado = 'anotado' AND tipo = 'titular'`
+    )
+    .all(partidoId);
+  const clavesElegibles = new Set(filasTitulares.map((fila) => claveJugador(fila.usuarioId, fila.invitadoId)));
+
+  const goles = Array.isArray(payload.goles) ? payload.goles : [];
+  const sanciones = Array.isArray(payload.sanciones) ? payload.sanciones : [];
+
+  for (const gol of goles) {
+    if (!gol.usuarioId && !gol.invitadoId) throw crearError('Falta indicar el jugador del gol', 400);
+    if (gol.usuarioId && gol.invitadoId) throw crearError('El gol no puede tener jugador e invitado a la vez', 400);
+    if (!clavesElegibles.has(claveJugador(gol.usuarioId, gol.invitadoId))) {
+      throw crearError('Jugador no elegible para el resultado', 400);
+    }
+    if (!Number.isInteger(gol.minuto) || gol.minuto < 0) {
+      throw crearError('minuto debe ser un entero mayor o igual a 0', 400);
+    }
+    if (gol.enContra && (gol.asistenciaUsuarioId || gol.asistenciaInvitadoId)) {
+      throw crearError('Un gol en contra no puede tener asistencia', 400);
+    }
+    if (gol.asistenciaUsuarioId && gol.asistenciaInvitadoId) {
+      throw crearError('La asistencia no puede tener jugador e invitado a la vez', 400);
+    }
+    if (gol.asistenciaUsuarioId || gol.asistenciaInvitadoId) {
+      const claveGol = claveJugador(gol.usuarioId, gol.invitadoId);
+      const claveAsistencia = claveJugador(gol.asistenciaUsuarioId, gol.asistenciaInvitadoId);
+      if (claveAsistencia === claveGol) {
+        throw crearError('La asistencia no puede ser del mismo jugador que anotó el gol', 400);
+      }
+      if (!clavesElegibles.has(claveAsistencia)) {
+        throw crearError('Jugador no elegible para el resultado', 400);
+      }
+    }
+  }
+  for (const sancion of sanciones) {
+    if (!sancion.usuarioId && !sancion.invitadoId) throw crearError('Falta indicar el jugador de la sanción', 400);
+    if (sancion.usuarioId && sancion.invitadoId) {
+      throw crearError('La sanción no puede tener jugador e invitado a la vez', 400);
+    }
+    if (!clavesElegibles.has(claveJugador(sancion.usuarioId, sancion.invitadoId))) {
+      throw crearError('Jugador no elegible para el resultado', 400);
+    }
+    if (!sancion.motivo || typeof sancion.motivo !== 'string') {
+      throw crearError('motivo es requerido', 400);
+    }
+  }
+
+  let golesRival = 0;
+  if (payload.golesRival !== undefined && payload.golesRival !== null && payload.golesRival !== '') {
+    golesRival = Number(payload.golesRival);
+    if (!Number.isInteger(golesRival) || golesRival < 0) {
+      throw crearError('golesRival debe ser un entero mayor o igual a 0', 400);
+    }
+  }
+
+  let jugadorDestacadoId = null;
+  if (payload.jugadorDestacadoId) {
+    const esTitular = filasTitulares.some((fila) => fila.usuarioId === payload.jugadorDestacadoId);
+    if (!esTitular) throw crearError('La figura debe ser uno de los titulares del partido', 400);
+    jugadorDestacadoId = payload.jugadorDestacadoId;
+  }
+
+  const guardar = db.transaction(() => {
+    db.prepare('DELETE FROM Goles WHERE partidoId = ?').run(partidoId);
+    db.prepare('DELETE FROM SancionesPartido WHERE partidoId = ?').run(partidoId);
+    db.prepare('DELETE FROM Resultados WHERE partidoId = ?').run(partidoId);
+
+    for (const gol of goles) {
+      db.prepare(
+        `INSERT INTO Goles (id, partidoId, usuarioId, invitadoId, asistenciaUsuarioId, asistenciaInvitadoId, equipo, minuto, enContra)
+         VALUES (@id, @partidoId, @usuarioId, @invitadoId, @asistenciaUsuarioId, @asistenciaInvitadoId, @equipo, @minuto, @enContra)`
+      ).run({
+        id: crypto.randomUUID(),
+        partidoId,
+        usuarioId: gol.usuarioId || null,
+        invitadoId: gol.invitadoId || null,
+        asistenciaUsuarioId: gol.enContra ? null : gol.asistenciaUsuarioId || null,
+        asistenciaInvitadoId: gol.enContra ? null : gol.asistenciaInvitadoId || null,
+        equipo: EQUIPO_PLANEL,
+        minuto: gol.minuto,
+        enContra: gol.enContra ? 1 : 0,
+      });
+    }
+    for (const sancion of sanciones) {
+      db.prepare(
+        `INSERT INTO SancionesPartido (id, partidoId, usuarioId, invitadoId, motivo)
+         VALUES (@id, @partidoId, @usuarioId, @invitadoId, @motivo)`
+      ).run({
+        id: crypto.randomUUID(),
+        partidoId,
+        usuarioId: sancion.usuarioId || null,
+        invitadoId: sancion.invitadoId || null,
+        motivo: sancion.motivo,
+      });
+    }
+    db.prepare(
+      `INSERT INTO Resultados (id, partidoId, jugadorDestacadoId, golesRival, fechaCarga)
+       VALUES (@id, @partidoId, @jugadorDestacadoId, @golesRival, @fechaCarga)`
+    ).run({
+      id: crypto.randomUUID(),
+      partidoId,
+      jugadorDestacadoId,
+      golesRival,
+      fechaCarga: new Date().toISOString(),
+    });
+    db.prepare("UPDATE Partidos SET estado = 'jugado', beelupUrl = ? WHERE id = ?").run(
+      beelupUrl || null,
+      partidoId
+    );
+  });
+  guardar();
+
+  return obtenerResultado(partidoId, grupoId);
+}
+
 async function obtenerResultado(partidoId, grupoId) {
   const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
@@ -194,8 +332,18 @@ async function obtenerResultado(partidoId, grupoId) {
     })
   );
 
-  const marcador = { A: 0, B: 0 };
-  for (const gol of filasGoles) marcador[gol.equipo] += 1;
+  const grupo = gruposService.obtenerGrupo(grupoId);
+  const esPlantel = grupo?.modo === 'plantel';
+
+  // Convocatoria: el marcador sale de los goles por equipo.
+  // Plantel: "A" son nuestros goles (los PP cuentan para el rival, junto con golesRival).
+  const golesEnContra = filasGoles.filter((gol) => gol.enContra).length;
+  const marcador = esPlantel
+    ? { A: filasGoles.length - golesEnContra, B: (resultado.golesRival || 0) + golesEnContra }
+    : filasGoles.reduce((acumulado, gol) => {
+        acumulado[gol.equipo] += 1;
+        return acumulado;
+      }, { A: 0, B: 0 });
 
   const elegibles = await obtenerElegibles(partidoId);
   const elegiblesObjetivo = await obtenerElegiblesJugadores(partidoId, grupoId);
@@ -228,27 +376,45 @@ async function obtenerResultado(partidoId, grupoId) {
     }))
   );
 
-  const votosMvp = db
-    .prepare(
-      `SELECT jugadorId, invitadoId, COUNT(*) as votos FROM VotosMvp
-       WHERE partidoId = ? GROUP BY jugadorId, invitadoId ORDER BY votos DESC`
-    )
-    .all(partidoId);
-  const maxVotosMvp = votosMvp.length > 0 ? votosMvp[0].votos : 0;
-  const jugadoresDestacados = await Promise.all(
-    votosMvp
-      .filter((fila) => fila.votos === maxVotosMvp)
-      .map(async (fila) => ({
-        usuarioId: fila.jugadorId,
-        invitadoId: fila.invitadoId,
-        nombre: await nombreDe(fila.jugadorId, fila.invitadoId),
-      }))
-  );
-  const jugadorDestacado = {
-    jugadores: jugadoresDestacados,
-    votos: maxVotosMvp,
-    totalElegibles: elegibles.length,
-  };
+  // En plantel la figura la elige el admin al cargar el resultado; en convocatoria
+  // sigue saliendo de la votación de los jugadores.
+  let jugadorDestacado;
+  if (esPlantel && resultado.jugadorDestacadoId) {
+    const usuarioFigura = await usuariosService.obtenerUsuario(resultado.jugadorDestacadoId);
+    jugadorDestacado = {
+      jugadores: [
+        {
+          usuarioId: resultado.jugadorDestacadoId,
+          invitadoId: null,
+          nombre: usuarioFigura?.nombre || 'Jugador',
+        },
+      ],
+      votos: null,
+      totalElegibles: elegibles.length,
+    };
+  } else {
+    const votosMvp = db
+      .prepare(
+        `SELECT jugadorId, invitadoId, COUNT(*) as votos FROM VotosMvp
+         WHERE partidoId = ? GROUP BY jugadorId, invitadoId ORDER BY votos DESC`
+      )
+      .all(partidoId);
+    const maxVotosMvp = votosMvp.length > 0 ? votosMvp[0].votos : 0;
+    const jugadoresDestacados = await Promise.all(
+      votosMvp
+        .filter((fila) => fila.votos === maxVotosMvp)
+        .map(async (fila) => ({
+          usuarioId: fila.jugadorId,
+          invitadoId: fila.invitadoId,
+          nombre: await nombreDe(fila.jugadorId, fila.invitadoId),
+        }))
+    );
+    jugadorDestacado = {
+      jugadores: jugadoresDestacados,
+      votos: maxVotosMvp,
+      totalElegibles: elegibles.length,
+    };
+  }
 
   return {
     marcador,
@@ -256,6 +422,7 @@ async function obtenerResultado(partidoId, grupoId) {
     rendimientos,
     sanciones,
     jugadorDestacado,
+    golesRival: resultado.golesRival || 0,
     fechaCarga: resultado.fechaCarga,
     votacionCerrada: Boolean(partido.votacionCerrada),
   };

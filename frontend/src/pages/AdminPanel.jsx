@@ -10,6 +10,7 @@ import ListaJugadores from '../components/ListaJugadores';
 import ModalConfirmacionSancionAdmin from '../components/ModalConfirmacionSancionAdmin';
 import ModalCargarResultado from '../components/ModalCargarResultado';
 import ProgramacionPartidos from '../components/ProgramacionPartidos';
+import FixtureTorneo from '../components/FixtureTorneo';
 
 const FORMULARIO_INICIAL = {
   fecha: '',
@@ -19,11 +20,14 @@ const FORMULARIO_INICIAL = {
   tipoSuelo: '',
   direccion: '',
   valorCuota: '',
+  rival: '',
+  notasTacticas: '',
 };
 
 export default function AdminPanel() {
   const { grupoActivo } = useGrupo();
   const { perfil } = useAuth();
+  const esPlantel = grupoActivo?.modo === 'plantel';
   const [partidos, setPartidos] = useState([]);
   const [inscripcionesPorPartido, setInscripcionesPorPartido] = useState({});
   const [sancionados, setSancionados] = useState([]);
@@ -84,7 +88,7 @@ export default function AdminPanel() {
     setMensaje('');
     setAccionEnCurso(true);
     try {
-      await api.post(rutaGrupo(grupoActivo.id, '/partidos'), {
+      const cuerpo = {
         fecha: new Date(formulario.fecha).toISOString(),
         cupoTitulares: Number(formulario.cupoTitulares),
         cupoSuplentes: Number(formulario.cupoSuplentes),
@@ -92,7 +96,13 @@ export default function AdminPanel() {
         tipoSuelo: formulario.tipoSuelo || undefined,
         direccion: formulario.direccion || undefined,
         valorCuota: formulario.valorCuota !== '' ? Number(formulario.valorCuota) : undefined,
-      });
+      };
+      // Bitácora del torneo: solo el modo plantel tiene rival y notas tácticas.
+      if (grupoActivo.modo === 'plantel') {
+        cuerpo.rival = formulario.rival.trim() || undefined;
+        cuerpo.notasTacticas = formulario.notasTacticas.trim() || undefined;
+      }
+      await api.post(rutaGrupo(grupoActivo.id, '/partidos'), cuerpo);
       setMensaje('Partido creado con éxito.');
       setFormulario(FORMULARIO_INICIAL);
       await cargarTodo();
@@ -228,6 +238,30 @@ export default function AdminPanel() {
       <section className={styles.card}>
         <h2 className={styles.seccionTitulo}>Crear partido para {grupoActivo.nombre}</h2>
         <form onSubmit={crearPartido} className={styles.formulario}>
+          {esPlantel && (
+            <>
+              <label className={styles.labelFlexAncho}>
+                Rival
+                <input
+                  type="text"
+                  value={formulario.rival}
+                  onChange={(evento) => setFormulario({ ...formulario, rival: evento.target.value })}
+                  className={styles.input}
+                  placeholder="Ej. Peña del Frente Sur"
+                />
+              </label>
+              <label className={styles.labelAncho}>
+                Notas tácticas
+                <input
+                  type="text"
+                  value={formulario.notasTacticas}
+                  onChange={(evento) => setFormulario({ ...formulario, notasTacticas: evento.target.value })}
+                  className={styles.input}
+                  placeholder="Ej. Juegan con marca al hombre, ojo al 9"
+                />
+              </label>
+            </>
+          )}
           <label className={styles.labelFlexAncho}>
             Fecha y hora
             <input
@@ -309,6 +343,8 @@ export default function AdminPanel() {
       </section>
 
       <ProgramacionPartidos grupoId={grupoActivo.id} />
+
+      {esPlantel && <FixtureTorneo grupoId={grupoActivo.id} />}
 
       <section className={styles.card}>
         <h2 className={styles.seccionTitulo}>Sancionados</h2>

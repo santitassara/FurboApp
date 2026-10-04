@@ -22,11 +22,14 @@ export default function ModalVotarValoraciones({
   partido,
   elegibles,
   votosPropios,
+  sinMvp = false,
   procesando,
   error,
   onConfirmar,
   onCancelar,
 }) {
+  // En modo plantel la figura la elige el admin al cargar el resultado,
+  // así los jugadores solo cargan las calificaciones.
   const [puntajes, setPuntajes] = useState({});
   const [mvpClave, setMvpClave] = useState('');
 
@@ -82,7 +85,7 @@ export default function ModalVotarValoraciones({
             return (
               <div key={c} className={styles.filaJugador}>
                 <span className={styles.nombreJugador}>
-                  {jugador.nombre} ({jugador.equipo})
+                  {sinMvp ? jugador.nombre : `${jugador.nombre} (${jugador.equipo})`}
                 </span>
                 <input
                   type="number"
@@ -98,21 +101,23 @@ export default function ModalVotarValoraciones({
           })}
         </section>
 
-        <section className={styles.seccion}>
-          <h3 className={styles.subtitulo}>Tu MVP del partido</h3>
-          <select
-            value={mvpClave}
-            onChange={(e) => setMvpClave(e.target.value)}
-            className={styles.selectMvp}
-          >
-            <option value="">Sin elegir</option>
-            {elegibles.map((j) => (
-              <option key={clave(j.usuarioId, j.invitadoId)} value={clave(j.usuarioId, j.invitadoId)}>
-                {j.nombre} ({j.equipo})
-              </option>
-            ))}
-          </select>
-        </section>
+        {!sinMvp && (
+          <section className={styles.seccion}>
+            <h3 className={styles.subtitulo}>Tu MVP del partido</h3>
+            <select
+              value={mvpClave}
+              onChange={(e) => setMvpClave(e.target.value)}
+              className={styles.selectMvp}
+            >
+              <option value="">Sin elegir</option>
+              {elegibles.map((j) => (
+                <option key={clave(j.usuarioId, j.invitadoId)} value={clave(j.usuarioId, j.invitadoId)}>
+                  {j.nombre} ({j.equipo})
+                </option>
+              ))}
+            </select>
+          </section>
+        )}
 
         {faltanCalificar && (
           <p className={styles.textoAyuda}>Tenés que calificar a todos los jugadores para guardar.</p>

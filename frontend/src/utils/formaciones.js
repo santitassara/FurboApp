@@ -16,59 +16,70 @@ function l(pares) {
   return pares.map(([key, cantidad]) => ({ key, cantidad }));
 }
 
+// Espejo exacto del catálogo backend (backend/src/data/formaciones.js):
+// formaciones reales de fútbol por cantidad de jugadores por equipo. La suma de
+// las líneas + 1 (arquero) = cantidad de jugadores.
 export const FORMACIONES_POR_CANTIDAD = {
+  // Fútbol 5 (1 arquero + 4 de campo): los 5 esquemas clásicos del 5 vs 5.
   5: [
-    { codigo: '1-2-1', nombre: 'El Rombo', lineas: l([['defensa', 1], ['medio', 2], ['delantero', 1]]) },
-    { codigo: '2-2', nombre: 'El Cuadrado', lineas: l([['defensa', 2], ['delantero', 2]]) },
-    { codigo: '2-1-1', nombre: 'La Y invertida', lineas: l([['defensa', 2], ['medio', 1], ['delantero', 1]]) },
-    { codigo: '1-1-2', nombre: 'La Y', lineas: l([['defensa', 1], ['medio', 1], ['delantero', 2]]) },
-    { codigo: '3-1', nombre: 'El Muro', lineas: l([['defensa', 3], ['delantero', 1]]) },
+    { codigo: '2-2', nombre: 'Clásico en dos bloques', lineas: l([['defensa', 2], ['delantero', 2]]) },
+    { codigo: '1-2-1', nombre: 'Rombo (diamond)', lineas: l([['defensa', 1], ['medio', 2], ['delantero', 1]]) },
+    { codigo: '2-1-1', nombre: 'Defensivo con volante', lineas: l([['defensa', 2], ['medio', 1], ['delantero', 1]]) },
+    { codigo: '1-1-2', nombre: 'Ofensivo', lineas: l([['defensa', 1], ['medio', 1], ['delantero', 2]]) },
+    { codigo: '3-1', nombre: 'Bloque bajo', lineas: l([['defensa', 3], ['delantero', 1]]) },
   ],
+  // Fútbol 6 (1 arquero + 5 de campo).
   6: [
-    { codigo: '2-2-1', nombre: 'El clásico', lineas: l([['defensa', 2], ['medio', 2], ['delantero', 1]]) },
-    { codigo: '2-1-2', nombre: 'Variante ofensiva', lineas: l([['defensa', 2], ['medio', 1], ['delantero', 2]]) },
-    { codigo: '3-1-1', nombre: 'Contención pura', lineas: l([['defensa', 3], ['medio', 1], ['delantero', 1]]) },
-    { codigo: '1-3-1', nombre: 'El rombo ampliado', lineas: l([['defensa', 1], ['medio', 3], ['delantero', 1]]) },
-    { codigo: '1-2-2', nombre: 'Posesión con dos puntas', lineas: l([['defensa', 1], ['medio', 2], ['delantero', 2]]) },
+    { codigo: '2-2-1', nombre: 'Clásico', lineas: l([['defensa', 2], ['medio', 2], ['delantero', 1]]) },
+    { codigo: '3-1-1', nombre: 'Defensivo', lineas: l([['defensa', 3], ['medio', 1], ['delantero', 1]]) },
+    { codigo: '2-1-2', nombre: 'Ofensivo', lineas: l([['defensa', 2], ['medio', 1], ['delantero', 2]]) },
+    { codigo: '1-3-1', nombre: 'Rombo ampliado', lineas: l([['defensa', 1], ['medio', 3], ['delantero', 1]]) },
+    { codigo: '1-2-2', nombre: 'Ataque por los costados', lineas: l([['defensa', 1], ['medio', 2], ['delantero', 2]]) },
   ],
+  // Fútbol 7 (1 arquero + 6 de campo): formaciones típicas del 7 vs 7.
   7: [
-    { codigo: '2-3-1', nombre: 'La más usada', lineas: l([['defensa', 2], ['medio', 3], ['delantero', 1]]) },
-    { codigo: '3-2-1', nombre: 'Árbol de Navidad', lineas: l([['defensa', 3], ['medio', 2], ['delantero', 1]]) },
-    { codigo: '2-2-2', nombre: 'En bloques', lineas: l([['defensa', 2], ['medio', 2], ['delantero', 2]]) },
-    { codigo: '3-1-2', nombre: 'Defensiva con peso ofensivo', lineas: l([['defensa', 3], ['medio', 1], ['delantero', 2]]) },
-    { codigo: '2-1-3', nombre: 'Ultraofensiva', lineas: l([['defensa', 2], ['medio', 1], ['delantero', 3]]) },
+    { codigo: '2-3-1', nombre: 'Clásico del fútbol 7', lineas: l([['defensa', 2], ['medio', 3], ['delantero', 1]]) },
+    { codigo: '3-2-1', nombre: 'Defensivo compacto', lineas: l([['defensa', 3], ['medio', 2], ['delantero', 1]]) },
+    { codigo: '2-2-2', nombre: 'Tres bloques', lineas: l([['defensa', 2], ['medio', 2], ['delantero', 2]]) },
+    { codigo: '3-1-2', nombre: 'Defensivo con doble punta', lineas: l([['defensa', 3], ['medio', 1], ['delantero', 2]]) },
+    { codigo: '2-1-3', nombre: 'Ofensivo', lineas: l([['defensa', 2], ['medio', 1], ['delantero', 3]]) },
+    { codigo: '4-1-1', nombre: 'Bloque bajo', lineas: l([['defensa', 4], ['medio', 1], ['delantero', 1]]) },
+    { codigo: '3-3', nombre: 'Presión sin punta', lineas: l([['defensa', 3], ['medio', 3]]) },
   ],
+  // Fútbol 8 (1 arquero + 7 de campo).
   8: [
-    { codigo: '3-3-1', nombre: 'El estándar', lineas: l([['defensa', 3], ['medio', 3], ['delantero', 1]]) },
-    { codigo: '2-3-2', nombre: 'Ofensiva con repliegue', lineas: l([['defensa', 2], ['medio', 3], ['delantero', 2]]) },
-    { codigo: '3-2-2', nombre: 'Sólida', lineas: l([['defensa', 3], ['medio', 2], ['delantero', 2]]) },
+    { codigo: '3-3-1', nombre: 'Clásico del fútbol 8', lineas: l([['defensa', 3], ['medio', 3], ['delantero', 1]]) },
+    { codigo: '2-3-2', nombre: 'Ofensivo', lineas: l([['defensa', 2], ['medio', 3], ['delantero', 2]]) },
+    { codigo: '3-2-2', nombre: 'Equilibrado', lineas: l([['defensa', 3], ['medio', 2], ['delantero', 2]]) },
+    { codigo: '4-2-1', nombre: 'Defensivo', lineas: l([['defensa', 4], ['medio', 2], ['delantero', 1]]) },
     { codigo: '2-4-1', nombre: 'Dominio del mediocampo', lineas: l([['defensa', 2], ['medio', 4], ['delantero', 1]]) },
-    { codigo: '4-2-1', nombre: 'Catenaccio', lineas: l([['defensa', 4], ['medio', 2], ['delantero', 1]]) },
+    { codigo: '3-4', nombre: 'Bloques de cuatro', lineas: l([['defensa', 3], ['medio', 4]]) },
+    { codigo: '4-3', nombre: 'Muro con tres volantes', lineas: l([['defensa', 4], ['medio', 3]]) },
   ],
+  // Fútbol 9 (1 arquero + 8 de campo).
   9: [
-    { codigo: '3-3-2', nombre: 'El clásico escalado', lineas: l([['defensa', 3], ['medio', 3], ['delantero', 2]]) },
-    { codigo: '3-4-1', nombre: 'Prioriza las bandas', lineas: l([['defensa', 3], ['medio', 4], ['delantero', 1]]) },
-    { codigo: '4-3-1', nombre: 'Para aguantar un resultado', lineas: l([['defensa', 4], ['medio', 3], ['delantero', 1]]) },
-    { codigo: '2-4-2', nombre: 'Presión alta', lineas: l([['defensa', 2], ['medio', 4], ['delantero', 2]]) },
-    { codigo: '3-2-3', nombre: 'Doble 5 con tres atacantes', lineas: l([['defensa', 3], ['medio', 2], ['delantero', 3]]) },
+    { codigo: '4-3-1', nombre: 'Clásico del fútbol 9', lineas: l([['defensa', 4], ['medio', 3], ['delantero', 1]]) },
+    { codigo: '3-3-2', nombre: 'Equilibrado ofensivo', lineas: l([['defensa', 3], ['medio', 3], ['delantero', 2]]) },
+    { codigo: '4-2-2', nombre: 'Defensivo', lineas: l([['defensa', 4], ['medio', 2], ['delantero', 2]]) },
+    { codigo: '3-4-1', nombre: 'Con bandas', lineas: l([['defensa', 3], ['medio', 4], ['delantero', 1]]) },
+    { codigo: '4-4', nombre: 'Sin punta definido', lineas: l([['defensa', 4], ['medio', 4]]) },
+    { codigo: '2-4-2', nombre: 'Ofensivo', lineas: l([['defensa', 2], ['medio', 4], ['delantero', 2]]) },
+    { codigo: '5-3', nombre: 'Bloque bajo', lineas: l([['defensa', 5], ['medio', 3]]) },
   ],
+  // Fútbol 10 (1 arquero + 9 de campo): suelen aparecer por expulsión u horario reducido.
   10: [
-    { codigo: '4-4-1', nombre: 'La típica de expulsión', lineas: l([['defensa', 4], ['medio', 4], ['delantero', 1]]) },
-    { codigo: '4-3-2', nombre: 'A buscar el partido', lineas: l([['defensa', 4], ['medio', 3], ['delantero', 2]]) },
-    { codigo: '3-4-2', nombre: 'Sin perder volumen ofensivo', lineas: l([['defensa', 3], ['medio', 4], ['delantero', 2]]) },
-    { codigo: '3-5-1', nombre: 'Dominar la posesión con 10', lineas: l([['defensa', 3], ['medio', 5], ['delantero', 1]]) },
-    { codigo: '5-3-1', nombre: 'Cerrar el partido', lineas: l([['defensa', 5], ['medio', 3], ['delantero', 1]]) },
+    { codigo: '4-4-1', nombre: 'Defensivo de urgencia', lineas: l([['defensa', 4], ['medio', 4], ['delantero', 1]]) },
+    { codigo: '4-3-2', nombre: 'Equilibrado', lineas: l([['defensa', 4], ['medio', 3], ['delantero', 2]]) },
+    { codigo: '3-4-2', nombre: 'Ofensivo', lineas: l([['defensa', 3], ['medio', 4], ['delantero', 2]]) },
+    { codigo: '3-5-1', nombre: 'Dominio del mediocampo', lineas: l([['defensa', 3], ['medio', 5], ['delantero', 1]]) },
+    { codigo: '5-3-1', nombre: 'Muy defensivo', lineas: l([['defensa', 5], ['medio', 3], ['delantero', 1]]) },
   ],
+  // Fútbol 11 (1 arquero + 10 de campo): las formaciones canónicas del fútbol
+  // moderno y sus variantes históricas.
   11: [
-    { codigo: '4-4-2', nombre: 'Clásico o en Rombo', lineas: l([['defensa', 4], ['medio', 4], ['delantero', 2]]) },
-    { codigo: '4-3-3', nombre: 'Fútbol ofensivo puro', lineas: l([['defensa', 4], ['medio', 3], ['delantero', 3]]) },
-    { codigo: '4-5-1', nombre: 'Defensiva y de contragolpe', lineas: l([['defensa', 4], ['medio', 5], ['delantero', 1]]) },
-    { codigo: '4-2-4', nombre: 'Muy antigua (Brasil 58)', lineas: l([['defensa', 4], ['medio', 2], ['delantero', 4]]) },
-    { codigo: '3-5-2', nombre: 'Mucho peso en el medio', lineas: l([['defensa', 3], ['medio', 5], ['delantero', 2]]) },
-    { codigo: '3-4-3', nombre: 'Presión alta y vértigo', lineas: l([['defensa', 3], ['medio', 4], ['delantero', 3]]) },
-    { codigo: '5-3-2', nombre: 'Contragolpe directo', lineas: l([['defensa', 5], ['medio', 3], ['delantero', 2]]) },
-    { codigo: '5-4-1', nombre: 'El autobús', lineas: l([['defensa', 5], ['medio', 4], ['delantero', 1]]) },
-    { codigo: '5-2-3', nombre: 'Salida rápida con extremos', lineas: l([['defensa', 5], ['medio', 2], ['delantero', 3]]) },
+    { codigo: '4-4-2', nombre: 'Clásico', lineas: l([['defensa', 4], ['medio', 4], ['delantero', 2]]) },
+    { codigo: '4-3-3', nombre: 'Ofensivo moderno', lineas: l([['defensa', 4], ['medio', 3], ['delantero', 3]]) },
+    { codigo: '4-5-1', nombre: 'Defensivo de contragolpe', lineas: l([['defensa', 4], ['medio', 5], ['delantero', 1]]) },
     {
       codigo: '4-2-3-1',
       nombre: 'Estándar moderno',
@@ -76,25 +87,31 @@ export const FORMACIONES_POR_CANTIDAD = {
     },
     {
       codigo: '4-1-4-1',
-      nombre: 'Estabilidad con tapón',
+      nombre: 'Con ancla',
       lineas: l([['defensa', 4], ['medioContencion', 1], ['medioOfensivo', 4], ['delantero', 1]]),
     },
-    { codigo: '4-4-1-1', nombre: 'Con mediapunta libre', lineas: l([['defensa', 4], ['medio', 4], ['delantero', 2]]) },
     {
       codigo: '4-3-1-2',
-      nombre: 'Enganche sudamericano',
+      nombre: 'Con enganche',
       lineas: l([['defensa', 4], ['medioContencion', 3], ['medioOfensivo', 1], ['delantero', 2]]),
     },
+    { codigo: '4-4-2 rombo', nombre: 'Clásico en rombo', lineas: l([['defensa', 4], ['medio', 4], ['delantero', 2]]) },
+    { codigo: '3-5-2', nombre: 'Con lateros altos', lineas: l([['defensa', 3], ['medio', 5], ['delantero', 2]]) },
+    { codigo: '3-4-3', nombre: 'Presión alta', lineas: l([['defensa', 3], ['medio', 4], ['delantero', 3]]) },
     {
-      codigo: '3-4-1-2 / 3-4-2-1',
-      nombre: 'Variante del 3-5-2 con enganche',
+      codigo: '3-4-1-2',
+      nombre: 'Con extremos',
       lineas: l([['defensa', 3], ['medioContencion', 4], ['medioOfensivo', 1], ['delantero', 2]]),
     },
     {
       codigo: '3-1-4-2',
-      nombre: 'Mediocentro posicional',
+      nombre: 'Doble cinco',
       lineas: l([['defensa', 3], ['medioContencion', 1], ['medioOfensivo', 4], ['delantero', 2]]),
     },
+    { codigo: '5-3-2', nombre: 'Bloque bajo y contragolpe', lineas: l([['defensa', 5], ['medio', 3], ['delantero', 2]]) },
+    { codigo: '5-4-1', nombre: 'Muy defensivo', lineas: l([['defensa', 5], ['medio', 4], ['delantero', 1]]) },
+    { codigo: '5-2-3', nombre: 'Salida rápida con extremos', lineas: l([['defensa', 5], ['medio', 2], ['delantero', 3]]) },
+    { codigo: '4-2-4', nombre: 'Histórica (Brasil 1958)', lineas: l([['defensa', 4], ['medio', 2], ['delantero', 4]]) },
   ],
 };
 

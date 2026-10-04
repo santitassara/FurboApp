@@ -44,6 +44,15 @@ export default function Home() {
       const { data: partidosAbiertos } = await api.get(rutaGrupo(grupoActivo.id, '/partidos'));
       setPartidos(partidosAbiertos);
 
+      // Modo plantel: la pizarra táctica se habilita con solo los titulares
+      // (no hay suplentes ni dos equipos). Convocatoria: se habilita cuando
+      // titulares + suplentes cubren el cupo.
+      const esPlantel = grupoActivo.modo === 'plantel';
+      const cuposCubiertos = (partido) =>
+        esPlantel
+          ? (partido.ocupados?.titulares || 0) >= partido.cupoTitulares
+          : (partido.ocupados?.titulares || 0) + (partido.ocupados?.suplentes || 0) >= partido.cupoTitulares;
+
       const entradas = await Promise.all(
         partidosAbiertos.map(async (partido) => {
           const { data: jugadores } = await api.get(
@@ -56,11 +65,7 @@ export default function Home() {
 
       const entradasFormacion = await Promise.all(
         partidosAbiertos
-          .filter(
-            (partido) =>
-              partido.estado !== 'jugado' &&
-              (partido.ocupados?.titulares || 0) + (partido.ocupados?.suplentes || 0) >= partido.cupoTitulares
-          )
+          .filter((partido) => partido.estado !== 'jugado' && cuposCubiertos(partido))
           .map(async (partido) => {
             const { data } = await api.get(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/formacion`));
             return [partido.id, data];
@@ -68,12 +73,12 @@ export default function Home() {
       );
       setFormacionesPorPartido(Object.fromEntries(entradasFormacion));
 
+      // El modo plantel no usa votación de equipos: no hay propuestas que cargar.
       const entradasPropuestas = await Promise.all(
         partidosAbiertos
           .filter(
             (partido) =>
-              partido.estado !== 'jugado' &&
-              (partido.ocupados?.titulares || 0) + (partido.ocupados?.suplentes || 0) >= partido.cupoTitulares
+              !esPlantel && partido.estado !== 'jugado' && cuposCubiertos(partido)
           )
           .map(async (partido) => {
             const { data } = await api.get(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/formaciones-propuestas`));

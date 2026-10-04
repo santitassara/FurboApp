@@ -29,9 +29,16 @@ function obtenerMembresiaSync(grupoId, usuarioId) {
   };
 }
 
-async function crearGrupo({ nombre, creadoPor }) {
+const MODOS_VALIDOS = ['convocatoria', 'plantel'];
+
+async function crearGrupo({ nombre, creadoPor, modo }) {
   const nombreLimpio = String(nombre || '').trim();
   if (!nombreLimpio) throw crearError('El nombre del grupo es obligatorio', 400);
+
+  const modoLimpio = modo || 'convocatoria';
+  if (!MODOS_VALIDOS.includes(modoLimpio)) {
+    throw crearError('El modo del grupo debe ser "convocatoria" o "plantel"', 400);
+  }
 
   const crear = db.transaction(() => {
     let codigoInvitacion;
@@ -48,12 +55,13 @@ async function crearGrupo({ nombre, creadoPor }) {
       id: crypto.randomUUID(),
       nombre: nombreLimpio,
       codigoInvitacion,
+      modo: modoLimpio,
       creadoPor,
       fechaCreacion: new Date().toISOString(),
     };
     db.prepare(
-      `INSERT INTO Grupos (id, nombre, codigoInvitacion, creadoPor, fechaCreacion)
-       VALUES (@id, @nombre, @codigoInvitacion, @creadoPor, @fechaCreacion)`
+      `INSERT INTO Grupos (id, nombre, codigoInvitacion, modo, creadoPor, fechaCreacion)
+       VALUES (@id, @nombre, @codigoInvitacion, @modo, @creadoPor, @fechaCreacion)`
     ).run(grupo);
 
     agregarMiembro(grupo.id, creadoPor, 'admin');
@@ -62,6 +70,10 @@ async function crearGrupo({ nombre, creadoPor }) {
   });
 
   return crear();
+}
+
+function obtenerGrupo(grupoId) {
+  return db.prepare('SELECT * FROM Grupos WHERE id = ?').get(grupoId) || null;
 }
 
 async function unirseAGrupo({ codigoInvitacion, usuarioId }) {
@@ -80,7 +92,7 @@ async function unirseAGrupo({ codigoInvitacion, usuarioId }) {
 async function listarMisGrupos(usuarioId) {
   const filas = db
     .prepare(
-      `SELECT g.id, g.nombre, g.codigoInvitacion, g.creadoPor, ug.rol, ug.estaSancionado
+      `SELECT g.id, g.nombre, g.codigoInvitacion, g.modo, g.creadoPor, ug.rol, ug.estaSancionado
        FROM UsuariosGrupos ug JOIN Grupos g ON g.id = ug.grupoId
        WHERE ug.usuarioId = ? ORDER BY g.nombre COLLATE NOCASE ASC`
     )
@@ -89,6 +101,7 @@ async function listarMisGrupos(usuarioId) {
   return filas.map((fila) => ({
     id: fila.id,
     nombre: fila.nombre,
+    modo: fila.modo || 'convocatoria',
     rol: fila.rol,
     estaSancionado: Boolean(fila.estaSancionado),
     creadoPor: fila.creadoPor,
@@ -192,7 +205,9 @@ async function vincularWhatsapp(grupoId, jid) {
 }
 
 module.exports = {
+  MODOS_VALIDOS,
   crearGrupo,
+  obtenerGrupo,
   unirseAGrupo,
   listarMisGrupos,
   obtenerMembresia,

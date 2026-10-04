@@ -30,7 +30,8 @@ async function historial(req, res) {
 }
 
 async function crear(req, res) {
-  const { fecha, cupoTitulares, cupoSuplentes, estadio, tipoSuelo, direccion, valorCuota } = req.body;
+  const { fecha, cupoTitulares, cupoSuplentes, estadio, tipoSuelo, direccion, valorCuota, rival, notasTacticas } =
+    req.body;
   const partido = await partidosService.crearPartido({
     fecha,
     cupoTitulares,
@@ -39,10 +40,33 @@ async function crear(req, res) {
     tipoSuelo,
     direccion,
     valorCuota: valorCuota !== undefined && valorCuota !== null ? Number(valorCuota) : null,
+    rival,
+    notasTacticas,
     creadoPor: req.usuario.uid,
     grupoId: req.params.grupoId,
   });
   res.status(201).json(partido);
+}
+
+async function fixture(req, res) {
+  const partidos = await partidosService.listarFixture(req.params.grupoId);
+  const partidosConCupos = await Promise.all(
+    partidos.map(async (partido) => ({
+      ...partido,
+      ocupados: await inscripcionesService.contarOcupados(partido.id),
+    }))
+  );
+  res.json(partidosConCupos);
+}
+
+async function actualizar(req, res) {
+  const { fecha, rival, notasTacticas } = req.body;
+  const partido = await partidosService.actualizarPartido(req.params.partidoId, req.params.grupoId, {
+    fecha,
+    rival,
+    notasTacticas,
+  });
+  res.json(partido);
 }
 
 async function eliminar(req, res) {
@@ -56,4 +80,4 @@ async function lideresMes(req, res) {
   res.json(lideres);
 }
 
-module.exports = { listar, historial, crear, eliminar, lideresMes };
+module.exports = { listar, historial, crear, fixture, actualizar, eliminar, lideresMes };

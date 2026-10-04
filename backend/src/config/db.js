@@ -404,4 +404,35 @@ function agregarInvitadosAGoles() {
 }
 agregarInvitadosAGoles();
 
+// Modo del grupo: "convocatoria" (picadas con dos equipos) o "plantel" (un solo equipo
+// con pizarra táctica, fixture de torneo y MVP elegido por el admin). Los grupos
+// preexistentes quedan como convocatoria por defecto.
+const columnasGruposModo = db.prepare('PRAGMA table_info(Grupos)').all();
+if (!columnasGruposModo.some((columna) => columna.name === 'modo')) {
+  db.exec(
+    "ALTER TABLE Grupos ADD COLUMN modo TEXT NOT NULL DEFAULT 'convocatoria' CHECK (modo IN ('convocatoria', 'plantel'))"
+  );
+}
+
+// Bitácora del torneo (modo plantel): rival del partido, notas tácticas sobre el
+// rival y código de la formación persistido por el admin en la pizarra.
+const columnasPartidosBitacora = {
+  rival: 'TEXT',
+  notasTacticas: 'TEXT',
+  formacionCodigo: 'TEXT',
+};
+const columnasPartidosBitacoraActuales = db.prepare('PRAGMA table_info(Partidos)').all();
+for (const [columna, tipo] of Object.entries(columnasPartidosBitacora)) {
+  const yaExiste = columnasPartidosBitacoraActuales.some((c) => c.name === columna);
+  if (!yaExiste) {
+    db.exec(`ALTER TABLE Partidos ADD COLUMN ${columna} ${tipo}`);
+  }
+}
+
+// Goles del rival en el resultado de un partido de plantel (el rival no está en la app).
+const columnasResultadosGolesRival = db.prepare('PRAGMA table_info(Resultados)').all();
+if (!columnasResultadosGolesRival.some((columna) => columna.name === 'golesRival')) {
+  db.exec('ALTER TABLE Resultados ADD COLUMN golesRival INTEGER NOT NULL DEFAULT 0');
+}
+
 module.exports = { db, DB_PATH };

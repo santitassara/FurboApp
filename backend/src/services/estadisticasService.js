@@ -45,19 +45,29 @@ function obtenerEstadisticasJugador(usuarioId, grupoId) {
 
   const valoracion = resultado?.promedio ? parseFloat(resultado.promedio).toFixed(1) : '0.0';
 
+  // Los MVPs salen de dos fuentes: la votación de los compañeros (convocatoria) y la
+  // figura que el admin elige al cargar el resultado (plantel).
   const mvps = db
     .prepare(
-      `SELECT COUNT(*) as total FROM (
-         SELECT v.partidoId, v.jugadorId, COUNT(*) as votos,
-                MAX(COUNT(*)) OVER (PARTITION BY v.partidoId) as maxVotos
-         FROM VotosMvp v
-         JOIN Partidos p ON v.partidoId = p.id
-         WHERE p.grupoId = ?
-         GROUP BY v.partidoId, v.jugadorId
-       ) t
-       WHERE t.jugadorId = ? AND t.votos = t.maxVotos`
+      `SELECT COUNT(DISTINCT partidoId) as total FROM (
+         SELECT t.partidoId
+         FROM (
+           SELECT v.partidoId, v.jugadorId, COUNT(*) as votos,
+                  MAX(COUNT(*)) OVER (PARTITION BY v.partidoId) as maxVotos
+           FROM VotosMvp v
+           JOIN Partidos p ON v.partidoId = p.id
+           WHERE p.grupoId = ?
+           GROUP BY v.partidoId, v.jugadorId
+         ) t
+         WHERE t.jugadorId = ? AND t.votos = t.maxVotos
+         UNION
+         SELECT r.partidoId
+         FROM Resultados r
+         JOIN Partidos p ON r.partidoId = p.id
+         WHERE p.grupoId = ? AND r.jugadorDestacadoId = ?
+       )`
     )
-    .get(grupoId, usuarioId)?.total || 0;
+    .get(grupoId, usuarioId, grupoId, usuarioId)?.total || 0;
 
   return { pj, goles, asistencias, valoracion, mvps };
 }
@@ -72,15 +82,22 @@ function obtenerEstadisticasTotalesJugador(usuarioId) {
 
   const mvps = db
     .prepare(
-      `SELECT COUNT(*) as total FROM (
-         SELECT partidoId, jugadorId, COUNT(*) as votos,
-                MAX(COUNT(*)) OVER (PARTITION BY partidoId) as maxVotos
-         FROM VotosMvp
-         GROUP BY partidoId, jugadorId
-       ) t
-       WHERE t.jugadorId = ? AND t.votos = t.maxVotos`
+      `SELECT COUNT(DISTINCT partidoId) as total FROM (
+         SELECT t.partidoId
+         FROM (
+           SELECT partidoId, jugadorId, COUNT(*) as votos,
+                  MAX(COUNT(*)) OVER (PARTITION BY partidoId) as maxVotos
+           FROM VotosMvp
+           GROUP BY partidoId, jugadorId
+         ) t
+         WHERE t.jugadorId = ? AND t.votos = t.maxVotos
+         UNION
+         SELECT r.partidoId
+         FROM Resultados r
+         WHERE r.jugadorDestacadoId = ?
+       )`
     )
-    .get(usuarioId)?.total || 0;
+    .get(usuarioId, usuarioId)?.total || 0;
 
   return { goles, mvps };
 }

@@ -38,15 +38,22 @@ export default function ModalCargarResultado({
   onCancelar,
 }) {
   const { grupoActivo } = useGrupo();
+  // Modo plantel: un solo equipo (A), los goles del rival se cargan como número
+  // y la figura (MVP) la elige el admin al cargar el resultado.
+  const esPlantel = grupoActivo?.modo === 'plantel';
   const [goles, setGoles] = useState([]);
   const [sanciones, setSanciones] = useState([]);
   const [beelupUrl, setBeelupUrl] = useState('');
+  const [golesRival, setGolesRival] = useState('');
+  const [mvpClave, setMvpClave] = useState('');
   const [cargandoExistente, setCargandoExistente] = useState(false);
 
   useEffect(() => {
     if (!abierto) return;
 
     setBeelupUrl(partido.beelupUrl || '');
+    setGolesRival('');
+    setMvpClave('');
 
     if (partido.estado !== 'jugado') {
       setGoles([]);
@@ -75,6 +82,12 @@ export default function ModalCargarResultado({
             motivo: sancion.motivo,
           }))
         );
+        // Plantel: precargar los goles del rival y la figura elegida por el admin.
+        if (esPlantel) {
+          setGolesRival(String(data.golesRival ?? ''));
+          const figura = data.jugadorDestacado?.jugadores?.[0];
+          setMvpClave(figura ? clave(figura.usuarioId, figura.invitadoId) : '');
+        }
       })
       .catch(() => {})
       .finally(() => {
@@ -130,6 +143,13 @@ export default function ModalCargarResultado({
         .map((sancion) => ({ ...declave(sancion.clave), motivo: sancion.motivo })),
       beelupUrl: beelupUrl.trim(),
     };
+    // Plantel: el resultado trae además los goles del rival y la figura elegida
+    // por el admin (los invitados no pueden ser figura).
+    if (esPlantel) {
+      const mvp = declave(mvpClave);
+      payload.golesRival = golesRival === '' ? 0 : Number(golesRival);
+      payload.jugadorDestacadoId = mvp.usuarioId || null;
+    }
     onConfirmar(payload);
   }
 
@@ -181,18 +201,20 @@ export default function ModalCargarResultado({
                 <option value="">Jugador</option>
                 {elegibles.map((j) => (
                   <option key={clave(j.usuarioId, j.invitadoId)} value={clave(j.usuarioId, j.invitadoId)}>
-                    {j.nombre} ({j.equipo})
+                    {esPlantel ? j.nombre : `${j.nombre} (${j.equipo})`}
                   </option>
                 ))}
               </select>
-              <select
-                value={gol.equipo}
-                onChange={(e) => actualizarGol(indice, 'equipo', e.target.value)}
-                className={styles.select}
-              >
-                <option value="A">Equipo A</option>
-                <option value="B">Equipo B</option>
-              </select>
+              {!esPlantel && (
+                <select
+                  value={gol.equipo}
+                  onChange={(e) => actualizarGol(indice, 'equipo', e.target.value)}
+                  className={styles.select}
+                >
+                  <option value="A">Equipo A</option>
+                  <option value="B">Equipo B</option>
+                </select>
+              )}
               <input
                 type="number"
                 min="0"
@@ -234,6 +256,46 @@ export default function ModalCargarResultado({
             </div>
           ))}
         </section>
+
+        {esPlantel && (
+          <section className={styles.seccion}>
+            <label className={styles.etiquetaCampo} htmlFor="golesRival">
+              Goles del rival
+            </label>
+            <input
+              id="golesRival"
+              type="number"
+              min="0"
+              placeholder="0"
+              value={golesRival}
+              onChange={(e) => setGolesRival(e.target.value)}
+              className={styles.inputGolesRival}
+            />
+          </section>
+        )}
+
+        {esPlantel && (
+          <section className={styles.seccion}>
+            <label className={styles.etiquetaCampo} htmlFor="mvpPlantel">
+              Figura del partido (MVP)
+            </label>
+            <select
+              id="mvpPlantel"
+              value={mvpClave}
+              onChange={(e) => setMvpClave(e.target.value)}
+              className={styles.inputTexto}
+            >
+              <option value="">Sin elegir</option>
+              {elegibles
+                .filter((j) => j.usuarioId)
+                .map((j) => (
+                  <option key={clave(j.usuarioId, j.invitadoId)} value={clave(j.usuarioId, j.invitadoId)}>
+                    {j.nombre}
+                  </option>
+                ))}
+            </select>
+          </section>
+        )}
 
         <section className={styles.seccion}>
           <div className={styles.encabezadoSeccion}>
