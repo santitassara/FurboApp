@@ -16,16 +16,55 @@
   @apply pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-black px-2 py-1 text-xs font-semibold text-white opacity-0 shadow transition-opacity duration-150 group-hover:opacity-100;
 }
 
+/* Fuera de la cancha (ej. lista "Sin ubicar") el jugador conserva su tamaño
+   fijo; dentro de un asiento el avatar y la etiqueta escalan con el asiento
+   (que a su vez escala para que cada columna quepa dentro de la cancha): el
+   avatar usa 78% del ancho del asiento (cuadrado vía aspect-ratio) y el
+   font-size de avatar y etiqueta usa cqw relativos al ancho del asiento
+   (.asiento es container de inline-size) dentro de un clamp: piso para que
+   siga siendo legible en pantallas chicas y tope en pantallas grandes
+   (fuera de un container cqw cae al viewport, donde el clamp se queda en el
+   tope). El contenido (círculo + etiqueta) es más alto que el asiento, así
+   que la etiqueta NO puede comprimirse (shrink-0): si el flex la encogiera,
+   el overflow hidden de "truncate" le cortaría el texto; en su lugar
+   desborda hacia abajo (el asiento no recorta) y la z-10 la mantiene visible
+   si el desborde roza el círculo de la línea de abajo. */
 .jugadorAvatar {
-  @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/30 bg-cancha-700 text-sm font-bold text-white shadow;
+  @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/30 bg-cancha-700 text-[10px] font-bold text-white shadow;
 }
 
 .jugadorEtiqueta {
-  @apply whitespace-nowrap rounded bg-cancha-800 px-1.5 py-0.5 text-center text-[9px] font-semibold uppercase text-white/80 shadow;
+  @apply relative z-10 max-w-full shrink-0 truncate rounded bg-cancha-800 px-1 py-0.5 text-center font-semibold uppercase text-white/90 shadow;
+  font-size: clamp(8px, 32cqw, 12px);
+  line-height: 1.2;
 }
 
 .asiento {
-  @apply flex min-h-7 w-7 items-center justify-center rounded-lg sm:min-h-14 sm:w-14;
+  @apply flex items-center justify-center rounded-lg;
+  /* Asiento posicionado de forma absoluta dentro del tablero del equipo
+     (.mitad): su left/top en % llegan del estilo inline calculado en
+     MapaCancha.jsx (coordenadasDeLinea) y el translate lo centra exactamente
+     sobre el punto de la formación. El tamaño es relativo al ancho de la
+     cancha (cqw, container en .cancha): tope de 56px en escritorio y escala
+     hacia abajo en pantallas chicas para que la formación entera quepa
+     siempre dentro de la cancha. */
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: min(56px, 6.5cqw);
+  aspect-ratio: 1;
+  max-width: 100%;
+  container-type: inline-size;
+
+  .jugador {
+    @apply h-full w-full;
+  }
+
+  .jugador .jugadorAvatar {
+    height: auto;
+    width: 78%;
+    aspect-ratio: 1;
+    font-size: clamp(9px, 34cqw, 14px);
+  }
 }
 
 .asientoVacio {
@@ -36,16 +75,18 @@
   @apply bg-pasto-600/20;
 }
 
-.columna {
-  @apply flex min-w-0 flex-1 flex-col items-center justify-center gap-1 self-stretch py-3 sm:gap-3;
+/* "Tablero" del equipo: caja absoluta que cubre justo la porción de cancha
+   jugable donde juega ese equipo (la cancha entera en modo plantel, o su
+   mitad en modo partido). left/top/width/height llegan por estilo inline
+   (estiloMitad en MapaCancha.jsx), medidos sobre las líneas del fondo
+   (layout-cancha-futbol.jpeg) para que ningún asiento se salga del campo.
+   Los asientos se posicionan en % propios de esta caja. */
+.mitad {
+  @apply absolute;
 }
 
 .mitadVacia {
-  @apply flex min-w-0 flex-1 items-center justify-center px-2 py-4 text-center text-xs text-white/40;
-}
-
-.mitad {
-  @apply flex min-w-0 flex-1 items-stretch gap-1 px-2 py-4;
+  @apply absolute inset-0 flex items-center justify-center px-2 py-4 text-center text-xs text-white/40;
 }
 
 .selectorWrapper {
@@ -120,12 +161,15 @@
   @apply mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2;
 }
 
+/* Contenedor del mapa: referente absoluto de los tableros de equipo (.mitad)
+   y container de inline-size para las unidades cqw de los asientos. */
 .cancha {
-  @apply flex aspect-[1.83] w-full overflow-hidden rounded-lg border border-white/10 bg-cover bg-center shadow-inner;
+  @apply relative aspect-[1.83] w-full overflow-hidden rounded-lg border border-white/10 bg-cover bg-center shadow-inner;
+  container-type: inline-size;
 }
 
 .divisor {
-  @apply w-px bg-white/20;
+  @apply absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-white/20;
 }
 
 .bloque {

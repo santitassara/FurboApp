@@ -1,0 +1,45 @@
+@reference "../styles/globals.css";
+
+.overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8;
+}
+
+.panel {
+  @apply w-full max-w-lg rounded-xl border border-white/10 bg-cancha-800;
+}
+
+.contenido {
+  @apply p-6;
+}
+
+.titulo {
+  @apply text-lg font-bold text-white;
+}
+
+.subtitulo {
+  @apply mb-5 mt-1 text-sm text-white/60;
+}
+
+.listaModos {
+  @apply flex flex-col gap-3;
+}
+
+.opcionModo {
+  @apply flex w-full cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-cancha-900 p-4 text-left transition hover:border-pasto-500/60 disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+.iconoModo {
+  @apply text-2xl;
+}
+
+.textoModo {
+  @apply flex flex-col gap-1;
+}
+
+.nombreModo {
+  @apply font-bold text-white;
+}
+
+.descripcionModo {
+  @apply text-sm text-white/60;
+}

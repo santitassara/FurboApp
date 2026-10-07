@@ -99,11 +99,9 @@ async function verFormacion(req, res) {
 }
 
 async function guardarFormacion(req, res) {
-  const formacion = await inscripcionesService.guardarFormacion(
-    req.params.partidoId,
-    req.params.grupoId,
-    req.body.asignaciones
-  );
+  // El body completo: en modo plantel además de `asignaciones` trae `formacionCodigo`
+  // y/o `lineasLibres` para persistir el esquema elegido en la pizarra.
+  const formacion = await inscripcionesService.guardarFormacion(req.params.partidoId, req.params.grupoId, req.body);
   res.json(formacion);
 }
 

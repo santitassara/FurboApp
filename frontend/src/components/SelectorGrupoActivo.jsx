@@ -1,9 +1,23 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
-import Boton from './Boton';
 import { useGrupo } from '../context/GrupoContext';
 import styles from './SelectorGrupoActivo.module.css';
+
+function BadgeModo({ modo }) {
+  const esPlantel = modo === 'plantel';
+  return (
+    <span
+      className={clsx(
+        styles.badgeModo,
+        esPlantel ? styles.badgePlantel : styles.badgeConvocatoria
+      )}
+      title={esPlantel ? 'Grupo en modo plantel' : 'Grupo en modo convocatoria'}
+    >
+      {esPlantel ? '🛡️ Plantel' : '⚽ Convocatoria'}
+    </span>
+  );
+}
 
 export default function SelectorGrupoActivo() {
   const { misGrupos, grupoActivo, seleccionarGrupo, abandonarGrupo } = useGrupo();
@@ -34,7 +48,10 @@ export default function SelectorGrupoActivo() {
         className={styles.botonActivo}
       >
         <span className={styles.nombreGrupo}>{grupoActivo.nombre}</span>
-        <span className={styles.flechaIcono}>▾</span>
+        <span className={styles.derechaBoton}>
+          <BadgeModo modo={grupoActivo.modo} />
+          <span className={styles.flechaIcono}>▾</span>
+        </span>
       </button>
       {abierto && (
         <ul className={styles.menu}>
@@ -50,7 +67,8 @@ export default function SelectorGrupoActivo() {
                   grupo.id === grupoActivo.id ? styles.opcionActiva : styles.opcionInactiva
                 )}
               >
-                {grupo.nombre}
+                <span className={styles.nombreOpcion}>{grupo.nombre}</span>
+                <BadgeModo modo={grupo.modo} />
               </button>
             </li>
           ))}

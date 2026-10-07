@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import api from '../services/api';
+import { useGrupo } from '../context/GrupoContext';
 import { rutaGrupo } from '../utils/rutasGrupo';
 import styles from './MvpUltimaFecha.module.css';
 
 export default function MvpUltimaFecha({ grupoId }) {
+  const { grupoActivo } = useGrupo();
+  // En modo plantel la figura la elige el admin al cargar el resultado:
+  // no hay votación (votos es null) y la tarjeta siempre está visible.
+  const esPlantel = grupoActivo?.modo === 'plantel';
   const [mvp, setMvp] = useState(null);
   const [votacionCerrada, setVotacionCerrada] = useState(false);
 
@@ -24,13 +29,12 @@ export default function MvpUltimaFecha({ grupoId }) {
         const goles = resultado.goles.filter((g) => g.usuarioId === destacado.usuarioId && !g.enContra).length;
         const asistencias = resultado.goles.filter((g) => g.asistenciaUsuarioId === destacado.usuarioId).length;
         const rendimiento = resultado.rendimientos.find((r) => r.usuarioId === destacado.usuarioId);
+        const { votos, totalElegibles } = resultado.jugadorDestacado;
         const porcentajeVotos =
-          resultado.jugadorDestacado.totalElegibles > 0
-            ? Math.round((resultado.jugadorDestacado.votos / resultado.jugadorDestacado.totalElegibles) * 100)
-            : 0;
+          typeof votos === 'number' && totalElegibles > 0 ? Math.round((votos / totalElegibles) * 100) : 0;
 
         if (!cancelado) {
-          setVotacionCerrada(Boolean(resultado.votacionCerrada));
+          setVotacionCerrada(Boolean(esPlantel || resultado.votacionCerrada));
           setMvp({
             nombre: destacado.nombre,
             goles,
@@ -48,7 +52,7 @@ export default function MvpUltimaFecha({ grupoId }) {
     return () => {
       cancelado = true;
     };
-  }, [grupoId]);
+  }, [grupoId, esPlantel]);
 
   if (!mvp) return null;
 
@@ -69,7 +73,7 @@ export default function MvpUltimaFecha({ grupoId }) {
           </p>
         </div>
         <span className={styles.badgeVotos}>
-          {mvp.porcentajeVotos}% votos
+          {esPlantel ? 'Elegido por el admin' : `${mvp.porcentajeVotos}% votos`}
         </span>
       </div>
       {!votacionCerrada && (

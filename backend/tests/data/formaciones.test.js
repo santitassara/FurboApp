@@ -49,9 +49,21 @@ describe('catálogo de formaciones — invariantes', () => {
     }
   });
 
-  it('fútbol 5 y fútbol 11 tienen las cantidades de formaciones esperadas', () => {
+  it('cada cantidad de jugadores tiene el catálogo de formaciones reales esperado', () => {
     expect(FORMACIONES_POR_CANTIDAD[5]).toHaveLength(5);
+    expect(FORMACIONES_POR_CANTIDAD[6]).toHaveLength(5);
+    expect(FORMACIONES_POR_CANTIDAD[7]).toHaveLength(7);
+    expect(FORMACIONES_POR_CANTIDAD[8]).toHaveLength(7);
+    expect(FORMACIONES_POR_CANTIDAD[9]).toHaveLength(7);
+    expect(FORMACIONES_POR_CANTIDAD[10]).toHaveLength(5);
     expect(FORMACIONES_POR_CANTIDAD[11]).toHaveLength(15);
+  });
+
+  it('los códigos de cada cantidad son únicos', () => {
+    for (const formaciones of Object.values(FORMACIONES_POR_CANTIDAD)) {
+      const codigos = formaciones.map((f) => f.codigo);
+      expect(new Set(codigos).size).toBe(codigos.length);
+    }
   });
 });
 

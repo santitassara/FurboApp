@@ -32,6 +32,10 @@
   @apply flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/70 md:gap-x-6 md:gap-y-2 md:text-2xl;
 }
 
+.filaRival {
+  @apply flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/90 md:gap-x-6 md:gap-y-2 md:text-2xl;
+}
+
 .textoSecundario {
   @apply text-white/50;
 }

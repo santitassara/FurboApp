@@ -77,8 +77,10 @@ function Panel({ titulo, children, className = '' }) {
   );
 }
 
-export default function ResultadoPartido({ partido, resultado }) {
+export default function ResultadoPartido({ partido, resultado, modo = 'convocatoria' }) {
   const [golSeleccionado, setGolSeleccionado] = useState(null);
+  // Modo plantel: "A" es nuestro equipo y "B" es el rival (no está en la app).
+  const esPlantel = modo === 'plantel';
 
   if (!resultado) {
     return (
@@ -101,7 +103,7 @@ export default function ResultadoPartido({ partido, resultado }) {
         <div className={styles.marcadorRow}>
           <div className={styles.equipoCol}>
             <IconoEscudo variante="A" />
-            <span className={styles.equipoLabel}>Equipo A</span>
+            <span className={styles.equipoLabel}>{esPlantel ? 'Nuestro equipo' : 'Equipo A'}</span>
           </div>
           <div className={styles.marcadorNumeros}>
             <span>{marcador.A}</span>
@@ -110,13 +112,13 @@ export default function ResultadoPartido({ partido, resultado }) {
           </div>
           <div className={styles.equipoCol}>
             <IconoEscudo variante="B" />
-            <span className={styles.equipoLabel}>Equipo B</span>
+            <span className={styles.equipoLabel}>{esPlantel ? partido.rival || 'Rival' : 'Equipo B'}</span>
           </div>
         </div>
 
         {goles.length > 0 && (
           <div className={styles.golesGrid}>
-            {['A', 'B'].map((equipo) => {
+            {(esPlantel ? ['A'] : ['A', 'B']).map((equipo) => {
               const golesDelEquipo = goles.filter((gol) => gol.equipo === equipo);
               return (
                 <ul key={equipo} className={styles.golesLista}>

@@ -82,7 +82,92 @@ function Jugador({ usuarioId, invitadoId, nombre, linea, draggable }) {
   );
 }
 
-function Asiento({ equipo, linea, ordenLinea, jugador, draggable }) {
+// ---------------------------------------------------------------------------
+// Geometría de la cancha: el área jugable NO llena todo el contenedor, porque
+// la imagen de fondo (layout-cancha-futbol.jpeg) incluye los márgenes fuera de
+// cancha. Son las líneas del campo medidas en % del contenedor:
+//   línea de gol izquierda  x = 13.8%    línea de gol derecha  x = 86.9%
+//   línea de banda superior y = 10.2%    línea de banda inferior y = 89.1%
+//   línea de medio campo     x = 50%
+// Cada equipo juega sobre una caja .mitad que cubre exactamente la porción de
+// cancha que ocupa; los asientos usan coordenadas en % propias de esa caja
+// (x: 0 = línea de gol propia → 1 = línea de gol rival; y: 0 = banda de
+// arriba → 1 = banda de abajo), siempre clamped para no salir del campo.
+const CAMPO_JUGABLE = { izq: 13.8, der: 86.9, arri: 10.2, abaj: 89.1 };
+const ANCHO_CAMPO = CAMPO_JUGABLE.der - CAMPO_JUGABLE.izq; // 73.1
+const ALTO_CAMPO = CAMPO_JUGABLE.abaj - CAMPO_JUGABLE.arri; // 78.9
+// En modo partido cada equipo defiende su arco y juega sobre 45% de la cancha
+// (5% más allá de la línea de medio campo hacia el lado rival), para que los
+// dos equipos nunca se choquen alrededor del círculo central. En modo plantel
+// el único equipo se reparte sobre la cancha entera.
+const FRACCION_CAMPO_POR_EQUIPO = 0.45;
+// Tamaño del asiento en cqw de la cancha (.asiento usa min(56px, 6.5cqw)):
+// se usa para el clamp de coordenadas y garantizar que ningún asiento se
+// salga de los bordes del área jugable.
+const ASIENTO_CQW = 6.5;
+const ASPECTO_CANCHA = 1.83; // aspect-[1.83] de .cancha
+
+// Profundidad de cada línea sobre el eje de ataque del equipo
+// (0 = gol propio, 1 = gol rival), siguiendo los patrones tácticos estándar:
+// el arquero en su arco, la defensa delante de su área, el mediocampo en
+// torno a la línea de medio campo y el ataque profundo en el campo rival.
+const PROFUNDIDAD_LINEA = {
+  arquero: 0.05,
+  defensa: 0.22,
+  medioContencion: 0.4,
+  medio: 0.5,
+  medioOfensivo: 0.6,
+  delantero: 0.82,
+};
+
+// Abanico lateral de una línea según su cantidad de jugadores: a más
+// jugadores, más se abren hacia las bandas (laterales, extremos).
+const AMPLITUD_POR_JUGADORES = { 2: 0.34, 3: 0.58, 4: 0.82, 5: 0.9 };
+const AMPLITUD_RELATIVA_LINEA = {
+  defensa: 1,
+  delantero: 1,
+  medioOfensivo: 0.9,
+  medio: 0.85,
+  medioContencion: 0.75,
+};
+
+function limitar(valor, minimo, maximo) {
+  return Math.min(maximo, Math.max(minimo, valor));
+}
+
+// Posiciones laterales (0..1) de los n jugadores de una línea: repartidas en
+// torno al centro del campo con el abanico que le corresponde a la línea.
+function dispersaLinea(linea, n) {
+  if (n <= 1) return [0.5];
+  const amplitud = AMPLITUD_POR_JUGADORES[Math.min(n, 5)] * (AMPLITUD_RELATIVA_LINEA[linea] ?? 0.85);
+  const desde = 0.5 - amplitud / 2;
+  const hasta = 0.5 + amplitud / 2;
+  return Array.from({ length: n }, (_, i) => desde + ((hasta - desde) * i) / (n - 1));
+}
+
+// Porción de cancha (en % del contenedor) que ocupa el tablero de un equipo.
+function espacioEquipo(equipo, esPlantel) {
+  const span = esPlantel ? ANCHO_CAMPO : ANCHO_CAMPO * FRACCION_CAMPO_POR_EQUIPO;
+  const izq = esPlantel || equipo === 'A' ? CAMPO_JUGABLE.izq : CAMPO_JUGABLE.der - span;
+  return { izq, span };
+}
+
+// Coordenada (fx, fy) del asiento número n de cada línea, en el espacio del
+// equipo, con clamp por el medio asiento para que nada se salga del campo.
+function coordenadasDeLinea({ equipo, esPlantel, linea, cupo }) {
+  const { span } = espacioEquipo(equipo, esPlantel);
+  const margenX = ASIENTO_CQW / 2 / span; // medio asiento, en la escala de la línea
+  const margenY = (ASIENTO_CQW / 2 * ASPECTO_CANCHA) / ALTO_CAMPO; // idem, en vertical
+  let fx = PROFUNDIDAD_LINEA[linea] ?? 0.5;
+  if (equipo === 'B' && !esPlantel) fx = 1 - fx; // el equipo B espeja la formación
+  fx = limitar(fx, margenX, 1 - margenX);
+  return dispersaLinea(linea, Math.max(1, cupo)).map((fyCruda) => ({
+    fx,
+    fy: limitar(fyCruda, margenY, 1 - margenY),
+  }));
+}
+
+function Asiento({ equipo, linea, ordenLinea, jugador, draggable, estilo }) {
   const { setNodeRef, isOver } = useDroppable({
     id: claveUbicacion(equipo, linea, ordenLinea),
     disabled: !draggable,
@@ -91,6 +176,7 @@ function Asiento({ equipo, linea, ordenLinea, jugador, draggable }) {
   return (
     <div
       ref={setNodeRef}
+      style={estilo}
       className={clsx(styles.asiento, !jugador && styles.asientoVacio, isOver && styles.asientoOver)}
     >
       {jugador && (
@@ -106,51 +192,54 @@ function Asiento({ equipo, linea, ordenLinea, jugador, draggable }) {
   );
 }
 
-function Columna({ equipo, linea, cupo, jugadores, draggable }) {
-  const jugadorPorOrden = new Map(jugadores.map((jugador) => [jugador.ordenLinea, jugador]));
-  // Nunca menos asientos que jugadores ya ubicados en esta columna: si por alguna razón
-  // hay más jugadores que el cupo de la formación, igual deben poder renderizarse.
-  const cupoEfectivo = Math.max(cupo, jugadores.length);
-  const asientos = Array.from({ length: cupoEfectivo }, (_, ordenLinea) => jugadorPorOrden.get(ordenLinea) || null);
-
-  return (
-    <div className={styles.columna}>
-      {asientos.map((jugador, ordenLinea) => (
-        <Asiento
-          key={ordenLinea}
-          equipo={equipo}
-          linea={linea}
-          ordenLinea={ordenLinea}
-          jugador={jugador}
-          draggable={draggable}
-        />
-      ))}
-    </div>
-  );
-}
-
-function MitadCancha({ equipo, estructura, ubicaciones, draggable }) {
+function MitadCancha({ equipo, esPlantel, estructura, ubicaciones, draggable }) {
   const columnas = [{ key: 'arquero', cantidad: 1 }, ...estructura];
-  const ordenadas = equipo === 'A' ? columnas : [...columnas].reverse();
-
   const hayArqueroUbicado = ubicaciones.some((u) => u.equipo === equipo && u.linea === 'arquero');
+  const { izq, span } = espacioEquipo(equipo, esPlantel);
+  // El tablero del equipo: caja absoluta que cubre la porción de cancha jugable
+  // que ocupa este equipo (los asientos se posicionan en % propios de esta caja).
+  const estilo = {
+    left: `${izq}%`,
+    top: `${CAMPO_JUGABLE.arri}%`,
+    width: `${span}%`,
+    height: `${ALTO_CAMPO}%`,
+  };
 
   if (estructura.length === 0 && !hayArqueroUbicado) {
     return (
-      <div className={styles.mitadVacia}>
-        Elegí una formación para armar este equipo.
+      <div className={styles.mitad} style={estilo}>
+        <div className={styles.mitadVacia}>Elegí una formación para armar este equipo.</div>
       </div>
     );
   }
 
+  // Asiento por asiento: cada línea se dibuja en su profundidad táctica y sus
+  // jugadores se reparten lateralmente (ver coordenadasDeLinea).
+  const asientos = [];
+  for (const { key, cantidad } of columnas) {
+    const jugadoresLinea = ubicaciones.filter((u) => u.equipo === equipo && u.linea === key);
+    // Nunca menos asientos que jugadores ya ubicados en esta línea: si por alguna
+    // razón hay más jugadores que el cupo de la formación, igual deben renderizarse.
+    const cupoEfectivo = Math.max(cantidad, jugadoresLinea.length);
+    const jugadorPorOrden = new Map(jugadoresLinea.map((jugador) => [jugador.ordenLinea, jugador]));
+    coordenadasDeLinea({ equipo, esPlantel, linea: key, cupo: cupoEfectivo }).forEach(({ fx, fy }, ordenLinea) => {
+      asientos.push(
+        <Asiento
+          key={`${key}-${ordenLinea}`}
+          equipo={equipo}
+          linea={key}
+          ordenLinea={ordenLinea}
+          jugador={jugadorPorOrden.get(ordenLinea) || null}
+          draggable={draggable}
+          estilo={{ left: `${fx * 100}%`, top: `${fy * 100}%` }}
+        />
+      );
+    });
+  }
+
   return (
-    <div className={styles.mitad}>
-      {ordenadas.map(({ key, cantidad }) => {
-        const jugadoresLinea = ubicaciones.filter((u) => u.equipo === equipo && u.linea === key);
-        return (
-          <Columna key={key} equipo={equipo} linea={key} cupo={cantidad} jugadores={jugadoresLinea} draggable={draggable} />
-        );
-      })}
+    <div className={styles.mitad} style={estilo}>
+      {asientos}
     </div>
   );
 }
@@ -345,9 +434,22 @@ export default function MapaCancha({
   const { grupoActivo } = useGrupo();
   const { perfil } = useAuth();
   const navigate = useNavigate();
+  // Modo plantel: un solo equipo, y el esquema elegido queda persistido en el
+  // partido (formacionCodigo), así que la selección se restaura de ahí.
+  const esPlantel = formacion?.modo === 'plantel';
   const jugadoresIniciales = useMemo(() => formacion?.jugadores || [], [formacion]);
   const [ubicaciones, setUbicaciones] = useState(jugadoresIniciales);
-  const [seleccionA, setSeleccionA] = useState({ codigo: CODIGO_AUTOMATICO, lineas: [] });
+  const [seleccionA, setSeleccionA] = useState(() =>
+    formacion?.modo === 'plantel'
+      ? {
+          codigo: formacion.formacionCodigo || CODIGO_AUTOMATICO,
+          lineas:
+            formacion.formacionCodigo === CODIGO_LIBRE
+              ? estructuraDesdeUbicaciones(formacion.jugadores || [], 'A')
+              : [],
+        }
+      : { codigo: CODIGO_AUTOMATICO, lineas: [] }
+  );
   const [seleccionB, setSeleccionB] = useState({ codigo: CODIGO_AUTOMATICO, lineas: [] });
   const [guardando, setGuardando] = useState(false);
   const [generando, setGenerando] = useState(false);
@@ -378,6 +480,20 @@ export default function MapaCancha({
     });
   }, [formacion]);
 
+  // Modo plantel: si el estado del servidor cambió (otro admin guardó otro esquema),
+  // sincronizar la selección local con el formacionCodigo persistido.
+  useEffect(() => {
+    if (!formacion || formacion.modo !== 'plantel') return;
+    const codigo = formacion.formacionCodigo || CODIGO_AUTOMATICO;
+    setSeleccionA((actual) => {
+      if (actual.codigo === codigo) return actual;
+      return {
+        codigo,
+        lineas: codigo === CODIGO_LIBRE ? estructuraDesdeUbicaciones(formacion.jugadores || [], 'A') : [],
+      };
+    });
+  }, [formacion]);
+
   if (!formacion || !formacion.habilitado) {
     return (
       <div className={styles.avisoDeshabilitado}>
@@ -385,6 +501,9 @@ export default function MapaCancha({
       </div>
     );
   }
+
+  // En modo plantel existe un solo equipo y su cupo es el total de titulares del partido.
+  const cupoEquipo = (equipo) => (esPlantel ? formacion.cupo : formacion.cupoPorEquipo[equipo]);
 
   // Una vez cerrada la votación, el equipo real ya no se edita: el dropdown de formación
   // pasa a ser meramente visual (reordena a los mismos jugadores en otras líneas para mostrar).
@@ -399,7 +518,7 @@ export default function MapaCancha({
 
   function lineasVisual(equipo, codigoVisual) {
     if (codigoVisual === CODIGO_ACTUAL) return null;
-    return listarFormaciones(formacion.cupoPorEquipo[equipo]).find((f) => f.codigo === codigoVisual)?.lineas || [];
+    return listarFormaciones(cupoEquipo(equipo)).find((f) => f.codigo === codigoVisual)?.lineas || [];
   }
 
   const lineasVisualA = votacionCerrada && !modoPreview ? lineasVisual('A', formacionVisualA) : null;
@@ -432,10 +551,10 @@ export default function MapaCancha({
       : seleccionA.codigo === CODIGO_AUTOMATICO
         ? ubicaciones.some((j) => j.equipo === 'A')
           ? estructuraDesdeUbicaciones(ubicaciones, 'A')
-          : ordenarLineas(normalizarAutomatico(formacion.cupoPorEquipo.A))
+          : ordenarLineas(normalizarAutomatico(cupoEquipo('A')))
         : seleccionA.codigo === CODIGO_LIBRE
           ? ordenarLineas(seleccionA.lineas)
-          : ordenarLineas(listarFormaciones(formacion.cupoPorEquipo.A).find((f) => f.codigo === seleccionA.codigo)?.lineas || []);
+          : ordenarLineas(listarFormaciones(cupoEquipo('A')).find((f) => f.codigo === seleccionA.codigo)?.lineas || []);
   const estructuraB = modoPreview
     ? estructuraDesdeUbicaciones(ubicacionesMostradas, 'B')
     : votacionCerrada
@@ -445,17 +564,18 @@ export default function MapaCancha({
       : seleccionB.codigo === CODIGO_AUTOMATICO
         ? ubicaciones.some((j) => j.equipo === 'B')
           ? estructuraDesdeUbicaciones(ubicaciones, 'B')
-          : ordenarLineas(normalizarAutomatico(formacion.cupoPorEquipo.B))
+          : ordenarLineas(normalizarAutomatico(cupoEquipo('B')))
         : seleccionB.codigo === CODIGO_LIBRE
           ? ordenarLineas(seleccionB.lineas)
-          : ordenarLineas(listarFormaciones(formacion.cupoPorEquipo.B).find((f) => f.codigo === seleccionB.codigo)?.lineas || []);
+          : ordenarLineas(listarFormaciones(cupoEquipo('B')).find((f) => f.codigo === seleccionB.codigo)?.lineas || []);
 
   const sinUbicar = ubicaciones.filter((jugador) => !jugador.equipo);
 
-  const jugadoresDeCampoA = formacion.cupoPorEquipo.A - 1;
-  const jugadoresDeCampoB = formacion.cupoPorEquipo.B - 1;
+  const jugadoresDeCampoA = cupoEquipo('A') - 1;
+  const jugadoresDeCampoB = esPlantel ? 0 : cupoEquipo('B') - 1;
   const seleccionInvalida =
-    seleccionLibreEsInvalida(seleccionA, jugadoresDeCampoA) || seleccionLibreEsInvalida(seleccionB, jugadoresDeCampoB);
+    seleccionLibreEsInvalida(seleccionA, jugadoresDeCampoA) ||
+    (!esPlantel && seleccionLibreEsInvalida(seleccionB, jugadoresDeCampoB));
 
   function cambiarSeleccion(equipo, nuevaSeleccion) {
     const seleccionAnterior = equipo === 'A' ? seleccionA : seleccionB;
@@ -507,10 +627,14 @@ export default function MapaCancha({
     setError('');
     setGenerando(true);
     try {
-      const body = {
-        A: { codigo: seleccionA.codigo, lineas: seleccionA.lineas },
-        B: { codigo: seleccionB.codigo, lineas: seleccionB.lineas },
-      };
+      // En modo plantel solo existe el equipo A; el backend también acepta la
+      // selección sin el prefijo de equipo (seleccion.A || seleccion).
+      const body = esPlantel
+        ? { A: { codigo: seleccionA.codigo, lineas: seleccionA.lineas } }
+        : {
+            A: { codigo: seleccionA.codigo, lineas: seleccionA.lineas },
+            B: { codigo: seleccionB.codigo, lineas: seleccionB.lineas },
+          };
       const { data } = await api.post(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/formacion/auto`), body);
       setUbicaciones(data.jugadores);
     } catch (err) {
@@ -534,7 +658,14 @@ export default function MapaCancha({
           ordenLinea: jugador.ordenLinea,
           lado: jugador.lado ?? null,
         }));
-      const { data } = await api.put(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/formacion`), { asignaciones });
+      // En modo plantel se persiste además el esquema elegido en el partido
+      // (formacionCodigo) y, si es libre, las líneas exactas.
+      const payload = { asignaciones };
+      if (esPlantel) {
+        payload.formacionCodigo = seleccionA.codigo;
+        if (seleccionA.codigo === CODIGO_LIBRE) payload.lineasLibres = seleccionA.lineas;
+      }
+      const { data } = await api.put(rutaGrupo(grupoActivo.id, `/partidos/${partidoId}/formacion`), payload);
       setUbicaciones(data.jugadores);
       onGuardado?.(data);
     } catch (err) {
@@ -571,7 +702,7 @@ export default function MapaCancha({
     }
   }
 
-  const totalCupoTitulares = formacion.cupoPorEquipo.A + formacion.cupoPorEquipo.B;
+  const totalCupoTitulares = esPlantel ? formacion.cupo : formacion.cupoPorEquipo.A + formacion.cupoPorEquipo.B;
   const haySlotDeTitularLibre = ubicaciones.length < totalCupoTitulares;
   const suplentes = (jugadores || []).filter((jugador) => jugador.tipo === 'suplente');
 
@@ -618,20 +749,32 @@ export default function MapaCancha({
 
       {esAdmin && !modoPreview && !votacionCerrada && (
         <div className={styles.gridSelectores}>
-          <SelectorFormacion
-            etiqueta="Equipo 1"
-            cantidadJugadores={formacion.cupoPorEquipo.A}
-            seleccion={seleccionA}
-            onCambiar={(nueva) => cambiarSeleccion('A', nueva)}
-            disabled={generando || guardando}
-          />
-          <SelectorFormacion
-            etiqueta="Equipo 2"
-            cantidadJugadores={formacion.cupoPorEquipo.B}
-            seleccion={seleccionB}
-            onCambiar={(nueva) => cambiarSeleccion('B', nueva)}
-            disabled={generando || guardando}
-          />
+          {esPlantel ? (
+            <SelectorFormacion
+              etiqueta="Formación del equipo"
+              cantidadJugadores={formacion.cupo}
+              seleccion={seleccionA}
+              onCambiar={(nueva) => cambiarSeleccion('A', nueva)}
+              disabled={generando || guardando}
+            />
+          ) : (
+            <>
+              <SelectorFormacion
+                etiqueta="Equipo 1"
+                cantidadJugadores={formacion.cupoPorEquipo.A}
+                seleccion={seleccionA}
+                onCambiar={(nueva) => cambiarSeleccion('A', nueva)}
+                disabled={generando || guardando}
+              />
+              <SelectorFormacion
+                etiqueta="Equipo 2"
+                cantidadJugadores={formacion.cupoPorEquipo.B}
+                seleccion={seleccionB}
+                onCambiar={(nueva) => cambiarSeleccion('B', nueva)}
+                disabled={generando || guardando}
+              />
+            </>
+          )}
         </div>
       )}
 
@@ -656,19 +799,33 @@ export default function MapaCancha({
         className={styles.cancha}
         style={{ backgroundImage: "url('/layout-cancha-futbol.jpeg')" }}
       >
-        <MitadCancha
-          equipo="A"
-          estructura={estructuraA}
-          ubicaciones={ubicacionesMostradas}
-          draggable={esAdmin && !modoPreview && !votacionCerrada}
-        />
-        <div className={styles.divisor} />
-        <MitadCancha
-          equipo="B"
-          estructura={estructuraB}
-          ubicaciones={ubicacionesMostradas}
-          draggable={esAdmin && !modoPreview && !votacionCerrada}
-        />
+        {esPlantel ? (
+          <MitadCancha
+            equipo="A"
+            esPlantel
+            estructura={estructuraA}
+            ubicaciones={ubicacionesMostradas}
+            draggable={esAdmin && !modoPreview && !votacionCerrada}
+          />
+        ) : (
+          <>
+            <MitadCancha
+              equipo="A"
+              esPlantel={false}
+              estructura={estructuraA}
+              ubicaciones={ubicacionesMostradas}
+              draggable={esAdmin && !modoPreview && !votacionCerrada}
+            />
+            <div className={styles.divisor} />
+            <MitadCancha
+              equipo="B"
+              esPlantel={false}
+              estructura={estructuraB}
+              ubicaciones={ubicacionesMostradas}
+              draggable={esAdmin && !modoPreview && !votacionCerrada}
+            />
+          </>
+        )}
       </div>
 
       {esAdmin && !modoPreview && !votacionCerrada && sinUbicar.length > 0 && (
@@ -724,7 +881,11 @@ export default function MapaCancha({
               onClick={generarAutomaticamente}
               disabled={generando || guardando || seleccionInvalida}
             >
-              {generando ? 'Generando…' : 'Generar equipos automáticos'}
+              {generando
+                ? 'Generando…'
+                : esPlantel
+                  ? 'Generar formación automática'
+                  : 'Generar equipos automáticos'}
             </Boton>
           )}
           <Boton
@@ -735,7 +896,7 @@ export default function MapaCancha({
           >
             {guardando ? 'Guardando…' : 'Guardar formación'}
           </Boton>
-          {!votacionCerrada && (
+          {!esPlantel && !votacionCerrada && (
             <Boton
               variante="ghost"
               className={styles.botonMt2Full}

@@ -1,13 +1,21 @@
 @reference "../styles/globals.css";
 
+/* En desktop el ítem de grilla (Home > gridDosColumnas) se estira a la altura
+   de la fila (la pizarra táctica), y la tarjeta llena esa altura: h-full +
+   flex column para que el área de lista ocupe el resto del espacio. En
+   mobile el alto del contenedor es el del contenido, así que h-full no cambia
+   nada. */
 .contenedor {
-  @apply rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg;
+  @apply flex h-full flex-col rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg;
 }
 
 .titulo {
   @apply mb-3 flex items-center gap-2 text-lg font-bold text-white;
 }
 
+/* Mobile: alto acotado con scroll. Desktop (md): se estira a la altura de la
+   tarjeta contigua (min-h-0 permite que el flex-1 ceda y scrollee si la lista
+   queda más alta que la fila de la grilla). */
 .scroll {
-  @apply max-h-80 overflow-y-auto pr-1;
+  @apply max-h-80 overflow-y-auto pr-1 md:max-h-none md:min-h-0 md:flex-1;
 }

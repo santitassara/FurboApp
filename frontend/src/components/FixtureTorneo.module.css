@@ -1,0 +1,94 @@
+@reference "../styles/globals.css";
+
+.card {
+  @apply rounded-xl border border-white/10 bg-cancha-800 p-5;
+}
+
+.titulo {
+  @apply mb-4 text-lg font-bold text-white;
+}
+
+.mensajeError {
+  @apply mb-3 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion;
+}
+
+.mensajeExito {
+  @apply mb-3 rounded-lg bg-pasto-600/20 px-4 py-2 text-sm text-pasto-500;
+}
+
+.vacio {
+  @apply text-sm text-white/50;
+}
+
+.lista {
+  @apply flex flex-col gap-4;
+}
+
+.fila {
+  @apply rounded-lg border border-white/10 bg-cancha-900 p-4;
+}
+
+.encabezadoFila {
+  @apply mb-3 flex flex-wrap items-center gap-2;
+}
+
+.numeroFecha {
+  @apply text-sm font-bold text-white;
+}
+
+.badgeEstado {
+  @apply rounded-full bg-pasto-600/15 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-pasto-500;
+}
+
+.badgeCerrado {
+  @apply bg-white/10 text-white/60;
+}
+
+.textoSecundario {
+  @apply text-xs text-white/50;
+}
+
+.campos {
+  @apply grid gap-3 md:grid-cols-3;
+}
+
+.label {
+  @apply flex flex-col gap-1 text-xs text-white/70;
+}
+
+.input,
+.inputFecha {
+  @apply rounded-lg border border-white/20 bg-cancha-800 px-3 py-2 text-sm text-white;
+}
+
+.acciones {
+  @apply mt-3 flex flex-wrap gap-2;
+}
+
+.botonAccion {
+  @apply px-3 py-1 text-xs;
+}
+
+.botonPeligro {
+  @apply text-sancion;
+}
+
+.modalOverlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8;
+}
+
+.modalCard {
+  @apply w-full max-w-md rounded-xl border border-white/10 bg-cancha-800 p-6;
+}
+
+.modalTitulo {
+  @apply text-lg font-bold text-white;
+}
+
+.modalTexto {
+  @apply mt-2 text-sm text-white/70;
+}
+
+.modalAcciones {
+  @apply mt-5 flex justify-end gap-2;
+}

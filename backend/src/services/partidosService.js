@@ -26,6 +26,8 @@ async function crearPartido({
   tipoSuelo,
   direccion,
   valorCuota,
+  rival,
+  notasTacticas,
 }) {
   const fechaPartido = new Date(fecha);
   if (Number.isNaN(fechaPartido.getTime()) || fechaPartido <= new Date()) {
@@ -67,14 +69,16 @@ async function crearPartido({
     lat,
     lon,
     valorCuota: valorCuota ?? null,
+    rival: typeof rival === 'string' && rival.trim() ? rival.trim() : null,
+    notasTacticas: typeof notasTacticas === 'string' && notasTacticas.trim() ? notasTacticas.trim() : null,
   };
   db.prepare(
     `INSERT INTO Partidos
-       (id, fecha, estado, creadoPor, grupoId, cupoTitulares, cupoSuplentes, numero, estadio, tipoSuelo, direccion, lat, lon, valorCuota)
+       (id, fecha, estado, creadoPor, grupoId, cupoTitulares, cupoSuplentes, numero, estadio, tipoSuelo, direccion, lat, lon, valorCuota, rival, notasTacticas)
      VALUES
        (@id, @fecha, @estado, @creadoPor, @grupoId, @cupoTitulares, @cupoSuplentes,
          (SELECT COALESCE(MAX(numero), 0) + 1 FROM Partidos WHERE grupoId = @grupoId),
-         @estadio, @tipoSuelo, @direccion, @lat, @lon, @valorCuota)`
+         @estadio, @tipoSuelo, @direccion, @lat, @lon, @valorCuota, @rival, @notasTacticas)`
   ).run(nuevoPartido);
 
   const filaNumero = db.prepare('SELECT numero FROM Partidos WHERE id = ?').get(nuevoPartido.id);
@@ -139,6 +143,50 @@ function listarPartidosJugados(grupoId) {
   return db.prepare("SELECT * FROM Partidos WHERE estado = 'jugado' AND grupoId = ? ORDER BY fecha DESC").all(grupoId);
 }
 
+// Bitácora del torneo: todos los partidos aún en pie (abierto o cerrado, pendiente
+// de resultado) del grupo, ordenados por fecha ascendente.
+function listarFixture(grupoId) {
+  return db
+    .prepare("SELECT * FROM Partidos WHERE grupoId = ? AND estado IN ('abierto', 'cerrado') ORDER BY fecha ASC")
+    .all(grupoId);
+}
+
+// Edición de la bitácora del torneo (modo plantel): rival, notas tácticas y/o fecha.
+// Solo se permite mientras el partido siga abierto.
+async function actualizarPartido(partidoId, grupoId, { fecha, rival, notasTacticas } = {}) {
+  const partido = await obtenerPartido(partidoId, grupoId);
+  if (!partido) throw crearError('Partido no encontrado', 404);
+  if (partido.estado !== 'abierto') {
+    throw crearError('Solo se puede editar un partido abierto', 400);
+  }
+
+  let fechaActualizada = partido.fecha;
+  if (fecha !== undefined) {
+    const fechaPartido = new Date(fecha);
+    if (Number.isNaN(fechaPartido.getTime())) {
+      throw crearErrorValidacion('La fecha del partido debe ser válida');
+    }
+    fechaActualizada = fechaPartido.toISOString();
+  }
+
+  const rivalLimpio =
+    rival === undefined ? partido.rival : typeof rival === 'string' && rival.trim() ? rival.trim() : null;
+  const notasLimpias =
+    notasTacticas === undefined
+      ? partido.notasTacticas
+      : typeof notasTacticas === 'string' && notasTacticas.trim()
+        ? notasTacticas.trim()
+        : null;
+
+  db.prepare('UPDATE Partidos SET fecha = ?, rival = ?, notasTacticas = ? WHERE id = ?').run(
+    fechaActualizada,
+    rivalLimpio,
+    notasLimpias,
+    partidoId
+  );
+  return obtenerPartido(partidoId, grupoId);
+}
+
 module.exports = {
   crearPartido,
   obtenerPartido,
@@ -146,4 +194,6 @@ module.exports = {
   eliminarPartido,
   cerrarPartidosVencidos,
   listarPartidosJugados,
+  listarFixture,
+  actualizarPartido,
 };

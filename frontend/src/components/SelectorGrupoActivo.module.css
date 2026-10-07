@@ -16,6 +16,26 @@
   @apply text-white/50;
 }
 
+.derechaBoton {
+  @apply ml-2 flex shrink-0 items-center gap-2;
+}
+
+.badgeModo {
+  @apply rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide;
+}
+
+.badgePlantel {
+  @apply bg-pasto-500/20 text-pasto-500;
+}
+
+.badgeConvocatoria {
+  @apply bg-white/10 text-white/60;
+}
+
+.nombreOpcion {
+  @apply mr-2 flex-1 truncate;
+}
+
 .menu {
   @apply absolute z-10 mt-1 w-full rounded-lg border border-white/10 bg-cancha-900 py-1 shadow-lg;
 }

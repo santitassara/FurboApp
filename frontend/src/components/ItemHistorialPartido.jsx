@@ -141,7 +141,7 @@ export default function ItemHistorialPartido({ partido }) {
             <p className={styles.textoError}>{error}</p>
           ) : (
             <>
-              <ResultadoPartido partido={partido} resultado={resultado} />
+              <ResultadoPartido partido={partido} resultado={resultado} modo={grupoActivo?.modo} />
               <div className={styles.accionesRow}>
                 {soyElegible && !partido.votacionCerrada && (
                   <button
@@ -183,6 +183,7 @@ export default function ItemHistorialPartido({ partido }) {
         partido={partido}
         elegibles={elegiblesParaVotar}
         votosPropios={votosPropios}
+        sinMvp={grupoActivo?.modo === 'plantel'}
         procesando={votando}
         error={errorVoto}
         onConfirmar={confirmarVoto}

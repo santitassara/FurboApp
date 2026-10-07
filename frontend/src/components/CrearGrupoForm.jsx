@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Boton from './Boton';
+import ModalElegirModoGrupo from './ModalElegirModoGrupo';
 import { useGrupo } from '../context/GrupoContext';
 import styles from './CrearGrupoForm.module.css';
 
@@ -8,20 +9,26 @@ export default function CrearGrupoForm() {
   const navigate = useNavigate();
   const { crearGrupo, seleccionarGrupo } = useGrupo();
   const [nombre, setNombre] = useState('');
+  const [elegirModo, setElegirModo] = useState(false);
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState('');
   const [grupoCreado, setGrupoCreado] = useState(null);
   const [copiado, setCopiado] = useState(false);
 
-  async function enviar(evento) {
+  function manejarSubmit(evento) {
     evento.preventDefault();
     setError('');
+    setElegirModo(true);
+  }
+
+  async function crearConModo(modo) {
     setProcesando(true);
     try {
-      const data = await crearGrupo(nombre);
+      const data = await crearGrupo(nombre, modo);
       setGrupoCreado(data);
     } catch (err) {
       setError(err.message);
+      setElegirModo(false);
     } finally {
       setProcesando(false);
     }
@@ -62,7 +69,7 @@ export default function CrearGrupoForm() {
   }
 
   return (
-    <form onSubmit={enviar} className={styles.card}>
+    <form onSubmit={manejarSubmit} className={styles.card}>
       <h2 className={styles.titulo}>Crear un grupo nuevo</h2>
       <label className={styles.label}>
         Nombre del grupo
@@ -79,6 +86,14 @@ export default function CrearGrupoForm() {
       <Boton type="submit" disabled={procesando}>
         {procesando ? 'Creando…' : 'Crear grupo'}
       </Boton>
+      {elegirModo && (
+        <ModalElegirModoGrupo
+          nombreGrupo={nombre}
+          onElegir={crearConModo}
+          onCancelar={() => setElegirModo(false)}
+          deshabilitado={procesando}
+        />
+      )}
     </form>
   );
 }

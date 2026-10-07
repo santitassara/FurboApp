@@ -36,6 +36,10 @@
   @apply w-full rounded-lg border border-white/20 bg-cancha-900 px-2 py-1.5 text-sm text-white;
 }
 
+.inputGolesRival {
+  @apply w-32 rounded-lg border border-white/20 bg-cancha-900 px-2 py-1.5 text-sm text-white;
+}
+
 .encabezadoSeccion {
   @apply mb-2 flex items-center justify-between;
 }

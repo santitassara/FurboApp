@@ -1,7 +1,11 @@
 const gruposService = require('../services/gruposService');
 
 async function crear(req, res) {
-  const grupo = await gruposService.crearGrupo({ nombre: req.body.nombre, creadoPor: req.usuario.uid });
+  const grupo = await gruposService.crearGrupo({
+    nombre: req.body.nombre,
+    creadoPor: req.usuario.uid,
+    modo: req.body.modo,
+  });
   res.status(201).json(grupo);
 }
 

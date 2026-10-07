@@ -223,7 +223,18 @@ function eliminarPorPartido(partidoId) {
   db.prepare('DELETE FROM Inscripciones WHERE partidoId = ?').run(partidoId);
 }
 
-const { resolverLineas, capacidadBroad, TODAS_LAS_LINEAS, CODIGO_AUTOMATICO, LINEAS_CAMPO } = require('../data/formaciones');
+const {
+  resolverLineas,
+  capacidadBroad,
+  TODAS_LAS_LINEAS,
+  CODIGO_AUTOMATICO,
+  CODIGO_LIBRE,
+  LINEAS_CAMPO,
+} = require('../data/formaciones');
+
+// En modo plantel no hay dos equipos: todos los titulares juegan en un único equipo
+// (nuestro propio) y se persisten con equipo fijo en 'A'.
+const EQUIPO_PLANEL = 'A';
 
 function derivarLineasEsperadas(jugadores) {
   const conteo = { A: {}, B: {} };
@@ -245,6 +256,11 @@ function derivarLineasEsperadas(jugadores) {
 async function obtenerFormacion(partidoId, grupoId) {
   const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
+
+  const grupo = gruposService.obtenerGrupo(grupoId);
+  if (grupo?.modo === 'plantel') {
+    return obtenerFormacionPlantel(partido, partidoId, grupoId);
+  }
 
   const ocupados = await contarOcupados(partidoId);
   const habilitado = ocupados.titulares + ocupados.suplentes >= partido.cupoTitulares;
@@ -271,6 +287,133 @@ async function obtenerFormacion(partidoId, grupoId) {
   const lineasEsperadas = derivarLineasEsperadas(jugadores);
 
   return { habilitado, cupoPorEquipo, lineasEsperadas, jugadores };
+}
+
+// Pizarra táctica del modo plantel: un solo equipo, con el esquema (formación)
+// elegido por el admin persistido en el partido.
+async function obtenerFormacionPlantel(partido, partidoId, grupoId) {
+  const ocupados = await contarOcupados(partidoId);
+  const habilitado = ocupados.titulares >= partido.cupoTitulares;
+
+  const titulares = await listarTitularesActivos(partidoId);
+  const jugadores = await Promise.all(
+    titulares.map(async (inscripcion) => {
+      const usuario = inscripcion.usuarioId ? await usuariosService.obtenerUsuario(inscripcion.usuarioId) : null;
+      const invitado = inscripcion.invitadoId
+        ? invitadosService.obtenerInvitado(grupoId, inscripcion.invitadoId)
+        : null;
+      return {
+        usuarioId: inscripcion.usuarioId,
+        invitadoId: inscripcion.invitadoId,
+        nombre: usuario?.nombre || invitado?.nombre || 'Jugador',
+        posicionPrincipal: inscripcion.posicionPrincipal,
+        posicionSecundaria: inscripcion.posicionSecundaria,
+        piernaHabil: usuario?.piernaHabil || null,
+        equipo: inscripcion.equipo,
+        linea: inscripcion.linea,
+        ordenLinea: inscripcion.ordenLinea,
+        lado: inscripcion.lado,
+      };
+    })
+  );
+
+  return {
+    habilitado,
+    modo: 'plantel',
+    cupo: partido.cupoTitulares,
+    formacionCodigo: partido.formacionCodigo || CODIGO_AUTOMATICO,
+    jugadores,
+  };
+}
+
+// Guarda la pizarra táctica del modo plantel: todos los anotados titulares deben
+// quedar ubicados en el único equipo, respetando el esquema elegido (catálogo o libre).
+async function guardarFormacionPlantel(partido, grupoId, payload = {}) {
+  const cupo = partido.cupoTitulares;
+  const asignaciones = Array.isArray(payload) ? payload : payload?.asignaciones;
+  if (!Array.isArray(asignaciones)) throw crearError('asignaciones debe ser un arreglo', 400);
+
+  const ocupados = await contarOcupados(partido.id);
+  if (ocupados.titulares < cupo) {
+    throw crearError('El cupo de titulares no está completo', 400);
+  }
+
+  const lineas = payload.lineasLibres
+    ? resolverLineas(cupo, { codigo: CODIGO_LIBRE, lineas: payload.lineasLibres })
+    : resolverLineas(cupo, { codigo: payload.formacionCodigo || CODIGO_AUTOMATICO });
+  const cupoPorLinea = new Map(lineas.map((linea) => [linea.key, linea.cantidad]));
+
+  const titulares = await listarTitularesActivos(partido.id);
+  const idsTitulares = new Set(titulares.map((t) => claveJugador(t.usuarioId, t.invitadoId)));
+  if (asignaciones.length !== idsTitulares.size) {
+    throw crearError('La formación debe incluir a todos los titulares, sin repetidos', 400);
+  }
+
+  const idsVistos = new Set();
+  const asientosVistos = new Set();
+  const vistosPorLinea = {};
+  for (const asignacion of asignaciones) {
+    if (!asignacion || typeof asignacion !== 'object') {
+      throw crearError('La formación debe incluir a todos los titulares, sin repetidos', 400);
+    }
+    const { usuarioId = null, invitadoId = null, linea, ordenLinea, lado = null } = asignacion;
+    const clave = claveJugador(usuarioId, invitadoId);
+    if (!idsTitulares.has(clave) || idsVistos.has(clave)) {
+      throw crearError('La formación debe incluir a todos los titulares, sin repetidos', 400);
+    }
+    idsVistos.add(clave);
+    if (!TODAS_LAS_LINEAS.includes(linea)) throw crearError('linea inválida', 400);
+    const cupoLinea = linea === 'arquero' ? 1 : cupoPorLinea.get(linea);
+    if (cupoLinea === undefined) {
+      throw crearError(`La línea "${linea}" no forma parte de la formación elegida`, 400);
+    }
+    if (!Number.isInteger(ordenLinea) || ordenLinea < 0 || ordenLinea >= cupoLinea) {
+      throw crearError('Posición fuera de la formación elegida', 400);
+    }
+    if (lado !== null && lado !== 'izquierda' && lado !== 'derecha') {
+      throw crearError('lado inválido', 400);
+    }
+    const asiento = `${linea}-${ordenLinea}`;
+    if (asientosVistos.has(asiento)) {
+      throw crearError('Hay dos jugadores en la misma posición', 400);
+    }
+    asientosVistos.add(asiento);
+    vistosPorLinea[linea] = (vistosPorLinea[linea] || 0) + 1;
+  }
+
+  for (const { key, cantidad } of lineas) {
+    if ((vistosPorLinea[key] || 0) !== cantidad) {
+      throw crearError(`La línea ${key} debe tener exactamente ${cantidad} jugadores`, 400);
+    }
+  }
+  if ((vistosPorLinea.arquero || 0) !== 1) {
+    throw crearError('Falta el arquero en la pizarra', 400);
+  }
+
+  const formacionCodigoFinal =
+    payload.formacionCodigo || (Array.isArray(payload.lineasLibres) ? CODIGO_LIBRE : CODIGO_AUTOMATICO);
+
+  const actualizar = db.transaction((lista) => {
+    db.prepare('UPDATE Partidos SET formacionCodigo = ? WHERE id = ?').run(formacionCodigoFinal, partido.id);
+    for (const asignacion of lista) {
+      db.prepare(
+        `UPDATE Inscripciones SET equipo = @equipo, linea = @linea, ordenLinea = @ordenLinea, lado = @lado
+         WHERE partidoId = @partidoId AND estado = 'anotado'
+           AND ((usuarioId IS NOT NULL AND usuarioId = @usuarioId) OR (invitadoId IS NOT NULL AND invitadoId = @invitadoId))`
+      ).run({
+        equipo: EQUIPO_PLANEL,
+        linea: asignacion.linea,
+        ordenLinea: asignacion.ordenLinea,
+        lado: asignacion.lado ?? null,
+        partidoId: partido.id,
+        usuarioId: asignacion.usuarioId || null,
+        invitadoId: asignacion.invitadoId || null,
+      });
+    }
+  });
+  actualizar(asignaciones);
+
+  return obtenerFormacion(partido.id, grupoId);
 }
 
 // Diferencia de habilidad acumulada por debajo de la cual dos equipos se consideran
@@ -338,6 +481,12 @@ function crearBalanceadorConCapacidad(cupoPorEquipo, capBroad) {
 async function generarFormacionAutomatica(partidoId, grupoId, seleccion = {}) {
   const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
+
+  const grupo = gruposService.obtenerGrupo(grupoId);
+  if (grupo?.modo === 'plantel') {
+    // El frontend de plantel manda el esquema bajo la clave "A" (el único equipo).
+    return generarFormacionAutomaticaPlantel(partido, grupoId, seleccion?.A || seleccion);
+  }
 
   const ocupados = await contarOcupados(partidoId);
   if (ocupados.titulares < partido.cupoTitulares) {
@@ -460,10 +609,18 @@ async function generarFormacionAutomatica(partidoId, grupoId, seleccion = {}) {
   return { habilitado: true, cupoPorEquipo, lineasEsperadas: resuelto, jugadores: jugadoresFinales };
 }
 
-async function guardarFormacion(partidoId, grupoId, asignaciones) {
+// payload: { asignaciones: [...], formacionCodigo?, lineasLibres? }. Acepta también
+// un arreglo directo (llamadas legacy de modo convocatoria).
+async function guardarFormacion(partidoId, grupoId, payload = {}) {
   const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
 
+  const grupo = gruposService.obtenerGrupo(grupoId);
+  if (grupo?.modo === 'plantel') {
+    return guardarFormacionPlantel(partido, grupoId, payload);
+  }
+
+  const asignaciones = Array.isArray(payload) ? payload : payload?.asignaciones;
   const ocupados = await contarOcupados(partidoId);
   if (ocupados.titulares < partido.cupoTitulares) {
     throw crearError('El cupo de titulares no está completo', 400);
@@ -528,6 +685,139 @@ async function guardarFormacion(partidoId, grupoId, asignaciones) {
   actualizar(asignaciones);
 
   return obtenerFormacion(partidoId, grupoId);
+}
+
+// Rellena la pizarra del modo plantel con los anotados titulares: arquero preferido,
+// y luego cada línea del esquema tomando primero por posición principal, después por
+// secundaria y al final cualquier jugador disponible (mismo esquema de fallbacks que
+// la generación de equipos de convocatoria, pero sobre un único equipo).
+async function generarFormacionAutomaticaPlantel(partido, grupoId, seleccion = {}) {
+  const cupo = partido.cupoTitulares;
+  const ocupados = await contarOcupados(partido.id);
+  if (ocupados.titulares < cupo) {
+    throw crearError('El cupo de titulares no está completo', 400);
+  }
+
+  const lineas = resolverLineas(cupo, seleccion);
+  const disponibles = new Set();
+  const porId = new Map();
+  const titulares = await listarTitularesActivos(partido.id);
+  const jugadores = await Promise.all(
+    titulares.map(async (inscripcion) => {
+      const usuario = inscripcion.usuarioId ? await usuariosService.obtenerUsuario(inscripcion.usuarioId) : null;
+      const invitado = inscripcion.invitadoId
+        ? invitadosService.obtenerInvitado(grupoId, inscripcion.invitadoId)
+        : null;
+      const habilidad = usuario
+        ? usuariosService.calcularPromedioHabilidades(usuario) ?? 50
+        : invitado?.habilidadPromedio ?? 50;
+      const jugador = {
+        usuarioId: inscripcion.usuarioId,
+        invitadoId: inscripcion.invitadoId,
+        nombre: usuario?.nombre || invitado?.nombre || 'Jugador',
+        posicionPrincipal: inscripcion.posicionPrincipal,
+        posicionSecundaria: inscripcion.posicionSecundaria,
+        lineaBroad: POSICION_A_LINEA[inscripcion.posicionPrincipal] || 'medio',
+        piernaHabil: usuario?.piernaHabil || null,
+        habilidad,
+      };
+      const id = claveJugador(jugador.usuarioId, jugador.invitadoId);
+      disponibles.add(id);
+      porId.set(id, jugador);
+      return jugador;
+    })
+  );
+
+  function tomarPorPreferencia(lineaBroad) {
+    // 1º posición principal, 2º secundaria, 3º cualquiera. Barajado para no repetir
+    // siempre el mismo orden entre jugadores de igual posición.
+    const orden = barajar([...disponibles]);
+    const conPrincipal = orden.filter((id) => porId.get(id).lineaBroad === lineaBroad);
+    const conSecundaria = orden.filter(
+      (id) =>
+        porId.get(id).lineaBroad !== lineaBroad &&
+        POSICION_A_LINEA[porId.get(id).posicionSecundaria] === lineaBroad
+    );
+    const elegido = conPrincipal[0] || conSecundaria[0] || orden[0];
+    if (!elegido) return null;
+    disponibles.delete(elegido);
+    return porId.get(elegido);
+  }
+
+  const asignaciones = [];
+  const contadorLinea = {};
+  const conteoPiernaLinea = {};
+
+  // El arquero se ubica primero (si nadie se anotó de arquero, el primero disponible).
+  const primeroArquero = jugadores.find((j) => j.posicionPrincipal === 'arquero');
+  const idArquero = primeroArquero
+    ? claveJugador(primeroArquero.usuarioId, primeroArquero.invitadoId)
+    : null;
+  const arquero =
+    idArquero && disponibles.has(idArquero)
+      ? (disponibles.delete(idArquero), porId.get(idArquero))
+      : tomarPorPreferencia('arquero');
+  if (arquero) {
+    asignaciones.push({
+      usuarioId: arquero.usuarioId,
+      invitadoId: arquero.invitadoId,
+      nombre: arquero.nombre,
+      linea: 'arquero',
+      ordenLinea: 0,
+      lado: null,
+    });
+  }
+
+  for (const { key, cantidad } of lineas) {
+    const lineaBroad = key === 'medioContencion' || key === 'medioOfensivo' ? 'medio' : key;
+    for (let i = 0; i < cantidad; i += 1) {
+      const jugador = tomarPorPreferencia(lineaBroad);
+      if (!jugador) break;
+      const claveConteo = `${key}-${jugador.piernaHabil}`;
+      const conteoActual = conteoPiernaLinea[claveConteo] || 0;
+      conteoPiernaLinea[claveConteo] = conteoActual + 1;
+      let lado = null;
+      if (jugador.piernaHabil === 'zurdo') {
+        lado = conteoActual === 0 ? 'izquierda' : 'derecha';
+      } else if (jugador.piernaHabil === 'diestro') {
+        lado = conteoActual === 0 ? 'derecha' : 'izquierda';
+      }
+      contadorLinea[key] = (contadorLinea[key] || 0) + 1;
+      asignaciones.push({
+        usuarioId: jugador.usuarioId,
+        invitadoId: jugador.invitadoId,
+        nombre: jugador.nombre,
+        linea: key,
+        ordenLinea: contadorLinea[key] - 1,
+        lado,
+      });
+    }
+  }
+
+  const formacionCodigoFinal =
+    seleccion?.codigo && seleccion.codigo !== CODIGO_AUTOMATICO ? seleccion.codigo : CODIGO_AUTOMATICO;
+
+  const actualizar = db.transaction(() => {
+    db.prepare('UPDATE Partidos SET formacionCodigo = ? WHERE id = ?').run(formacionCodigoFinal, partido.id);
+    for (const jugador of asignaciones) {
+      db.prepare(
+        `UPDATE Inscripciones SET equipo = ?, linea = ?, ordenLinea = ?, lado = ?
+         WHERE partidoId = ? AND estado = 'anotado'
+           AND ((usuarioId IS NOT NULL AND usuarioId = ?) OR (invitadoId IS NOT NULL AND invitadoId = ?))`
+      ).run(
+        EQUIPO_PLANEL,
+        jugador.linea,
+        jugador.ordenLinea,
+        jugador.lado,
+        partido.id,
+        jugador.usuarioId,
+        jugador.invitadoId
+      );
+    }
+  });
+  actualizar();
+
+  return obtenerFormacion(partido.id, grupoId);
 }
 
 module.exports = {

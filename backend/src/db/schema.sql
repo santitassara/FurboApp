@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS Grupos (
   id TEXT PRIMARY KEY,
   nombre TEXT NOT NULL,
   codigoInvitacion TEXT NOT NULL UNIQUE,
+  modo TEXT NOT NULL DEFAULT 'convocatoria' CHECK (modo IN ('convocatoria', 'plantel')),
   creadoPor TEXT NOT NULL REFERENCES Usuarios(uid),
   fechaCreacion TEXT NOT NULL
 );
@@ -84,7 +85,10 @@ CREATE TABLE IF NOT EXISTS Partidos (
   direccion TEXT,
   lat REAL,
   lon REAL,
-  valorCuota INTEGER
+  valorCuota INTEGER,
+  rival TEXT,
+  notasTacticas TEXT,
+  formacionCodigo TEXT
 );
 
 CREATE TABLE IF NOT EXISTS Inscripciones (
@@ -112,6 +116,7 @@ CREATE TABLE IF NOT EXISTS Resultados (
   id TEXT PRIMARY KEY,
   partidoId TEXT NOT NULL UNIQUE REFERENCES Partidos(id),
   jugadorDestacadoId TEXT REFERENCES Usuarios(uid),
+  golesRival INTEGER NOT NULL DEFAULT 0,
   fechaCarga TEXT NOT NULL
 );
 

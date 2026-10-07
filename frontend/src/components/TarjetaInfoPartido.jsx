@@ -40,6 +40,12 @@ export default function TarjetaInfoPartido({ partido }) {
 
       <div className={styles.grid}>
         <div className={styles.columna}>
+          {(partido.rival || partido.notasTacticas) && (
+            <div className={styles.filaRival}>
+              {partido.rival && <span>🎯 Rival: {partido.rival}</span>}
+              {partido.notasTacticas && <span className={styles.textoSecundario}>{partido.notasTacticas}</span>}
+            </div>
+          )}
           {(partido.estadio || partido.tipoSuelo) && (
             <div className={styles.filaEstadio}>
               {partido.estadio && <span>🏟️ {partido.estadio}</span>}

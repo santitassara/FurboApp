@@ -92,8 +92,8 @@ export function GrupoProvider({ children }) {
     localStorage.setItem(GRUPO_ACTIVO_KEY, grupoId);
   }
 
-  async function crearGrupo(nombre) {
-    const { data } = await api.post('/grupos', { nombre });
+  async function crearGrupo(nombre, modo = 'convocatoria') {
+    const { data } = await api.post('/grupos', { nombre, modo });
     await refrescarGrupos();
     return data;
   }
