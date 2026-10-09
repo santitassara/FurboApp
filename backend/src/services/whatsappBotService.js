@@ -538,6 +538,7 @@ async function enviarMensajeConMenciones(socket, chatId, texto, mensajeCitado = 
 }
 
 function registrarListenerBot(socket) {
+  console.log('[BOT] Listener registrado. Usuario del socket:', socket.user?.id);
   socket.ev.on('messages.upsert', async (m) => {
     const msg = m.messages[0];
     if (!msg.message || msg.key.fromMe) return;
@@ -545,6 +546,13 @@ function registrarListenerBot(socket) {
     const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
     const mentions = (msg.message.extendedTextMessage?.contextInfo?.mentionedJid || []).map(normalizarJid);
     const idsPropios = [socket.user?.id, socket.user?.lid].filter(Boolean).map(normalizarJid);
+
+    console.log('[BOT] Mensaje recibido. Menciones:', mentions, 'IDs propios:', idsPropios);
+
+    if (!idsPropios.length) {
+      console.warn('[BOT] Socket.user no cargado. Ignorando mensaje.');
+      return;
+    }
 
     if (!mentions.some((jid) => idsPropios.includes(jid))) return;
 

@@ -28,7 +28,6 @@ async function iniciarWhatsapp() {
   socket = makeWASocket({ auth: state });
 
   socket.ev.on('creds.update', saveCreds);
-  registrarListenerBot(socket);
 
   socket.ev.on('connection.update', (actualizacion) => {
     const { connection, lastDisconnect, qr } = actualizacion;
@@ -40,6 +39,8 @@ async function iniciarWhatsapp() {
     if (connection === 'open') {
       conectado = true;
       console.log('WhatsApp conectado');
+      socket.ev.removeAllListeners('messages.upsert');
+      registrarListenerBot(socket);
     }
 
     if (connection === 'close') {
