@@ -106,6 +106,18 @@ router.post(
   envolverAsync(formacionesPropuestasController.votar)
 );
 router.post(
+  '/:partidoId/formaciones-propuestas/:propuestaId/opciones',
+  verificarToken,
+  verificarMiembroGrupo(),
+  envolverAsync(formacionesPropuestasController.crearOpcion)
+);
+router.delete(
+  '/:partidoId/formaciones-propuestas/:propuestaId/opciones/:opcionId',
+  verificarToken,
+  verificarMiembroGrupo('admin'),
+  envolverAsync(formacionesPropuestasController.eliminarOpcion)
+);
+router.post(
   '/:partidoId/formaciones-propuestas/cerrar',
   verificarToken,
   verificarMiembroGrupo('admin'),

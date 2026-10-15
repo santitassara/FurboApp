@@ -149,6 +149,13 @@ const tienePropuestaGanadoraId = columnasPartidosVotacionEquipos.some(
 if (!tienePropuestaGanadoraId) {
   db.exec('ALTER TABLE Partidos ADD COLUMN propuestaGanadoraId TEXT REFERENCES FormacionesPropuestas(id)');
 }
+if (!columnasPartidosVotacionEquipos.some((columna) => columna.name === 'opcionGanadoraId')) {
+  db.exec('ALTER TABLE Partidos ADD COLUMN opcionGanadoraId TEXT');
+}
+const columnasVotosFormacion = db.prepare('PRAGMA table_info(VotosFormacion)').all();
+if (!columnasVotosFormacion.some((columna) => columna.name === 'opcionId')) {
+  db.exec('ALTER TABLE VotosFormacion ADD COLUMN opcionId TEXT');
+}
 
 const columnasUsuariosActuales = db.prepare('PRAGMA table_info(Usuarios)').all();
 const tieneEsSuperAdmin = columnasUsuariosActuales.some((columna) => columna.name === 'esSuperAdmin');

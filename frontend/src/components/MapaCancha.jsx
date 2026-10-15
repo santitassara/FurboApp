@@ -426,6 +426,7 @@ export default function MapaCancha({
   onGuardado,
   propuestasInfo,
   previewPropuesta,
+  previewEtiqueta,
   onPropuesto,
   onSalirPreview,
   jugadores,
@@ -740,7 +741,7 @@ export default function MapaCancha({
 
       {modoPreview && (
         <div className={styles.bannerPreview}>
-          <span>Vista previa de una propuesta</span>
+          <span>{previewEtiqueta ? `Previsualización activa — ${previewEtiqueta}` : 'Vista previa de una propuesta'}</span>
           <button type="button" className={styles.enlaceSubrayado} onClick={onSalirPreview}>
             Volver a formación oficial
           </button>
