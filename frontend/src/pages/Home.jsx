@@ -29,6 +29,7 @@ export default function Home() {
   const [formacionesPorPartido, setFormacionesPorPartido] = useState({});
   const [propuestasPorPartido, setPropuestasPorPartido] = useState({});
   const [previewPorPartido, setPreviewPorPartido] = useState({});
+  const [previewEtiquetaPorPartido, setPreviewEtiquetaPorPartido] = useState({});
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const [partidoParaBaja, setPartidoParaBaja] = useState(null);
@@ -242,6 +243,7 @@ export default function Home() {
                               }
                               propuestasInfo={propuestasPorPartido[partido.id]}
                               previewPropuesta={previewPorPartido[partido.id] || null}
+                              previewEtiqueta={previewEtiquetaPorPartido[partido.id] || null}
                               onPropuesto={cargarPartidos}
                               onSalirPreview={() =>
                                 setPreviewPorPartido((anterior) => ({ ...anterior, [partido.id]: null }))
@@ -269,12 +271,14 @@ export default function Home() {
                       datos={propuestasPorPartido[partido.id]}
                       esAdmin={grupoActivo?.rol === 'admin'}
                       soyTitular={inscripcionDelUsuario(partido.id)?.tipo === 'titular'}
+                      soyAnotado={Boolean(inscripcionDelUsuario(partido.id))}
                       onActualizado={cargarPartidos}
-                      onVerEnCancha={(propuesta) => {
+                      onVerEnCancha={(propuesta, etiqueta) => {
                         setPreviewPorPartido((anterior) => ({
                           ...anterior,
                           [partido.id]: [...propuesta.equipoA, ...propuesta.equipoB],
                         }));
+                        setPreviewEtiquetaPorPartido((anterior) => ({ ...anterior, [partido.id]: etiqueta }));
                         document
                           .getElementById(`mapa-cancha-${partido.id}`)
                           ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -297,6 +301,7 @@ export default function Home() {
                         onGuardado={(data) => setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))}
                         propuestasInfo={propuestasPorPartido[partido.id]}
                         previewPropuesta={previewPorPartido[partido.id] || null}
+                              previewEtiqueta={previewEtiquetaPorPartido[partido.id] || null}
                         onPropuesto={cargarPartidos}
                         onSalirPreview={() => setPreviewPorPartido((anterior) => ({ ...anterior, [partido.id]: null }))}
                         jugadores={inscripcionesPorPartido[partido.id] || []}
@@ -324,12 +329,14 @@ export default function Home() {
                     datos={propuestasPorPartido[partido.id]}
                     esAdmin={grupoActivo?.rol === 'admin'}
                     soyTitular={inscripcionDelUsuario(partido.id)?.tipo === 'titular'}
+                      soyAnotado={Boolean(inscripcionDelUsuario(partido.id))}
                     onActualizado={cargarPartidos}
-                    onVerEnCancha={(propuesta) => {
+                    onVerEnCancha={(propuesta, etiqueta) => {
                       setPreviewPorPartido((anterior) => ({
                         ...anterior,
                         [partido.id]: [...propuesta.equipoA, ...propuesta.equipoB],
                       }));
+                      setPreviewEtiquetaPorPartido((anterior) => ({ ...anterior, [partido.id]: etiqueta }));
                       document
                         .getElementById(`mapa-cancha-${partido.id}`)
                         ?.scrollIntoView({ behavior: 'smooth', block: 'start' });

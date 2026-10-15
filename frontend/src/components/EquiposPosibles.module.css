@@ -59,3 +59,27 @@
 .acciones {
   @apply mt-3 flex flex-wrap gap-2;
 }
+
+.opciones {
+  @apply mt-4 flex flex-col gap-2 border-t border-white/10 pt-3;
+}
+
+.opcion {
+  @apply rounded-lg border border-white/10 bg-cancha-800 px-3 py-2;
+}
+
+.opcionTexto {
+  @apply flex flex-col gap-0.5;
+}
+
+.opcionTitulo {
+  @apply text-sm font-semibold text-white;
+}
+
+.formIntercambio {
+  @apply flex flex-col gap-2;
+}
+
+.select {
+  @apply w-full rounded-lg border border-white/10 bg-cancha-800 px-3 py-2 text-sm text-white;
+}

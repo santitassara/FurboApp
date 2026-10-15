@@ -18,7 +18,7 @@ async function eliminar(req, res) {
 }
 
 async function votar(req, res) {
-  await formacionesPropuestasService.votar(req.params.partidoId, req.params.grupoId, req.params.propuestaId, req.usuario.uid);
+  await formacionesPropuestasService.votar(req.params.partidoId, req.params.grupoId, req.params.propuestaId, req.usuario.uid, req.body?.opcionId || null);
   const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
   res.json(propuestas);
 }
@@ -35,4 +35,28 @@ async function reiniciar(req, res) {
   res.json(propuestas);
 }
 
-module.exports = { crear, listar, eliminar, votar, cerrar, reiniciar };
+async function crearOpcion(req, res) {
+  const { jugadorA, jugadorB } = req.body || {};
+  await formacionesPropuestasService.crearOpcionIntercambio(
+    req.params.partidoId,
+    req.params.grupoId,
+    req.params.propuestaId,
+    req.usuario.uid,
+    { jugadorA, jugadorB }
+  );
+  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  res.status(201).json(propuestas);
+}
+
+async function eliminarOpcion(req, res) {
+  await formacionesPropuestasService.eliminarOpcionAdmin(
+    req.params.partidoId,
+    req.params.grupoId,
+    req.params.propuestaId,
+    req.params.opcionId
+  );
+  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  res.json(propuestas);
+}
+
+module.exports = { crear, listar, eliminar, votar, cerrar, reiniciar, crearOpcion, eliminarOpcion };

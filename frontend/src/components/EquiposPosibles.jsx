@@ -4,20 +4,25 @@ import Boton from './Boton';
 import { rutaGrupo } from '../utils/rutasGrupo';
 import styles from './EquiposPosibles.module.css';
 
-export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, soyTitular, onActualizado, onVerEnCancha }) {
+export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, soyTitular, soyAnotado, onActualizado, onVerEnCancha }) {
   const [procesando, setProcesando] = useState(null);
   const [expandidoId, setExpandidoId] = useState(null);
   const [error, setError] = useState('');
+  const [proponiendoEn, setProponiendoEn] = useState(null);
+  const [seleccion, setSeleccion] = useState({ a: '', b: '' });
 
   if (!datos || datos.propuestas.length === 0) return null;
 
-  const { votacionEquiposCerrada, propuestaGanadoraId, miVoto, propuestas } = datos;
+  const { votacionEquiposCerrada, propuestaGanadoraId, opcionGanadoraId, miVoto, miVotoOpcionId, propuestas } = datos;
 
-  async function votar(propuestaId) {
+  async function votar(propuestaId, opcionId = null) {
     setError('');
-    setProcesando(propuestaId);
+    setProcesando(opcionId || propuestaId);
     try {
-      await api.post(rutaGrupo(grupoId, `/partidos/${partidoId}/formaciones-propuestas/${propuestaId}/votar`));
+      await api.post(
+        rutaGrupo(grupoId, `/partidos/${partidoId}/formaciones-propuestas/${propuestaId}/votar`),
+        opcionId ? { opcionId } : {}
+      );
       await onActualizado();
     } catch (err) {
       setError(err.message);
@@ -31,6 +36,46 @@ export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, so
     setProcesando(propuestaId);
     try {
       await api.delete(rutaGrupo(grupoId, `/partidos/${partidoId}/formaciones-propuestas/${propuestaId}`));
+      await onActualizado();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setProcesando(null);
+    }
+  }
+
+  function clavePropuesta(jugador) {
+    return jugador.usuarioId ? `u:${jugador.usuarioId}` : `i:${jugador.invitadoId}`;
+  }
+
+  function referenciaJugador(clave) {
+    const [tipo, id] = [clave.slice(0, 1), clave.slice(2)];
+    return tipo === 'u' ? { usuarioId: id } : { invitadoId: id };
+  }
+
+  async function proponerIntercambio(propuestaId) {
+    setError('');
+    setProcesando(`opcion-${propuestaId}`);
+    try {
+      await api.post(rutaGrupo(grupoId, `/partidos/${partidoId}/formaciones-propuestas/${propuestaId}/opciones`), {
+        jugadorA: referenciaJugador(seleccion.a),
+        jugadorB: referenciaJugador(seleccion.b),
+      });
+      setProponiendoEn(null);
+      setSeleccion({ a: '', b: '' });
+      await onActualizado();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setProcesando(null);
+    }
+  }
+
+  async function eliminarOpcion(propuestaId, opcionId) {
+    setError('');
+    setProcesando(opcionId);
+    try {
+      await api.delete(rutaGrupo(grupoId, `/partidos/${partidoId}/formaciones-propuestas/${propuestaId}/opciones/${opcionId}`));
       await onActualizado();
     } catch (err) {
       setError(err.message);
@@ -86,7 +131,7 @@ export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, so
       <div className={styles.lista}>
         {propuestas.map((propuesta) => {
           const expandido = expandidoId === propuesta.id;
-          const esGanadora = propuestaGanadoraId === propuesta.id;
+          const esGanadora = propuestaGanadoraId === propuesta.id && !opcionGanadoraId;
           const esMiVoto = miVoto === propuesta.id;
 
           return (
@@ -124,7 +169,7 @@ export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, so
                   </div>
 
                   <div className={styles.acciones}>
-                    <Boton variante="ghost" onClick={() => onVerEnCancha(propuesta)}>
+                    <Boton variante="ghost" onClick={() => onVerEnCancha(propuesta, `Equipos posibles ${propuesta.numero}`)}>
                       Ver en cancha
                     </Boton>
                     {soyTitular && !votacionEquiposCerrada && (
@@ -138,6 +183,110 @@ export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, so
                       </Boton>
                     )}
                   </div>
+
+                  {(propuesta.opciones.length > 0 || (soyAnotado && !votacionEquiposCerrada)) && (
+                    <div className={styles.opciones}>
+                      <p className={styles.equipoLabel}>Opciones de intercambio</p>
+                      {propuesta.opciones.map((opcion) => {
+                        const opcionGanadora = opcionGanadoraId === opcion.id;
+                        const opcionMiVoto = miVotoOpcionId === opcion.id;
+                        return (
+                          <div key={opcion.id} className={styles.opcion}>
+                            <div className={styles.opcionTexto}>
+                              <span className={styles.opcionTitulo}>
+                                Opción {opcion.numero}: {opcion.jugadorA?.nombre} (A) ⇄ {opcion.jugadorB?.nombre} (B)
+                                {opcionGanadora && <span className={styles.badgeGanadora}>Ganadora</span>}
+                                {opcionMiVoto && !opcionGanadora && <span className={styles.badgeMiVoto}>Tu voto</span>}
+                              </span>
+                              <span className={styles.votos}>
+                                {opcion.proponenteNombre} · {opcion.votos} voto{opcion.votos === 1 ? '' : 's'}
+                              </span>
+                            </div>
+                            <div className={styles.acciones}>
+                              <Boton
+                                variante="ghost"
+                                onClick={() =>
+                                  onVerEnCancha(
+                                    opcion,
+                                    `Opción ${opcion.numero}: ${opcion.jugadorA?.nombre} ⇄ ${opcion.jugadorB?.nombre}`
+                                  )
+                                }
+                              >
+                                Ver en cancha
+                              </Boton>
+                              {soyTitular && !votacionEquiposCerrada && (
+                                <Boton
+                                  variante="primario"
+                                  onClick={() => votar(propuesta.id, opcion.id)}
+                                  disabled={procesando === opcion.id}
+                                >
+                                  {opcionMiVoto ? 'Votaste esta' : procesando === opcion.id ? 'Votando…' : 'Votar esta'}
+                                </Boton>
+                              )}
+                              {esAdmin && !votacionEquiposCerrada && (
+                                <Boton variante="peligro" onClick={() => eliminarOpcion(propuesta.id, opcion.id)} disabled={procesando === opcion.id}>
+                                  Eliminar
+                                </Boton>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {soyAnotado && !votacionEquiposCerrada && proponiendoEn !== propuesta.id && (
+                        <Boton
+                          variante="ghost"
+                          onClick={() => {
+                            setSeleccion({ a: '', b: '' });
+                            setProponiendoEn(propuesta.id);
+                          }}
+                        >
+                          Proponer intercambio
+                        </Boton>
+                      )}
+
+                      {proponiendoEn === propuesta.id && (
+                        <div className={styles.formIntercambio}>
+                          <select
+                            className={styles.select}
+                            value={seleccion.a}
+                            onChange={(evento) => setSeleccion((anterior) => ({ ...anterior, a: evento.target.value }))}
+                          >
+                            <option value="">Jugador del Equipo A…</option>
+                            {propuesta.equipoA.map((jugador) => (
+                              <option key={clavePropuesta(jugador)} value={clavePropuesta(jugador)}>
+                                {jugador.nombre}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            className={styles.select}
+                            value={seleccion.b}
+                            onChange={(evento) => setSeleccion((anterior) => ({ ...anterior, b: evento.target.value }))}
+                          >
+                            <option value="">Jugador del Equipo B…</option>
+                            {propuesta.equipoB.map((jugador) => (
+                              <option key={clavePropuesta(jugador)} value={clavePropuesta(jugador)}>
+                                {jugador.nombre}
+                              </option>
+                            ))}
+                          </select>
+                          <div className={styles.acciones}>
+                            <Boton
+                              variante="primario"
+                              onClick={() => proponerIntercambio(propuesta.id)}
+                              disabled={!seleccion.a || !seleccion.b || procesando === `opcion-${propuesta.id}`}
+                            >
+                              {procesando === `opcion-${propuesta.id}` ? 'Enviando…' : 'Proponer'}
+                            </Boton>
+                            <Boton variante="ghost" onClick={() => setProponiendoEn(null)}>
+                              Cancelar
+                            </Boton>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

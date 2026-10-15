@@ -190,6 +190,17 @@ CREATE TABLE IF NOT EXISTS VotosFormacion (
   fecha TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS OpcionesIntercambio (
+  id TEXT PRIMARY KEY,
+  propuestaId TEXT NOT NULL REFERENCES FormacionesPropuestas(id),
+  proponenteId TEXT NOT NULL REFERENCES Usuarios(uid),
+  jugadorAUsuarioId TEXT REFERENCES Usuarios(uid),
+  jugadorAInvitadoId TEXT REFERENCES Invitados(id),
+  jugadorBUsuarioId TEXT REFERENCES Usuarios(uid),
+  jugadorBInvitadoId TEXT REFERENCES Invitados(id),
+  fechaCreacion TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_goles_partido ON Goles (partidoId);
 CREATE INDEX IF NOT EXISTS idx_rendimientos_partido ON RendimientosJugador (partidoId);
 CREATE INDEX IF NOT EXISTS idx_votos_mvp_partido ON VotosMvp (partidoId);
@@ -198,6 +209,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_formaciones_propuestas_numero ON Formacion
 CREATE INDEX IF NOT EXISTS idx_formaciones_propuestas_detalle_propuesta ON FormacionesPropuestasDetalle (propuestaId);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_votos_formacion_unico ON VotosFormacion (partidoId, usuarioId);
 CREATE INDEX IF NOT EXISTS idx_votos_formacion_propuesta ON VotosFormacion (propuestaId);
+CREATE INDEX IF NOT EXISTS idx_opciones_intercambio_propuesta ON OpcionesIntercambio (propuestaId);
 
 CREATE TABLE IF NOT EXISTS RecordatoriosVotacionEnviados (
   id TEXT PRIMARY KEY,

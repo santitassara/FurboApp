@@ -58,17 +58,39 @@ function hayVotacionFormacionAbierta(partidoId) {
   return total > 0;
 }
 
+// Candidatos a votar: cada formación base y sus opciones de intercambio (un voto apunta a uno solo).
 function obtenerPropuestasConVotos(partidoId) {
-  return db
-    .prepare(
-      `SELECT p.id, p.numero, COUNT(v.id) AS votos
-       FROM FormacionesPropuestas p
-       LEFT JOIN VotosFormacion v ON v.propuestaId = p.id
-       WHERE p.partidoId = ?
-       GROUP BY p.id
-       ORDER BY votos DESC, p.numero ASC`
-    )
+  const propuestas = db
+    .prepare('SELECT id, numero FROM FormacionesPropuestas WHERE partidoId = ? ORDER BY numero ASC')
     .all(partidoId);
+
+  const candidatos = [];
+  for (const propuesta of propuestas) {
+    const votosBase = db
+      .prepare('SELECT COUNT(*) AS total FROM VotosFormacion WHERE propuestaId = ? AND opcionId IS NULL')
+      .get(propuesta.id).total;
+    candidatos.push({ id: propuesta.id, numero: propuesta.numero, votos: votosBase, etiqueta: `Propuesta ${propuesta.numero}`, opcion: null });
+
+    const opciones = db
+      .prepare('SELECT * FROM OpcionesIntercambio WHERE propuestaId = ? ORDER BY fechaCreacion ASC')
+      .all(propuesta.id);
+    opciones.forEach((opcion, indice) => {
+      const votos = db.prepare('SELECT COUNT(*) AS total FROM VotosFormacion WHERE opcionId = ?').get(opcion.id).total;
+      candidatos.push({
+        id: propuesta.id,
+        numero: propuesta.numero,
+        votos,
+        etiqueta: `Propuesta ${propuesta.numero} · Opción ${indice + 1}`,
+        opcion,
+      });
+    });
+  }
+
+  // Orden estable: más votos primero; en empate, menor número y la base antes que sus opciones.
+  return candidatos
+    .map((candidato, orden) => ({ candidato, orden }))
+    .sort((x, y) => y.candidato.votos - x.candidato.votos || x.orden - y.orden)
+    .map(({ candidato }) => candidato);
 }
 
 function seleccionarPropuestasMasVotadas(propuestas) {
@@ -86,20 +108,45 @@ function seleccionarPropuestasMasVotadas(propuestas) {
   return seleccionadas;
 }
 
-function obtenerDetallePropuesta(propuestaId) {
-  return db
-    .prepare(
-      `SELECT d.equipo AS equipo, u.nombre AS nombre
-       FROM FormacionesPropuestasDetalle d
-       JOIN Usuarios u ON u.uid = d.usuarioId
-       WHERE d.propuestaId = ?
-       ORDER BY d.equipo ASC, d.ordenLinea ASC, u.nombre ASC`
-    )
-    .all(propuestaId);
+function claveAsiento(usuarioId, invitadoId) {
+  return usuarioId ? `u:${usuarioId}` : `i:${invitadoId}`;
 }
 
-function formatearPropuestaVotacion(propuesta) {
-  const detalle = obtenerDetallePropuesta(propuesta.id);
+function obtenerDetallePropuesta(candidato) {
+  let detalle = db
+    .prepare(
+      `SELECT d.usuarioId AS usuarioId, d.invitadoId AS invitadoId, d.equipo AS equipo, d.ordenLinea AS ordenLinea, u.nombre AS nombre
+       FROM FormacionesPropuestasDetalle d
+       JOIN Usuarios u ON u.uid = d.usuarioId
+       WHERE d.propuestaId = ?`
+    )
+    .all(candidato.id);
+
+  if (candidato.opcion) {
+    const { opcion } = candidato;
+    const claveA = claveAsiento(opcion.jugadorAUsuarioId, opcion.jugadorAInvitadoId);
+    const claveB = claveAsiento(opcion.jugadorBUsuarioId, opcion.jugadorBInvitadoId);
+    const asientoA = detalle.find((fila) => claveAsiento(fila.usuarioId, fila.invitadoId) === claveA);
+    const asientoB = detalle.find((fila) => claveAsiento(fila.usuarioId, fila.invitadoId) === claveB);
+    if (asientoA && asientoB) {
+      detalle = detalle.map((fila) => {
+        if (fila === asientoA) return { ...fila, equipo: asientoB.equipo, ordenLinea: asientoB.ordenLinea };
+        if (fila === asientoB) return { ...fila, equipo: asientoA.equipo, ordenLinea: asientoA.ordenLinea };
+        return fila;
+      });
+    }
+  }
+
+  return detalle.sort(
+    (x, y) =>
+      x.equipo.localeCompare(y.equipo) ||
+      (x.ordenLinea ?? 0) - (y.ordenLinea ?? 0) ||
+      x.nombre.localeCompare(y.nombre)
+  );
+}
+
+function formatearPropuestaVotacion(candidato) {
+  const detalle = obtenerDetallePropuesta(candidato);
   const equipoA = detalle.filter((jugador) => jugador.equipo === 'A').map((jugador) => `• ${jugador.nombre}`);
   const equipoB = detalle.filter((jugador) => jugador.equipo === 'B').map((jugador) => `• ${jugador.nombre}`);
 
@@ -107,8 +154,8 @@ function formatearPropuestaVotacion(propuesta) {
   if (equipoA.length > 0) bloques.push(`⚪ *Equipo A* (${equipoA.length})\n${equipoA.join('\n')}`);
   if (equipoB.length > 0) bloques.push(`⚫ *Equipo B* (${equipoB.length})\n${equipoB.join('\n')}`);
 
-  const etiquetaVotos = propuesta.votos === 1 ? 'voto' : 'votos';
-  return `*Propuesta ${propuesta.numero}* (${propuesta.votos} ${etiquetaVotos})\n${bloques.join('\n\n')}`;
+  const etiquetaVotos = candidato.votos === 1 ? 'voto' : 'votos';
+  return `*${candidato.etiqueta}* (${candidato.votos} ${etiquetaVotos})\n${bloques.join('\n\n')}`;
 }
 
 function formatearVotacionFormacion(partidoId) {
@@ -128,15 +175,11 @@ function formatearEstadoVotacion(partidoId) {
     return 'Todavía no hay ninguna votación de formación en curso.';
   }
 
-  const partidoRow = db
-    .prepare('SELECT votacionEquiposCerrada, propuestaGanadoraId FROM Partidos WHERE id = ?')
-    .get(partidoId);
+  const partidoRow = db.prepare('SELECT votacionEquiposCerrada FROM Partidos WHERE id = ?').get(partidoId);
 
+  // Cerrada: la formación final ya está aplicada en Inscripciones (incluye el intercambio ganador, si lo hubo).
   if (partidoRow?.votacionEquiposCerrada) {
-    const ganadora = propuestas.find((propuesta) => propuesta.id === partidoRow.propuestaGanadoraId);
-    if (ganadora) {
-      return `✅ La votación ya cerró. Formación elegida:\n\n${formatearPropuestaVotacion(ganadora)}`;
-    }
+    return `✅ La votación ya cerró. Formación elegida:\n\n${formatearEquipos(partidoId)}`;
   }
 
   return formatearVotacionFormacion(partidoId);
