@@ -118,6 +118,24 @@ router.delete(
   envolverAsync(formacionesPropuestasController.eliminarOpcion)
 );
 router.post(
+  '/:partidoId/formaciones-propuestas/:propuestaId/opciones/:opcionId/votar',
+  verificarToken,
+  verificarMiembroGrupo(),
+  envolverAsync(formacionesPropuestasController.votarOpcion)
+);
+router.delete(
+  '/:partidoId/formaciones-propuestas/:propuestaId/opciones/:opcionId/votar',
+  verificarToken,
+  verificarMiembroGrupo(),
+  envolverAsync(formacionesPropuestasController.quitarVotoOpcion)
+);
+router.post(
+  '/:partidoId/formaciones-propuestas/:propuestaId/opciones/:opcionId/aceptar',
+  verificarToken,
+  verificarMiembroGrupo('admin'),
+  envolverAsync(formacionesPropuestasController.aceptarOpcion)
+);
+router.post(
   '/:partidoId/formaciones-propuestas/cerrar',
   verificarToken,
   verificarMiembroGrupo('admin'),

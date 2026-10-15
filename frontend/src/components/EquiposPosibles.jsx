@@ -13,16 +13,13 @@ export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, so
 
   if (!datos || datos.propuestas.length === 0) return null;
 
-  const { votacionEquiposCerrada, propuestaGanadoraId, opcionGanadoraId, miVoto, miVotoOpcionId, propuestas } = datos;
+  const { votacionEquiposCerrada, propuestaGanadoraId, votosNecesariosIntercambio, miVoto, propuestas } = datos;
 
-  async function votar(propuestaId, opcionId = null) {
+  async function votar(propuestaId) {
     setError('');
-    setProcesando(opcionId || propuestaId);
+    setProcesando(propuestaId);
     try {
-      await api.post(
-        rutaGrupo(grupoId, `/partidos/${partidoId}/formaciones-propuestas/${propuestaId}/votar`),
-        opcionId ? { opcionId } : {}
-      );
+      await api.post(rutaGrupo(grupoId, `/partidos/${partidoId}/formaciones-propuestas/${propuestaId}/votar`));
       await onActualizado();
     } catch (err) {
       setError(err.message);
@@ -63,6 +60,34 @@ export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, so
       });
       setProponiendoEn(null);
       setSeleccion({ a: '', b: '' });
+      await onActualizado();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setProcesando(null);
+    }
+  }
+
+  async function votarOpcion(propuestaId, opcion) {
+    setError('');
+    setProcesando(opcion.id);
+    try {
+      const ruta = rutaGrupo(grupoId, `/partidos/${partidoId}/formaciones-propuestas/${propuestaId}/opciones/${opcion.id}/votar`);
+      if (opcion.miVoto) await api.delete(ruta);
+      else await api.post(ruta);
+      await onActualizado();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setProcesando(null);
+    }
+  }
+
+  async function aceptarOpcion(propuestaId, opcionId) {
+    setError('');
+    setProcesando(opcionId);
+    try {
+      await api.post(rutaGrupo(grupoId, `/partidos/${partidoId}/formaciones-propuestas/${propuestaId}/opciones/${opcionId}/aceptar`));
       await onActualizado();
     } catch (err) {
       setError(err.message);
@@ -131,7 +156,7 @@ export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, so
       <div className={styles.lista}>
         {propuestas.map((propuesta) => {
           const expandido = expandidoId === propuesta.id;
-          const esGanadora = propuestaGanadoraId === propuesta.id && !opcionGanadoraId;
+          const esGanadora = propuestaGanadoraId === propuesta.id;
           const esMiVoto = miVoto === propuesta.id;
 
           return (
@@ -188,18 +213,15 @@ export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, so
                     <div className={styles.opciones}>
                       <p className={styles.equipoLabel}>Opciones de intercambio</p>
                       {propuesta.opciones.map((opcion) => {
-                        const opcionGanadora = opcionGanadoraId === opcion.id;
-                        const opcionMiVoto = miVotoOpcionId === opcion.id;
                         return (
                           <div key={opcion.id} className={styles.opcion}>
                             <div className={styles.opcionTexto}>
                               <span className={styles.opcionTitulo}>
                                 Opción {opcion.numero}: {opcion.jugadorA?.nombre} (A) ⇄ {opcion.jugadorB?.nombre} (B)
-                                {opcionGanadora && <span className={styles.badgeGanadora}>Ganadora</span>}
-                                {opcionMiVoto && !opcionGanadora && <span className={styles.badgeMiVoto}>Tu voto</span>}
+                                {opcion.miVoto && <span className={styles.badgeMiVoto}>Tu voto</span>}
                               </span>
                               <span className={styles.votos}>
-                                {opcion.proponenteNombre} · {opcion.votos} voto{opcion.votos === 1 ? '' : 's'}
+                                Propone {opcion.proponenteNombre} · {opcion.votos}/{votosNecesariosIntercambio} votos para aplicarse
                               </span>
                             </div>
                             <div className={styles.acciones}>
@@ -217,10 +239,15 @@ export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, so
                               {soyTitular && !votacionEquiposCerrada && (
                                 <Boton
                                   variante="primario"
-                                  onClick={() => votar(propuesta.id, opcion.id)}
+                                  onClick={() => votarOpcion(propuesta.id, opcion)}
                                   disabled={procesando === opcion.id}
                                 >
-                                  {opcionMiVoto ? 'Votaste esta' : procesando === opcion.id ? 'Votando…' : 'Votar esta'}
+                                  {opcion.miVoto ? 'Quitar mi voto' : 'Votar a favor'}
+                                </Boton>
+                              )}
+                              {esAdmin && !votacionEquiposCerrada && (
+                                <Boton variante="ghost" onClick={() => aceptarOpcion(propuesta.id, opcion.id)} disabled={procesando === opcion.id}>
+                                  Aceptar cambio
                                 </Boton>
                               )}
                               {esAdmin && !votacionEquiposCerrada && (

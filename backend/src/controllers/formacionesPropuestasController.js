@@ -18,7 +18,7 @@ async function eliminar(req, res) {
 }
 
 async function votar(req, res) {
-  await formacionesPropuestasService.votar(req.params.partidoId, req.params.grupoId, req.params.propuestaId, req.usuario.uid, req.body?.opcionId || null);
+  await formacionesPropuestasService.votar(req.params.partidoId, req.params.grupoId, req.params.propuestaId, req.usuario.uid);
   const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
   res.json(propuestas);
 }
@@ -59,4 +59,28 @@ async function eliminarOpcion(req, res) {
   res.json(propuestas);
 }
 
-module.exports = { crear, listar, eliminar, votar, cerrar, reiniciar, crearOpcion, eliminarOpcion };
+async function votarOpcion(req, res) {
+  await formacionesPropuestasService.votarIntercambio(
+    req.params.partidoId, req.params.grupoId, req.params.propuestaId, req.params.opcionId, req.usuario.uid, true
+  );
+  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  res.json(propuestas);
+}
+
+async function quitarVotoOpcion(req, res) {
+  await formacionesPropuestasService.votarIntercambio(
+    req.params.partidoId, req.params.grupoId, req.params.propuestaId, req.params.opcionId, req.usuario.uid, false
+  );
+  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  res.json(propuestas);
+}
+
+async function aceptarOpcion(req, res) {
+  await formacionesPropuestasService.aceptarOpcionAdmin(
+    req.params.partidoId, req.params.grupoId, req.params.propuestaId, req.params.opcionId
+  );
+  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  res.json(propuestas);
+}
+
+module.exports = { crear, listar, eliminar, votar, cerrar, reiniciar, crearOpcion, eliminarOpcion, votarOpcion, quitarVotoOpcion, aceptarOpcion };

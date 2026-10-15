@@ -39,6 +39,11 @@ function siguienteNumeroLibre(partidoId) {
 
 const MAX_OPCIONES_POR_PROPUESTA = 3;
 
+// Mayoría: más de la mitad de los titulares anotados (mitad + 1).
+function votosNecesariosIntercambio(partidoId) {
+  return Math.floor(contarTitularesActivos(partidoId) / 2) + 1;
+}
+
 function claveJugador(fila) {
   return fila.usuarioId ? `u:${fila.usuarioId}` : `i:${fila.invitadoId}`;
 }
@@ -149,7 +154,7 @@ async function listarPropuestas(partidoId, grupoId, usuarioId) {
     propuestas.map(async (propuesta) => {
       const detalle = await Promise.all(obtenerDetalle(propuesta.id).map(conNombre));
       const votos = db
-        .prepare('SELECT COUNT(*) AS total FROM VotosFormacion WHERE propuestaId = ? AND opcionId IS NULL')
+        .prepare('SELECT COUNT(*) AS total FROM VotosFormacion WHERE propuestaId = ?')
         .get(propuesta.id).total;
 
       const opcionesDb = db
@@ -168,7 +173,10 @@ async function listarPropuestas(partidoId, grupoId, usuarioId) {
             proponenteNombre: proponente?.nombre || 'Jugador',
             jugadorA: jugadorA ? { usuarioId: jugadorA.usuarioId, invitadoId: jugadorA.invitadoId, nombre: jugadorA.nombre } : null,
             jugadorB: jugadorB ? { usuarioId: jugadorB.usuarioId, invitadoId: jugadorB.invitadoId, nombre: jugadorB.nombre } : null,
-            votos: db.prepare('SELECT COUNT(*) AS total FROM VotosFormacion WHERE opcionId = ?').get(opcion.id).total,
+            votos: db.prepare('SELECT COUNT(*) AS total FROM VotosIntercambio WHERE opcionId = ?').get(opcion.id).total,
+            miVoto: Boolean(
+              db.prepare('SELECT 1 FROM VotosIntercambio WHERE opcionId = ? AND usuarioId = ?').get(opcion.id, usuarioId)
+            ),
             ...separarEquipos(aplicarIntercambio(detalle, claveA, claveB)),
           };
         })
@@ -180,23 +188,16 @@ async function listarPropuestas(partidoId, grupoId, usuarioId) {
 
   const titularesActivos = new Set(listarTitularesConAsiento(partidoId).map((t) => t.usuarioId));
   let miVoto = null;
-  let miVotoOpcionId = null;
   if (titularesActivos.has(usuarioId)) {
-    const fila = db
-      .prepare('SELECT propuestaId, opcionId FROM VotosFormacion WHERE partidoId = ? AND usuarioId = ?')
-      .get(partidoId, usuarioId);
-    if (fila) {
-      miVotoOpcionId = fila.opcionId || null;
-      miVoto = fila.opcionId ? null : fila.propuestaId;
-    }
+    const fila = db.prepare('SELECT propuestaId FROM VotosFormacion WHERE partidoId = ? AND usuarioId = ?').get(partidoId, usuarioId);
+    miVoto = fila ? fila.propuestaId : null;
   }
 
   return {
     votacionEquiposCerrada: Boolean(partido.votacionEquiposCerrada),
     propuestaGanadoraId: partido.propuestaGanadoraId || null,
-    opcionGanadoraId: partido.opcionGanadoraId || null,
+    votosNecesariosIntercambio: votosNecesariosIntercambio(partidoId),
     miVoto,
-    miVotoOpcionId,
     propuestas: propuestasConDetalle,
   };
 }
@@ -271,9 +272,86 @@ async function eliminarOpcionAdmin(partidoId, grupoId, propuestaId, opcionId) {
   if (!opcion) throw crearError('Opción no encontrada', 404);
 
   db.transaction(() => {
-    db.prepare('DELETE FROM VotosFormacion WHERE opcionId = ?').run(opcionId);
+    db.prepare('DELETE FROM VotosIntercambio WHERE opcionId = ?').run(opcionId);
     db.prepare('DELETE FROM OpcionesIntercambio WHERE id = ?').run(opcionId);
   })();
+}
+
+// Concreta el intercambio sobre la formación propuesta: los dos jugadores cruzan sus asientos.
+// Las demás opciones que involucran a alguno de los dos quedan obsoletas y se descartan.
+function concretarIntercambio(opcion) {
+  const { claveA, claveB } = claveOpcion(opcion);
+  const detalle = db
+    .prepare('SELECT id, usuarioId, invitadoId, equipo, linea, ordenLinea, lado FROM FormacionesPropuestasDetalle WHERE propuestaId = ?')
+    .all(opcion.propuestaId);
+  const cruzado = aplicarIntercambio(detalle, claveA, claveB);
+
+  db.transaction(() => {
+    for (const fila of cruzado) {
+      db.prepare(
+        'UPDATE FormacionesPropuestasDetalle SET equipo = ?, linea = ?, ordenLinea = ?, lado = ? WHERE id = ?'
+      ).run(fila.equipo, fila.linea, fila.ordenLinea, fila.lado, fila.id);
+    }
+    const afectadas = db
+      .prepare('SELECT * FROM OpcionesIntercambio WHERE propuestaId = ?')
+      .all(opcion.propuestaId)
+      .filter((otra) => {
+        const claves = claveOpcion(otra);
+        return otra.id === opcion.id || [claves.claveA, claves.claveB].some((c) => c === claveA || c === claveB);
+      });
+    for (const afectada of afectadas) {
+      db.prepare('DELETE FROM VotosIntercambio WHERE opcionId = ?').run(afectada.id);
+      db.prepare('DELETE FROM OpcionesIntercambio WHERE id = ?').run(afectada.id);
+    }
+  })();
+}
+
+async function votarIntercambio(partidoId, grupoId, propuestaId, opcionId, usuarioId, aFavor) {
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
+  if (!partido) throw crearError('Partido no encontrado', 404);
+  if (partido.votacionEquiposCerrada) throw crearError('La votación de equipos ya cerró', 400);
+
+  const opcion = db
+    .prepare(
+      `SELECT o.* FROM OpcionesIntercambio o
+       JOIN FormacionesPropuestas p ON p.id = o.propuestaId
+       WHERE o.id = ? AND o.propuestaId = ? AND p.partidoId = ?`
+    )
+    .get(opcionId, propuestaId, partidoId);
+  if (!opcion) throw crearError('Opción no encontrada', 404);
+
+  const esTitular = listarTitularesConAsiento(partidoId).some((titular) => titular.usuarioId === usuarioId);
+  if (!esTitular) throw crearError('Solo los titulares pueden votar', 403);
+
+  if (!aFavor) {
+    db.prepare('DELETE FROM VotosIntercambio WHERE opcionId = ? AND usuarioId = ?').run(opcionId, usuarioId);
+    return;
+  }
+
+  db.prepare(
+    `INSERT INTO VotosIntercambio (id, opcionId, usuarioId, fecha) VALUES (?, ?, ?, ?)
+     ON CONFLICT(opcionId, usuarioId) DO NOTHING`
+  ).run(crypto.randomUUID(), opcionId, usuarioId, new Date().toISOString());
+
+  const votos = db.prepare('SELECT COUNT(*) AS total FROM VotosIntercambio WHERE opcionId = ?').get(opcionId).total;
+  if (votos >= votosNecesariosIntercambio(partidoId)) concretarIntercambio(opcion);
+}
+
+async function aceptarOpcionAdmin(partidoId, grupoId, propuestaId, opcionId) {
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
+  if (!partido) throw crearError('Partido no encontrado', 404);
+  if (partido.votacionEquiposCerrada) throw crearError('La votación de equipos ya cerró', 400);
+
+  const opcion = db
+    .prepare(
+      `SELECT o.* FROM OpcionesIntercambio o
+       JOIN FormacionesPropuestas p ON p.id = o.propuestaId
+       WHERE o.id = ? AND o.propuestaId = ? AND p.partidoId = ?`
+    )
+    .get(opcionId, propuestaId, partidoId);
+  if (!opcion) throw crearError('Opción no encontrada', 404);
+
+  concretarIntercambio(opcion);
 }
 
 async function eliminarPropuestaAdmin(partidoId, grupoId, propuestaId) {
@@ -287,6 +365,7 @@ async function eliminarPropuestaAdmin(partidoId, grupoId, propuestaId) {
 
   const borrar = db.transaction(() => {
     db.prepare('DELETE FROM VotosFormacion WHERE propuestaId = ?').run(propuestaId);
+    db.prepare('DELETE FROM VotosIntercambio WHERE opcionId IN (SELECT id FROM OpcionesIntercambio WHERE propuestaId = ?)').run(propuestaId);
     db.prepare('DELETE FROM OpcionesIntercambio WHERE propuestaId = ?').run(propuestaId);
     db.prepare('DELETE FROM FormacionesPropuestasDetalle WHERE propuestaId = ?').run(propuestaId);
     db.prepare('DELETE FROM FormacionesPropuestas WHERE id = ? AND partidoId = ?').run(propuestaId, partidoId);
@@ -295,34 +374,23 @@ async function eliminarPropuestaAdmin(partidoId, grupoId, propuestaId) {
 }
 
 function elegirGanadora(partidoId) {
-  const propuestas = db
-    .prepare('SELECT id, numero FROM FormacionesPropuestas WHERE partidoId = ? ORDER BY numero ASC')
+  const filas = db
+    .prepare(
+      `SELECT p.id, p.numero, COUNT(v.id) AS votos
+       FROM FormacionesPropuestas p
+       LEFT JOIN VotosFormacion v ON v.propuestaId = p.id
+       WHERE p.partidoId = ?
+       GROUP BY p.id
+       ORDER BY votos DESC, p.numero ASC`
+    )
     .all(partidoId);
-  const candidatos = [];
-  for (const propuesta of propuestas) {
-    const votosBase = db
-      .prepare('SELECT COUNT(*) AS total FROM VotosFormacion WHERE propuestaId = ? AND opcionId IS NULL')
-      .get(propuesta.id).total;
-    candidatos.push({ propuestaId: propuesta.id, opcionId: null, votos: votosBase });
-    const opciones = db
-      .prepare('SELECT id FROM OpcionesIntercambio WHERE propuestaId = ? ORDER BY fechaCreacion ASC')
-      .all(propuesta.id);
-    for (const opcion of opciones) {
-      const votos = db.prepare('SELECT COUNT(*) AS total FROM VotosFormacion WHERE opcionId = ?').get(opcion.id).total;
-      candidatos.push({ propuestaId: propuesta.id, opcionId: opcion.id, votos });
-    }
-  }
-  // Orden estable: gana el de más votos; en empate, el primero (menor número de formación, base antes que sus opciones).
-  return candidatos.reduce((mejor, actual) => (!mejor || actual.votos > mejor.votos ? actual : mejor), null);
+  return filas[0] || null;
 }
 
-function aplicarGanadora(partidoId, ganadora) {
-  let detalle = obtenerDetalle(ganadora.propuestaId);
-  if (ganadora.opcionId) {
-    const opcion = db.prepare('SELECT * FROM OpcionesIntercambio WHERE id = ?').get(ganadora.opcionId);
-    const { claveA, claveB } = claveOpcion(opcion);
-    detalle = aplicarIntercambio(detalle, claveA, claveB);
-  }
+function aplicarGanadora(partidoId, ganadoraId) {
+  const detalle = db
+    .prepare('SELECT usuarioId, invitadoId, equipo, linea, ordenLinea, lado FROM FormacionesPropuestasDetalle WHERE propuestaId = ?')
+    .all(ganadoraId);
 
   const cerrar = db.transaction(() => {
     for (const asiento of detalle) {
@@ -332,11 +400,7 @@ function aplicarGanadora(partidoId, ganadora) {
            AND ((usuarioId IS NOT NULL AND usuarioId = @usuarioId) OR (invitadoId IS NOT NULL AND invitadoId = @invitadoId))`
       ).run({ ...asiento, partidoId });
     }
-    db.prepare('UPDATE Partidos SET votacionEquiposCerrada = 1, propuestaGanadoraId = ?, opcionGanadoraId = ? WHERE id = ?').run(
-      ganadora.propuestaId,
-      ganadora.opcionId,
-      partidoId
-    );
+    db.prepare('UPDATE Partidos SET votacionEquiposCerrada = 1, propuestaGanadoraId = ? WHERE id = ?').run(ganadoraId, partidoId);
   });
   cerrar();
 
@@ -348,7 +412,7 @@ function aplicarGanadora(partidoId, ganadora) {
   });
 }
 
-async function votar(partidoId, grupoId, propuestaId, usuarioId, opcionId = null) {
+async function votar(partidoId, grupoId, propuestaId, usuarioId) {
   const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
   if (partido.votacionEquiposCerrada) throw crearError('La votación de equipos ya cerró', 400);
@@ -356,24 +420,19 @@ async function votar(partidoId, grupoId, propuestaId, usuarioId, opcionId = null
   const propuesta = db.prepare('SELECT id FROM FormacionesPropuestas WHERE id = ? AND partidoId = ?').get(propuestaId, partidoId);
   if (!propuesta) throw crearError('Propuesta no encontrada', 404);
 
-  if (opcionId) {
-    const opcion = db.prepare('SELECT id FROM OpcionesIntercambio WHERE id = ? AND propuestaId = ?').get(opcionId, propuestaId);
-    if (!opcion) throw crearError('Opción no encontrada', 404);
-  }
-
   const esTitular = listarTitularesConAsiento(partidoId).some((titular) => titular.usuarioId === usuarioId);
   if (!esTitular) throw crearError('Solo los titulares pueden votar', 403);
 
   db.prepare(
-    `INSERT INTO VotosFormacion (id, partidoId, usuarioId, propuestaId, opcionId, fecha)
-     VALUES (@id, @partidoId, @usuarioId, @propuestaId, @opcionId, @fecha)
-     ON CONFLICT(partidoId, usuarioId) DO UPDATE SET propuestaId = excluded.propuestaId, opcionId = excluded.opcionId, fecha = excluded.fecha`
-  ).run({ id: crypto.randomUUID(), partidoId, usuarioId, propuestaId, opcionId, fecha: new Date().toISOString() });
+    `INSERT INTO VotosFormacion (id, partidoId, usuarioId, propuestaId, fecha)
+     VALUES (@id, @partidoId, @usuarioId, @propuestaId, @fecha)
+     ON CONFLICT(partidoId, usuarioId) DO UPDATE SET propuestaId = excluded.propuestaId, fecha = excluded.fecha`
+  ).run({ id: crypto.randomUUID(), partidoId, usuarioId, propuestaId, fecha: new Date().toISOString() });
 
   const totalVotos = db.prepare('SELECT COUNT(*) AS total FROM VotosFormacion WHERE partidoId = ?').get(partidoId).total;
   if (totalVotos >= contarTitularesActivos(partidoId)) {
     const ganadora = elegirGanadora(partidoId);
-    aplicarGanadora(partidoId, ganadora);
+    aplicarGanadora(partidoId, ganadora.id);
   }
 }
 
@@ -384,7 +443,7 @@ async function cerrarManual(partidoId, grupoId) {
 
   const ganadora = elegirGanadora(partidoId);
   if (!ganadora) throw crearError('No hay propuestas para determinar una ganadora', 400);
-  aplicarGanadora(partidoId, ganadora);
+  aplicarGanadora(partidoId, ganadora.id);
 }
 
 async function reiniciarVotacion(partidoId, grupoId) {
@@ -393,7 +452,7 @@ async function reiniciarVotacion(partidoId, grupoId) {
   if (!partido.votacionEquiposCerrada) throw crearError('La votación de equipos no está cerrada', 400);
 
   borrarPropuestasYVotos(partidoId);
-  db.prepare('UPDATE Partidos SET votacionEquiposCerrada = 0, propuestaGanadoraId = NULL, opcionGanadoraId = NULL WHERE id = ?').run(partidoId);
+  db.prepare('UPDATE Partidos SET votacionEquiposCerrada = 0, propuestaGanadoraId = NULL WHERE id = ?').run(partidoId);
 }
 
 function borrarPropuestasYVotos(partidoId) {
@@ -401,6 +460,7 @@ function borrarPropuestasYVotos(partidoId) {
   const borrar = db.transaction(() => {
     db.prepare('DELETE FROM VotosFormacion WHERE partidoId = ?').run(partidoId);
     for (const propuesta of propuestas) {
+      db.prepare('DELETE FROM VotosIntercambio WHERE opcionId IN (SELECT id FROM OpcionesIntercambio WHERE propuestaId = ?)').run(propuesta.id);
       db.prepare('DELETE FROM OpcionesIntercambio WHERE propuestaId = ?').run(propuesta.id);
       db.prepare('DELETE FROM FormacionesPropuestasDetalle WHERE propuestaId = ?').run(propuesta.id);
     }
@@ -414,7 +474,7 @@ function manejarBajaDeTitular(partidoId) {
   if (!partido) return;
   borrarPropuestasYVotos(partidoId);
   if (partido.votacionEquiposCerrada) {
-    db.prepare('UPDATE Partidos SET votacionEquiposCerrada = 0, propuestaGanadoraId = NULL, opcionGanadoraId = NULL WHERE id = ?').run(partidoId);
+    db.prepare('UPDATE Partidos SET votacionEquiposCerrada = 0, propuestaGanadoraId = NULL WHERE id = ?').run(partidoId);
   }
 }
 
@@ -428,6 +488,8 @@ module.exports = {
   eliminarPropuestaAdmin,
   crearOpcionIntercambio,
   eliminarOpcionAdmin,
+  votarIntercambio,
+  aceptarOpcionAdmin,
   votar,
   cerrarManual,
   reiniciarVotacion,
