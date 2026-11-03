@@ -170,7 +170,16 @@ export default function ResultadoPartido({ partido, resultado, modo = 'convocato
             {rendimientos.map((rendimiento) => (
               <li key={rendimiento.usuarioId || rendimiento.invitadoId} className={styles.rendimientoItem}>
                 <span className={styles.rendimientoNombre}>{rendimiento.nombre}</span>
-                {rendimiento.votos === 0 ? (
+                {rendimiento.votos === null ? (
+                  // Usuario no administrador: no se muestra la cantidad de votos
+                  // (ni abierta ni cerrada la votacion).
+                  <span className={styles.rendimientoBarraWrap}>
+                    <BarraRendimiento puntaje={Math.round(rendimiento.promedio ?? 0)} />
+                    <span className={styles.rendimientoPromedio}>
+                      {rendimiento.promedio ?? '—'}/10
+                    </span>
+                  </span>
+                ) : rendimiento.votos === 0 ? (
                   <span className={styles.sinVotos}>Sin votos</span>
                 ) : (
                   <span className={styles.rendimientoBarraWrap}>
