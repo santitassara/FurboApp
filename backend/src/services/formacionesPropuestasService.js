@@ -124,7 +124,7 @@ async function crearPropuesta(partidoId, grupoId, creadoPor) {
   }
 }
 
-async function listarPropuestas(partidoId, grupoId, usuarioId) {
+async function listarPropuestas(partidoId, grupoId, usuarioId, esAdmin = false) {
   const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
 
@@ -153,9 +153,12 @@ async function listarPropuestas(partidoId, grupoId, usuarioId) {
   const propuestasConDetalle = await Promise.all(
     propuestas.map(async (propuesta) => {
       const detalle = await Promise.all(obtenerDetalle(propuesta.id).map(conNombre));
-      const votos = db
-        .prepare('SELECT COUNT(*) AS total FROM VotosFormacion WHERE propuestaId = ?')
-        .get(propuesta.id).total;
+      // Mientras la votación de formaciones está activa, solo el admin del grupo
+      // puede ver la cantidad de votos de cada propuesta.
+      const puedeVerVotos = Boolean(partido.votacionEquiposCerrada) || esAdmin;
+      const votos = puedeVerVotos
+        ? db.prepare('SELECT COUNT(*) AS total FROM VotosFormacion WHERE propuestaId = ?').get(propuesta.id).total
+        : null;
 
       const opcionesDb = db
         .prepare('SELECT * FROM OpcionesIntercambio WHERE propuestaId = ? ORDER BY fechaCreacion ASC')
