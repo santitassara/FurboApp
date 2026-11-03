@@ -289,6 +289,146 @@ async function obtenerFormacion(partidoId, grupoId) {
   return { habilitado, cupoPorEquipo, lineasEsperadas, jugadores };
 }
 
+// Modifica el equipo (A / B / sin equipo) de los titulares anotados y, opcionalmente,
+// agrega jugadores que no estaban anotados en el partido. Sirve para corregir los
+// equipos al cargar o editar el resultado: sacar, agregar e intercambiar usuarios e
+// invitados, incluyendo a alguien que fue a mirar sin anotarse.
+async function modificarEquipos(partidoId, grupoId, { equipos = [], agregar = [] } = {}) {
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
+  if (!partido) throw crearError('Partido no encontrado', 404);
+  if (partido.estado !== 'cerrado' && partido.estado !== 'jugado') {
+    throw crearError('Solo se pueden modificar los equipos de un partido cerrado o jugado', 400);
+  }
+
+  const inscritos = await db
+    .prepare(`SELECT usuarioId, invitadoId FROM Inscripciones WHERE partidoId = ? AND estado = 'anotado'`)
+    .all(partidoId);
+  const clavesInscritos = new Set(
+    inscritos.map((i) => claveJugador(i.usuarioId, i.invitadoId))
+  );
+
+  const titulares = await listarTitularesActivos(partidoId);
+  const clavesTitulares = new Set(titulares.map((t) => claveJugador(t.usuarioId, t.invitadoId)));
+
+  const normalizados = [];
+  for (const entrada of equipos) {
+    const { usuarioId = null, invitadoId = null, equipo } = entrada || {};
+    if (usuarioId && invitadoId) {
+      throw crearError('Un jugador no puede ser usuario e invitado a la vez', 400);
+    }
+    const clave = claveJugador(usuarioId, invitadoId);
+    if (!clave) throw crearError('Falta indicar el jugador', 400);
+    if (!clavesTitulares.has(clave)) {
+      throw crearError('Jugador no anotado como titular en este partido', 400);
+    }
+    if (equipo !== null && equipo !== 'A' && equipo !== 'B') {
+      throw crearError('equipo debe ser "A", "B" o null', 400);
+    }
+    normalizados.push({ usuarioId, invitadoId, equipo });
+  }
+
+  const clavesVistas = new Set();
+  for (const { usuarioId, invitadoId } of normalizados) {
+    const clave = claveJugador(usuarioId, invitadoId);
+    if (clavesVistas.has(clave)) {
+      throw crearError('Jugador repetido en la lista de equipos', 400);
+    }
+    clavesVistas.add(clave);
+  }
+
+  const porAgregar = [];
+  for (const entrada of agregar) {
+    const { usuarioId = null, invitadoId = null, equipo } = entrada || {};
+    if (usuarioId && invitadoId) {
+      throw crearError('Un jugador no puede ser usuario e invitado a la vez', 400);
+    }
+    if (!usuarioId && !invitadoId) {
+      throw crearError('Falta indicar el jugador a agregar', 400);
+    }
+    if (equipo !== 'A' && equipo !== 'B') {
+      throw crearError('equipo debe ser "A" o "B" al agregar un jugador', 400);
+    }
+    const clave = claveJugador(usuarioId, invitadoId);
+    if (clavesInscritos.has(clave)) {
+      throw crearError('El jugador ya está anotado en este partido', 400);
+    }
+
+    let nombre;
+    let posicionPrincipal = null;
+    let posicionSecundaria = null;
+    if (usuarioId) {
+      const membresia = await gruposService.obtenerMembresia(grupoId, usuarioId);
+      if (!membresia) {
+        throw crearError('El usuario no pertenece a este grupo', 400);
+      }
+      const usuario = await usuariosService.obtenerUsuario(usuarioId);
+      nombre = usuario?.nombre || 'Jugador';
+      posicionPrincipal = usuario?.posicionPrincipal || null;
+      posicionSecundaria = usuario?.posicionSecundaria || null;
+    } else {
+      const invitado = invitadosService.obtenerInvitado(grupoId, invitadoId);
+      if (!invitado || invitado.estado !== 'aprobado') {
+        throw crearError('El invitado no está aprobado en este grupo', 400);
+      }
+      nombre = invitado.nombre || 'Jugador';
+      posicionPrincipal = invitado.posicionPrincipal || null;
+      posicionSecundaria = invitado.posicionSecundaria || null;
+    }
+
+    if (clavesVistas.has(clave)) {
+      throw crearError('Jugador repetido entre los que se agregan', 400);
+    }
+    clavesVistas.add(clave);
+
+    porAgregar.push({
+      usuarioId,
+      invitadoId,
+      equipo,
+      nombre,
+      posicionPrincipal,
+      posicionSecundaria,
+    });
+  }
+
+  const ocupados = await contarOcupados(partidoId);
+  let orden = ocupados.titulares + ocupados.suplentes;
+
+  const actualizar = db.transaction(() => {
+    for (const { usuarioId, invitadoId, equipo } of normalizados) {
+      db.prepare(
+        `UPDATE Inscripciones SET equipo = ?
+         WHERE partidoId = ? AND estado = 'anotado' AND tipo = 'titular'
+           AND ((usuarioId IS NOT NULL AND usuarioId = ?) OR (invitadoId IS NOT NULL AND invitadoId = ?))`
+      ).run(equipo, partidoId, usuarioId, invitadoId);
+    }
+
+    for (const j of porAgregar) {
+      const id = crypto.randomUUID();
+      db.prepare(
+        `INSERT INTO Inscripciones
+          (id, partidoId, usuarioId, invitadoId, estado, tipo, orden, fechaInscripcion,
+           posicionPrincipal, posicionSecundaria, equipo)
+         VALUES
+          (@id, @partidoId, @usuarioId, @invitadoId, 'anotado', 'titular', @orden,
+           @fechaInscripcion, @posicionPrincipal, @posicionSecundaria, @equipo)`
+      ).run({
+        id,
+        partidoId,
+        usuarioId: j.usuarioId,
+        invitadoId: j.invitadoId,
+        orden: orden += 1,
+        fechaInscripcion: new Date().toISOString(),
+        posicionPrincipal: j.posicionPrincipal,
+        posicionSecundaria: j.posicionSecundaria,
+        equipo: j.equipo,
+      });
+    }
+  });
+  actualizar();
+
+  return obtenerFormacion(partidoId, grupoId);
+}
+
 // Pizarra táctica del modo plantel: un solo equipo, con el esquema (formación)
 // elegido por el admin persistido en el partido.
 async function obtenerFormacionPlantel(partido, partidoId, grupoId) {
@@ -820,6 +960,51 @@ async function generarFormacionAutomaticaPlantel(partido, grupoId, seleccion = {
   return obtenerFormacion(partido.id, grupoId);
 }
 
+// Lista jugadores del grupo que NO están anotados en el partido, para poder
+// agregarlos al modificar equipos (usuarios miembros e invitados aprobados).
+async function listarDisponibles(partidoId, grupoId) {
+  const inscritos = await db
+    .prepare(`SELECT usuarioId, invitadoId FROM Inscripciones WHERE partidoId = ? AND estado = 'anotado'`)
+    .all(partidoId);
+  const clavesInscritos = new Set(
+    inscritos.map((i) => claveJugador(i.usuarioId, i.invitadoId))
+  );
+
+  const disponibles = [];
+
+  const miembros = await gruposService.listarMiembros(grupoId);
+  for (const miembro of miembros) {
+    const clave = claveJugador(miembro.uid, null);
+    if (clavesInscritos.has(clave)) continue;
+    const usuario = await usuariosService.obtenerUsuario(miembro.uid);
+    disponibles.push({
+      usuarioId: miembro.uid,
+      invitadoId: null,
+      nombre: usuario?.nombre || miembro.nombre || 'Jugador',
+      esInvitado: false,
+    });
+  }
+
+  try {
+    const invitados = await invitadosService.listar(grupoId, null, true);
+    for (const invitado of invitados) {
+      if (invitado.estado !== 'aprobado') continue;
+      const clave = claveJugador(null, invitado.id);
+      if (clavesInscritos.has(clave)) continue;
+      disponibles.push({
+        usuarioId: null,
+        invitadoId: invitado.id,
+        nombre: invitado.nombre || 'Invitado',
+        esInvitado: true,
+      });
+    }
+  } catch (_) {
+    // Si no se pueden listar invitados, se devuelven solo los usuarios.
+  }
+
+  return disponibles;
+}
+
 module.exports = {
   anotarse,
   bajarse,
@@ -835,4 +1020,6 @@ module.exports = {
   obtenerFormacion,
   guardarFormacion,
   generarFormacionAutomatica,
+  modificarEquipos,
+  listarDisponibles,
 };

@@ -9,6 +9,7 @@ import Boton from '../components/Boton';
 import ListaJugadores from '../components/ListaJugadores';
 import ModalConfirmacionSancionAdmin from '../components/ModalConfirmacionSancionAdmin';
 import ModalCargarResultado from '../components/ModalCargarResultado';
+import ModalModificarEquipos from '../components/ModalModificarEquipos';
 import ProgramacionPartidos from '../components/ProgramacionPartidos';
 import FixtureTorneo from '../components/FixtureTorneo';
 
@@ -39,6 +40,8 @@ export default function AdminPanel() {
   const [jugadorASancionar, setJugadorASancionar] = useState(null);
   const [formacionesPorPartido, setFormacionesPorPartido] = useState({});
   const [partidoParaResultado, setPartidoParaResultado] = useState(null);
+  const [partidoParaModificarEquipos, setPartidoParaModificarEquipos] = useState(null);
+  const [disponibles, setDisponibles] = useState([]);
   const [miembrosExpandido, setMiembrosExpandido] = useState(false);
 
   const cargarTodo = useCallback(async () => {
@@ -81,6 +84,30 @@ export default function AdminPanel() {
   useEffect(() => {
     cargarTodo();
   }, [cargarTodo]);
+
+  useEffect(() => {
+    if (!partidoParaModificarEquipos) {
+      setDisponibles([]);
+      return;
+    }
+    let cancelado = false;
+    api
+      .get(
+        rutaGrupo(
+          grupoActivo.id,
+          `/partidos/${partidoParaModificarEquipos.id}/disponibles`
+        )
+      )
+      .then(({ data }) => {
+        if (!cancelado) setDisponibles(data || []);
+      })
+      .catch(() => {
+        if (!cancelado) setDisponibles([]);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [partidoParaModificarEquipos, grupoActivo]);
 
   async function crearPartido(evento) {
     evento.preventDefault();
@@ -215,6 +242,25 @@ export default function AdminPanel() {
       await api.put(rutaGrupo(grupoActivo.id, `/partidos/${partidoParaResultado.id}/resultado`), payload);
       setMensaje('Resultado cargado con éxito.');
       setPartidoParaResultado(null);
+      await cargarTodo();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAccionEnCurso(false);
+    }
+  }
+
+  async function guardarEquipos(payload) {
+    setError('');
+    setMensaje('');
+    setAccionEnCurso(true);
+    try {
+      await api.put(
+        rutaGrupo(grupoActivo.id, `/partidos/${partidoParaModificarEquipos.id}/equipos`),
+        payload
+      );
+      setMensaje('Equipos actualizados con éxito.');
+      setPartidoParaModificarEquipos(null);
       await cargarTodo();
     } catch (err) {
       setError(err.message);
@@ -383,17 +429,30 @@ export default function AdminPanel() {
                 </h3>
                 <div className={styles.botonesGrupo}>
                   {(partido.estado === 'cerrado' || partido.estado === 'jugado') && (
-                    <Boton
-                      variante="primario"
-                      className={styles.botonAccion}
-                      onClick={() => {
-                        setError('');
-                        setPartidoParaResultado(partido);
-                      }}
-                      disabled={accionEnCurso}
-                    >
-                      {partido.estado === 'jugado' ? 'Editar resultado' : 'Cargar resultado'}
-                    </Boton>
+                    <>
+                      <Boton
+                        variante="primario"
+                        className={styles.botonAccion}
+                        onClick={() => {
+                          setError('');
+                          setPartidoParaResultado(partido);
+                        }}
+                        disabled={accionEnCurso}
+                      >
+                        {partido.estado === 'jugado' ? 'Editar resultado' : 'Cargar resultado'}
+                      </Boton>
+                      <Boton
+                        variante="ghost"
+                        className={styles.botonAccion}
+                        onClick={() => {
+                          setError('');
+                          setPartidoParaModificarEquipos(partido);
+                        }}
+                        disabled={accionEnCurso}
+                      >
+                        Modificar equipos
+                      </Boton>
+                    </>
                   )}
                   <Boton
                     variante="ghost"
@@ -499,6 +558,20 @@ export default function AdminPanel() {
         onConfirmar={guardarResultado}
         onCancelar={() => {
           setPartidoParaResultado(null);
+          setError('');
+        }}
+      />
+
+      <ModalModificarEquipos
+        abierto={Boolean(partidoParaModificarEquipos)}
+        partido={partidoParaModificarEquipos}
+        jugadores={formacionesPorPartido[partidoParaModificarEquipos?.id]?.jugadores || []}
+        disponibles={disponibles}
+        procesando={accionEnCurso}
+        error={error}
+        onConfirmar={guardarEquipos}
+        onCancelar={() => {
+          setPartidoParaModificarEquipos(null);
           setError('');
         }}
       />

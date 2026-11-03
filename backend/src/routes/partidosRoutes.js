@@ -71,6 +71,18 @@ router.put(
   verificarMiembroGrupo('admin'),
   envolverAsync(resultadosController.guardar)
 );
+router.put(
+  '/:partidoId/equipos',
+  verificarToken,
+  verificarMiembroGrupo('admin'),
+  envolverAsync(inscripcionesController.modificarEquipos)
+);
+router.get(
+  '/:partidoId/disponibles',
+  verificarToken,
+  verificarMiembroGrupo(),
+  envolverAsync(inscripcionesController.listarDisponibles)
+);
 
 router.get('/:partidoId/votos/mios', verificarToken, verificarMiembroGrupo(), envolverAsync(votosController.obtenerMios));
 router.post('/:partidoId/votos', verificarToken, verificarMiembroGrupo(), envolverAsync(votosController.guardar));
