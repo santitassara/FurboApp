@@ -171,9 +171,11 @@ export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, so
                   {esGanadora && <span className={styles.badgeGanadora}>Ganadora</span>}
                   {esMiVoto && !esGanadora && <span className={styles.badgeMiVoto}>Tu voto</span>}
                 </span>
-                <span className={styles.votos}>
-                  {propuesta.votos} voto{propuesta.votos === 1 ? '' : 's'}
-                </span>
+                {(esAdmin || votacionEquiposCerrada) && (
+                  <span className={styles.votos}>
+                    {propuesta.votos} voto{propuesta.votos === 1 ? '' : 's'}
+                  </span>
+                )}
               </button>
 
               {expandido && (

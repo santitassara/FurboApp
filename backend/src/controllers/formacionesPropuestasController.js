@@ -2,36 +2,36 @@ const formacionesPropuestasService = require('../services/formacionesPropuestasS
 
 async function crear(req, res) {
   await formacionesPropuestasService.crearPropuesta(req.params.partidoId, req.params.grupoId, req.usuario.uid);
-  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid, req.miembro.rol === 'admin');
   res.status(201).json(propuestas);
 }
 
 async function listar(req, res) {
-  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid, req.miembro.rol === 'admin');
   res.json(propuestas);
 }
 
 async function eliminar(req, res) {
   await formacionesPropuestasService.eliminarPropuestaAdmin(req.params.partidoId, req.params.grupoId, req.params.propuestaId);
-  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid, req.miembro.rol === 'admin');
   res.json(propuestas);
 }
 
 async function votar(req, res) {
   await formacionesPropuestasService.votar(req.params.partidoId, req.params.grupoId, req.params.propuestaId, req.usuario.uid);
-  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid, req.miembro.rol === 'admin');
   res.json(propuestas);
 }
 
 async function cerrar(req, res) {
   await formacionesPropuestasService.cerrarManual(req.params.partidoId, req.params.grupoId);
-  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid, req.miembro.rol === 'admin');
   res.json(propuestas);
 }
 
 async function reiniciar(req, res) {
   await formacionesPropuestasService.reiniciarVotacion(req.params.partidoId, req.params.grupoId);
-  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid, req.miembro.rol === 'admin');
   res.json(propuestas);
 }
 
@@ -44,7 +44,7 @@ async function crearOpcion(req, res) {
     req.usuario.uid,
     { jugadorA, jugadorB }
   );
-  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid, req.miembro.rol === 'admin');
   res.status(201).json(propuestas);
 }
 
@@ -55,7 +55,7 @@ async function eliminarOpcion(req, res) {
     req.params.propuestaId,
     req.params.opcionId
   );
-  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid, req.miembro.rol === 'admin');
   res.json(propuestas);
 }
 
@@ -63,7 +63,7 @@ async function votarOpcion(req, res) {
   await formacionesPropuestasService.votarIntercambio(
     req.params.partidoId, req.params.grupoId, req.params.propuestaId, req.params.opcionId, req.usuario.uid, true
   );
-  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid, req.miembro.rol === 'admin');
   res.json(propuestas);
 }
 
@@ -71,7 +71,7 @@ async function quitarVotoOpcion(req, res) {
   await formacionesPropuestasService.votarIntercambio(
     req.params.partidoId, req.params.grupoId, req.params.propuestaId, req.params.opcionId, req.usuario.uid, false
   );
-  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid, req.miembro.rol === 'admin');
   res.json(propuestas);
 }
 
@@ -79,7 +79,7 @@ async function aceptarOpcion(req, res) {
   await formacionesPropuestasService.aceptarOpcionAdmin(
     req.params.partidoId, req.params.grupoId, req.params.propuestaId, req.params.opcionId
   );
-  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid);
+  const propuestas = await formacionesPropuestasService.listarPropuestas(req.params.partidoId, req.params.grupoId, req.usuario.uid, req.miembro.rol === 'admin');
   res.json(propuestas);
 }
 
