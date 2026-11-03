@@ -31,7 +31,7 @@ export default function MvpUltimaFecha({ grupoId }) {
         const rendimiento = resultado.rendimientos.find((r) => r.usuarioId === destacado.usuarioId);
         const { votos, totalElegibles } = resultado.jugadorDestacado;
         const porcentajeVotos =
-          typeof votos === 'number' && totalElegibles > 0 ? Math.round((votos / totalElegibles) * 100) : 0;
+          typeof votos === 'number' && totalElegibles > 0 ? Math.round((votos / totalElegibles) * 100) : null;
 
         if (!cancelado) {
           setVotacionCerrada(Boolean(esPlantel || resultado.votacionCerrada));
@@ -72,9 +72,11 @@ export default function MvpUltimaFecha({ grupoId }) {
             {mvp.valoracion !== null && ` • Calificación ${mvp.valoracion}`}
           </p>
         </div>
-        <span className={styles.badgeVotos}>
-          {esPlantel ? 'Elegido por el admin' : `${mvp.porcentajeVotos}% votos`}
-        </span>
+        {mvp.porcentajeVotos !== null && (
+          <span className={styles.badgeVotos}>
+            {esPlantel ? 'Elegido por el admin' : `${mvp.porcentajeVotos}% votos`}
+          </span>
+        )}
       </div>
       {!votacionCerrada && (
         <div className={styles.overlay}>

@@ -288,10 +288,10 @@ async function guardarResultadoPlantel(partido, grupoId, payload = {}) {
   });
   guardar();
 
-  return obtenerResultado(partidoId, grupoId);
+  return obtenerResultado(partidoId, grupoId, true);
 }
 
-async function obtenerResultado(partidoId, grupoId) {
+async function obtenerResultado(partidoId, grupoId, esAdmin = false) {
   const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
 
@@ -362,7 +362,9 @@ async function obtenerResultado(partidoId, grupoId) {
       invitadoId: jugador.invitadoId,
       nombre: jugador.nombre,
       promedio: puntajes ? Math.round(calcularPromedioOlimpico(puntajes) * 10) / 10 : null,
-      votos: puntajes ? puntajes.length : 0,
+      // Solo el administrador del grupo puede ver la cantidad de votos que
+      // recibio cada jugador (tanto con la votacion abierta como cerrada).
+      votos: esAdmin ? (puntajes ? puntajes.length : 0) : null,
     };
   });
 
@@ -411,7 +413,8 @@ async function obtenerResultado(partidoId, grupoId) {
     );
     jugadorDestacado = {
       jugadores: jugadoresDestacados,
-      votos: maxVotosMvp,
+      // Solo el administrador del grupo puede ver la cantidad de votos del MVP.
+      votos: esAdmin ? maxVotosMvp : null,
       totalElegibles: elegibles.length,
     };
   }

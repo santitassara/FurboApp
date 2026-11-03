@@ -1,7 +1,8 @@
 const resultadosService = require('../services/resultadosService');
 
 async function obtener(req, res) {
-  const resultado = await resultadosService.obtenerResultado(req.params.partidoId, req.params.grupoId);
+  const esAdmin = req.miembro && req.miembro.rol === 'admin';
+  const resultado = await resultadosService.obtenerResultado(req.params.partidoId, req.params.grupoId, esAdmin);
   res.json(resultado);
 }
 
