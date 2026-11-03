@@ -1,0 +1,77 @@
+@reference "../styles/globals.css";
+
+.overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8;
+}
+
+.panel {
+  @apply flex max-h-[90vh] w-full max-w-2xl flex-col rounded-xl border border-white/10 bg-cancha-800;
+}
+
+.contenido {
+  @apply overflow-y-auto p-6;
+}
+
+.titulo {
+  @apply mb-2 text-lg font-bold text-white;
+}
+
+.ayuda {
+  @apply mb-4 text-sm text-white/60;
+}
+
+.error {
+  @apply mb-4 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion;
+}
+
+.equipos {
+  @apply mb-6 flex flex-wrap gap-4;
+}
+
+.columna {
+  @apply flex-1 min-w-[220px] flex flex-col gap-2;
+}
+
+.tituloEquipo {
+  @apply mb-2 flex items-center justify-between text-sm font-bold uppercase text-white/70;
+}
+
+.contador {
+  @apply text-xs text-white/40;
+}
+
+.vacio {
+  @apply py-2 text-xs text-white/40 text-center;
+}
+
+.filaJugador {
+  @apply mb-1.5 flex flex-wrap items-center gap-2 px-2 py-1.5 rounded-lg border border-white/10 bg-cancha-900;
+}
+
+.nombreJugador {
+  @apply flex-1 min-w-0 text-sm text-white truncate;
+}
+
+.invitadoTag {
+  @apply ml-1.5 px-1.5 py-0.5 rounded border border-white/20 text-[10px] text-white/60 uppercase;
+}
+
+.botonMover {
+  @apply px-2 py-1 text-xs text-white/80;
+}
+
+.botonSacar {
+  @apply text-sancion;
+}
+
+.tituloSeccion {
+  @apply mb-2 text-sm font-bold uppercase text-white/70;
+}
+
+.filaAgregar {
+  @apply mb-1.5 flex flex-wrap items-center gap-2 px-2 py-1.5 rounded-lg border border-white/10 bg-cancha-900;
+}
+
+.pie {
+  @apply flex justify-end gap-3 border-t border-white/10 p-6 pt-4;
+}

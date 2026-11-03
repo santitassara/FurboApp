@@ -114,6 +114,23 @@ async function generarFormacionAutomatica(req, res) {
   res.json(formacion);
 }
 
+async function modificarEquipos(req, res) {
+  const formacion = await inscripcionesService.modificarEquipos(
+    req.params.partidoId,
+    req.params.grupoId,
+    req.body
+  );
+  res.json(formacion);
+}
+
+async function listarDisponibles(req, res) {
+  const disponibles = await inscripcionesService.listarDisponibles(
+    req.params.partidoId,
+    req.params.grupoId
+  );
+  res.json(disponibles);
+}
+
 module.exports = {
   anotarse,
   bajarse,
@@ -125,4 +142,6 @@ module.exports = {
   verFormacion,
   guardarFormacion,
   generarFormacionAutomatica,
+  modificarEquipos,
+  listarDisponibles,
 };
