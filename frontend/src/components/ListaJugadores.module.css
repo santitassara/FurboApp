@@ -36,6 +36,15 @@
   @apply bg-white/10 text-white/70;
 }
 
+/* Fila del jugador que esta seleccionado en la cancha (hover / tap / click sobre su circulo). */
+.filaDestacada {
+  @apply ring-2 ring-pasto-500 ring-offset-2 ring-offset-cancha-800;
+}
+
+.nombreDestacado {
+  @apply text-pasto-500 font-bold;
+}
+
 .accionBoton {
   @apply shrink-0 px-2 py-1 text-xs;
 }

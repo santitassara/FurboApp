@@ -5,6 +5,7 @@ import api from '../services/api';
 import Boton from './Boton';
 import { etiquetaPosicion } from '../constants/posiciones';
 import { calcularRating } from './TarjetaJugadorFIFA';
+import { useJugadorDestacado } from '../context/JugadorDestacadoContext';
 import styles from './ListaJugadores.module.css';
 
 const ABREVIATURA_POSICION = {
@@ -43,6 +44,8 @@ function colorValoracion(rating) {
 function FilaJugador({ jugador, accion, onAccion, deshabilitado, grupoId }) {
   const inicial = jugador.nombre?.trim()?.[0]?.toUpperCase() || '?';
   const [rating, setRating] = useState(jugador.esInvitado ? calcularRating(jugador.habilidades || {}) : null);
+  const { jugadorDestacadoId } = useJugadorDestacado();
+  const esDestacado = jugadorDestacadoId === (jugador.usuarioId || jugador.invitadoId);
 
   useEffect(() => {
     if (jugador.esInvitado) return;
@@ -58,15 +61,15 @@ function FilaJugador({ jugador, accion, onAccion, deshabilitado, grupoId }) {
   }, [jugador.usuarioId, jugador.esInvitado, grupoId]);
 
   return (
-    <li className={styles.fila}>
+    <li className={clsx(styles.fila, esDestacado && styles.filaDestacada)}>
       <div className={styles.avatar}>
         {inicial}
       </div>
       <div className={styles.infoWrapper}>
         {jugador.esInvitado ? (
-          <span className={styles.nombreLink}>{jugador.nombre} (invitado)</span>
+          <span className={clsx(styles.nombreLink, esDestacado && styles.nombreDestacado)}>{jugador.nombre} (invitado)</span>
         ) : (
-          <Link to={`/jugadores/${jugador.usuarioId}`} className={styles.nombreLink}>
+          <Link to={`/jugadores/${jugador.usuarioId}`} className={clsx(styles.nombreLink, esDestacado && styles.nombreDestacado)}>
             {jugador.nombre}
           </Link>
         )}

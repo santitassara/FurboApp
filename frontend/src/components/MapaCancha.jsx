@@ -16,6 +16,7 @@ import {
 } from '../utils/formaciones';
 import { useAuth } from '../context/AuthContext';
 import { useGrupo } from '../context/GrupoContext';
+import { useJugadorDestacado } from '../context/JugadorDestacadoContext';
 import { rutaGrupo } from '../utils/rutasGrupo';
 
 function claveUbicacion(equipo, linea, ordenLinea) {
@@ -60,6 +61,9 @@ function Jugador({ usuarioId, invitadoId, nombre, linea, draggable }) {
     id: usuarioId || invitadoId,
     disabled: !draggable,
   });
+  const { setJugadorDestacado } = useJugadorDestacado();
+  // Identidad del asiento: un jugador real o un invitado, nunca ambos.
+  const clave = usuarioId || invitadoId;
   const estilo = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 10 } : undefined;
 
   return (
@@ -67,6 +71,9 @@ function Jugador({ usuarioId, invitadoId, nombre, linea, draggable }) {
       ref={setNodeRef}
       style={estilo}
       {...(draggable ? { ...listeners, ...attributes } : {})}
+      onMouseEnter={() => !isDragging && setJugadorDestacado(clave)}
+      onMouseLeave={() => setJugadorDestacado(null)}
+      onClick={() => setJugadorDestacado(clave)}
       className={clsx(styles.jugador, 'group', draggable && styles.jugadorDraggable, isDragging && styles.jugadorDragging)}
     >
       <span className={styles.jugadorTooltip}>
