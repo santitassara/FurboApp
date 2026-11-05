@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useGrupo } from '../context/GrupoContext';
 import BadgeSancion from './BadgeSancion';
 import SelectorGrupoActivo from './SelectorGrupoActivo';
+import JugadorDestacadoProvider from '../context/JugadorDestacadoContext';
+import TooltipJugador from './TooltipJugador';
 import styles from './Layout.module.css';
 
 const ICONOS = {
@@ -117,7 +119,12 @@ export default function Layout({ children }) {
         </div>
       </aside>
 
-      <main className={styles.main}>{children}</main>
+      <main className={styles.main}>
+        <JugadorDestacadoProvider>
+          {children}
+          <TooltipJugador />
+        </JugadorDestacadoProvider>
+      </main>
     </div>
   );
 }
