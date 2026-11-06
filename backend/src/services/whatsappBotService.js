@@ -38,13 +38,16 @@ function contarInscriptos(partidoId, tipo) {
 function obtenerTitularesPorEquipo(partidoId) {
   return db
     .prepare(
-      `SELECT i.equipo AS equipo, u.nombre AS nombre
+      `SELECT i.equipo AS equipo,
+              COALESCE(u.nombre, inv.nombre) AS nombre
        FROM Inscripciones i
-       JOIN Usuarios u ON u.uid = i.usuarioId
+       JOIN Partidos p ON p.id = i.partidoId
+       LEFT JOIN Usuarios u ON u.uid = i.usuarioId
+       LEFT JOIN Invitados inv ON inv.id = i.invitadoId AND inv.grupoId = p.grupoId
        WHERE i.partidoId = ?
          AND i.estado = 'anotado'
          AND i.tipo = 'titular'
-       ORDER BY i.equipo ASC, i.ordenLinea ASC, u.nombre ASC`
+       ORDER BY i.equipo ASC, i.ordenLinea ASC, nombre ASC`
     )
     .all(partidoId);
 }
@@ -89,11 +92,15 @@ function seleccionarPropuestasMasVotadas(propuestas) {
 function obtenerDetallePropuesta(propuestaId) {
   return db
     .prepare(
-      `SELECT d.equipo AS equipo, u.nombre AS nombre
+      `SELECT d.equipo AS equipo,
+              COALESCE(u.nombre, i.nombre) AS nombre
        FROM FormacionesPropuestasDetalle d
-       JOIN Usuarios u ON u.uid = d.usuarioId
+       JOIN FormacionesPropuestas p ON p.id = d.propuestaId
+       JOIN Partidos pa ON pa.id = p.partidoId
+       LEFT JOIN Usuarios u ON u.uid = d.usuarioId
+       LEFT JOIN Invitados i ON i.id = d.invitadoId AND i.grupoId = pa.grupoId
        WHERE d.propuestaId = ?
-       ORDER BY d.equipo ASC, d.ordenLinea ASC, u.nombre ASC`
+       ORDER BY d.equipo ASC, d.ordenLinea ASC, nombre ASC`
     )
     .all(propuestaId);
 }
@@ -168,11 +175,12 @@ function obtenerUltimoPartidoJugado(grupoId) {
 function obtenerGoleadoresPartido(partidoId) {
   return db
     .prepare(
-      `SELECT u.nombre AS nombre, COUNT(*) AS goles
+      `SELECT COALESCE(u.nombre, i.nombre) AS nombre, COUNT(*) AS goles
        FROM Goles g
-       JOIN Usuarios u ON u.uid = g.usuarioId
+       LEFT JOIN Usuarios u ON u.uid = g.usuarioId
+       LEFT JOIN Invitados i ON i.id = g.invitadoId
        WHERE g.partidoId = ? AND g.enContra = 0
-       GROUP BY g.usuarioId
+       GROUP BY COALESCE(g.usuarioId, g.invitadoId)
        ORDER BY goles DESC, nombre ASC`
     )
     .all(partidoId);
@@ -181,11 +189,12 @@ function obtenerGoleadoresPartido(partidoId) {
 function obtenerAsistidoresPartido(partidoId) {
   return db
     .prepare(
-      `SELECT u.nombre AS nombre, COUNT(*) AS asistencias
+      `SELECT COALESCE(u.nombre, i.nombre) AS nombre, COUNT(*) AS asistencias
        FROM Goles g
-       JOIN Usuarios u ON u.uid = g.asistenciaUsuarioId
-       WHERE g.partidoId = ? AND g.asistenciaUsuarioId IS NOT NULL
-       GROUP BY g.asistenciaUsuarioId
+       LEFT JOIN Usuarios u ON u.uid = g.asistenciaUsuarioId
+       LEFT JOIN Invitados i ON i.id = g.asistenciaInvitadoId
+       WHERE g.partidoId = ? AND (g.asistenciaUsuarioId IS NOT NULL OR g.asistenciaInvitadoId IS NOT NULL)
+       GROUP BY COALESCE(g.asistenciaUsuarioId, g.asistenciaInvitadoId)
        ORDER BY asistencias DESC, nombre ASC`
     )
     .all(partidoId);
@@ -194,11 +203,12 @@ function obtenerAsistidoresPartido(partidoId) {
 function obtenerMvpPartido(partidoId) {
   const votos = db
     .prepare(
-      `SELECT v.jugadorId AS jugadorId, u.nombre AS nombre, COUNT(*) AS votos
+      `SELECT COALESCE(u.nombre, i.nombre) AS nombre, COUNT(*) AS votos
        FROM VotosMvp v
-       JOIN Usuarios u ON u.uid = v.jugadorId
+       LEFT JOIN Usuarios u ON u.uid = v.jugadorId
+       LEFT JOIN Invitados i ON i.id = v.invitadoId
        WHERE v.partidoId = ?
-       GROUP BY v.jugadorId
+       GROUP BY COALESCE(v.jugadorId, v.invitadoId)
        ORDER BY votos DESC`
     )
     .all(partidoId);
@@ -211,12 +221,13 @@ function obtenerMvpPartido(partidoId) {
 function obtenerGoleadoresGrupo(grupoId) {
   return db
     .prepare(
-      `SELECT u.nombre AS nombre, COUNT(*) AS goles
+      `SELECT COALESCE(u.nombre, i.nombre) AS nombre, COUNT(*) AS goles
        FROM Goles g
        JOIN Partidos p ON p.id = g.partidoId
-       JOIN Usuarios u ON u.uid = g.usuarioId
+       LEFT JOIN Usuarios u ON u.uid = g.usuarioId
+       LEFT JOIN Invitados i ON i.id = g.invitadoId AND i.grupoId = p.grupoId
        WHERE p.grupoId = ? AND g.enContra = 0
-       GROUP BY g.usuarioId
+       GROUP BY COALESCE(g.usuarioId, g.invitadoId)
        ORDER BY goles DESC, nombre ASC
        LIMIT ?`
     )
@@ -226,12 +237,13 @@ function obtenerGoleadoresGrupo(grupoId) {
 function obtenerAsistidoresGrupo(grupoId) {
   return db
     .prepare(
-      `SELECT u.nombre AS nombre, COUNT(*) AS asistencias
+      `SELECT COALESCE(u.nombre, i.nombre) AS nombre, COUNT(*) AS asistencias
        FROM Goles g
        JOIN Partidos p ON p.id = g.partidoId
-       JOIN Usuarios u ON u.uid = g.asistenciaUsuarioId
-       WHERE p.grupoId = ? AND g.asistenciaUsuarioId IS NOT NULL
-       GROUP BY g.asistenciaUsuarioId
+       LEFT JOIN Usuarios u ON u.uid = g.asistenciaUsuarioId
+       LEFT JOIN Invitados i ON i.id = g.asistenciaInvitadoId AND i.grupoId = p.grupoId
+       WHERE p.grupoId = ? AND (g.asistenciaUsuarioId IS NOT NULL OR g.asistenciaInvitadoId IS NOT NULL)
+       GROUP BY COALESCE(g.asistenciaUsuarioId, g.asistenciaInvitadoId)
        ORDER BY asistencias DESC, nombre ASC
        LIMIT ?`
     )
@@ -241,19 +253,20 @@ function obtenerAsistidoresGrupo(grupoId) {
 function obtenerMvpsGrupo(grupoId) {
   return db
     .prepare(
-      `SELECT u.nombre AS nombre, COUNT(*) AS mvps
+      `SELECT COALESCE(u.nombre, i.nombre) AS nombre, COUNT(*) AS mvps
        FROM (
-         SELECT v.partidoId AS partidoId, v.jugadorId AS jugadorId, COUNT(*) AS votos,
+         SELECT v.partidoId, COALESCE(v.jugadorId, v.invitadoId) AS jugadorClave, COUNT(*) AS votos,
                 MAX(COUNT(*)) OVER (PARTITION BY v.partidoId) AS maxVotos
          FROM VotosMvp v
          JOIN Partidos p ON p.id = v.partidoId
          WHERE p.grupoId = ?
-         GROUP BY v.partidoId, v.jugadorId
+         GROUP BY v.partidoId, COALESCE(v.jugadorId, v.invitadoId)
        ) t
-       JOIN Usuarios u ON u.uid = t.jugadorId
+       LEFT JOIN Usuarios u ON u.uid = t.jugadorClave
+       LEFT JOIN Invitados i ON i.id = t.jugadorClave AND i.grupoId = (SELECT grupoId FROM Partidos WHERE id = t.partidoId)
        WHERE t.votos = t.maxVotos
-       GROUP BY t.jugadorId
-       ORDER BY mvps DESC, u.nombre ASC
+       GROUP BY t.jugadorClave
+       ORDER BY mvps DESC, nombre ASC
        LIMIT ?`
     )
     .all(grupoId, TOP_RANKING);
@@ -370,6 +383,254 @@ function formatearEstadisticasGrupo(grupoId) {
   return `📊 Estadísticas del grupo:\n\n${bloques.join('\n\n')}`;
 }
 
+function formatearMvpsGrupo(grupoId) {
+  const mvps = obtenerMvpsGrupo(grupoId);
+  if (mvps.length === 0) return 'Sin MVPs registrados en el grupo.';
+  return `🏆 MVPs del grupo:\n${formatearListaConCantidad(mvps, 'mvps', 'MVP', 'MVPs')}`;
+}
+
+function obtenerEstadisticasJugador(grupoId, nombreJugador) {
+  let jugador = db
+    .prepare('SELECT uid, nombre FROM Usuarios WHERE nombre LIKE ?')
+    .get(`%${nombreJugador}%`);
+
+  let esInvitado = false;
+  let invitadoId = null;
+
+  if (!jugador) {
+    const invitado = db
+      .prepare('SELECT id, nombre FROM Invitados WHERE grupoId = ? AND nombre LIKE ? AND estado = "aprobado"')
+      .get(grupoId, `%${nombreJugador}%`);
+    if (invitado) {
+      esInvitado = true;
+      invitadoId = invitado.id;
+      jugador = { uid: null, nombre: invitado.nombre };
+    }
+  }
+
+  if (!jugador) return null;
+
+  const uid = jugador.uid;
+
+  let goles, asistencias, mvps, partidosJugados;
+
+  if (esInvitado) {
+    goles = db
+      .prepare(
+        `SELECT COUNT(*) AS total
+         FROM Goles g
+         JOIN Partidos p ON p.id = g.partidoId
+         WHERE p.grupoId = ? AND g.invitadoId = ? AND g.enContra = 0`
+      )
+      .get(grupoId, invitadoId).total;
+
+    asistencias = db
+      .prepare(
+        `SELECT COUNT(*) AS total
+         FROM Goles g
+         JOIN Partidos p ON p.id = g.partidoId
+         WHERE p.grupoId = ? AND g.asistenciaInvitadoId = ?`
+      )
+      .get(grupoId, invitadoId).total;
+
+    mvps = db
+      .prepare(
+        `SELECT COUNT(*) AS total
+         FROM (
+           SELECT v.partidoId, v.invitadoId, COUNT(*) AS votos,
+                  MAX(COUNT(*)) OVER (PARTITION BY v.partidoId) AS maxVotos
+           FROM VotosMvp v
+           JOIN Partidos p ON p.id = v.partidoId
+           WHERE p.grupoId = ?
+           GROUP BY v.partidoId, v.invitadoId
+         ) t
+         WHERE t.invitadoId = ? AND t.votos = t.maxVotos`
+      )
+      .get(grupoId, invitadoId).total;
+
+    partidosJugados = db
+      .prepare(
+        `SELECT COUNT(DISTINCT p.id) AS total
+         FROM Inscripciones i
+         JOIN Partidos p ON p.id = i.partidoId
+         WHERE p.grupoId = ? AND i.invitadoId = ? AND i.estado = 'anotado' AND p.estado = 'jugado'`
+      )
+      .get(grupoId, invitadoId).total;
+  } else {
+    goles = db
+      .prepare(
+        `SELECT COUNT(*) AS total
+         FROM Goles g
+         JOIN Partidos p ON p.id = g.partidoId
+         WHERE p.grupoId = ? AND g.usuarioId = ? AND g.enContra = 0`
+      )
+      .get(grupoId, uid).total;
+
+    asistencias = db
+      .prepare(
+        `SELECT COUNT(*) AS total
+         FROM Goles g
+         JOIN Partidos p ON p.id = g.partidoId
+         WHERE p.grupoId = ? AND g.asistenciaUsuarioId = ?`
+      )
+      .get(grupoId, uid).total;
+
+    mvps = db
+      .prepare(
+        `SELECT COUNT(*) AS total
+         FROM (
+           SELECT v.partidoId, v.jugadorId, COUNT(*) AS votos,
+                  MAX(COUNT(*)) OVER (PARTITION BY v.partidoId) AS maxVotos
+           FROM VotosMvp v
+           JOIN Partidos p ON p.id = v.partidoId
+           WHERE p.grupoId = ?
+           GROUP BY v.partidoId, v.jugadorId
+         ) t
+         WHERE t.jugadorId = ? AND t.votos = t.maxVotos`
+      )
+      .get(grupoId, uid).total;
+
+    partidosJugados = db
+      .prepare(
+        `SELECT COUNT(DISTINCT p.id) AS total
+         FROM Inscripciones i
+         JOIN Partidos p ON p.id = i.partidoId
+         WHERE p.grupoId = ? AND i.usuarioId = ? AND i.estado = 'anotado' AND p.estado = 'jugado'`
+      )
+      .get(grupoId, uid).total;
+  }
+
+  return { nombre: jugador.nombre, goles, asistencias, mvps, partidosJugados };
+}
+
+function formatearEstadisticasJugador(grupoId, nombreJugador) {
+  const stats = obtenerEstadisticasJugador(grupoId, nombreJugador);
+  if (!stats) return `No encontré a ningún jugador llamado "${nombreJugador}".`;
+  return (
+    `📊 *Estadísticas de ${stats.nombre}*\n` +
+    `⚽ Goles: ${stats.goles}\n` +
+    `🎯 Asistencias: ${stats.asistencias}\n` +
+    `🏆 MVPs: ${stats.mvps}\n` +
+    `🏟️ Partidos jugados: ${stats.partidosJugados}`
+  );
+}
+
+function obtenerSancionadosGrupo(grupoId) {
+  return db
+    .prepare(
+      `SELECT u.nombre AS nombre
+       FROM UsuariosGrupos ug
+       JOIN Usuarios u ON u.uid = ug.usuarioId
+       WHERE ug.grupoId = ? AND ug.estaSancionado = 1
+       ORDER BY u.nombre ASC`
+    )
+    .all(grupoId);
+}
+
+function formatearSancionadosGrupo(grupoId) {
+  const sancionados = obtenerSancionadosGrupo(grupoId);
+  if (sancionados.length === 0) return '✅ Nadie está sancionado en el grupo.';
+  const lista = sancionados.map((j) => `• ${j.nombre}`).join('\n');
+  return `🚫 *Jugadores sancionados:*\n${lista}`;
+}
+
+function formatearCuposLibres(grupoId) {
+  const partido = obtenerProximoPartido(grupoId);
+  if (!partido) return 'No hay ningún partido abierto por ahora.';
+
+  const titulares = contarInscriptos(partido.id, 'titular');
+  const suplentes = contarInscriptos(partido.id, 'suplente');
+  const libresTitulares = partido.cupoTitulares - titulares;
+  const libresSuplentes = partido.cupoSuplentes - suplentes;
+
+  const { dia, hora } = formatearDiaYHora(partido.fecha);
+  return (
+    `📋 *Cupos para el partido del ${dia} a las ${hora}:*\n` +
+    `⚪ Titulares: ${libresTitulares} libre${libresTitulares !== 1 ? 's' : ''} (${titulares}/${partido.cupoTitulares})\n` +
+    `⚫ Suplentes: ${libresSuplentes} libre${libresSuplentes !== 1 ? 's' : ''} (${suplentes}/${partido.cupoSuplentes})`
+  );
+}
+
+function obtenerEstadoJugadorProximoPartido(grupoId, nombreJugador) {
+  let jugador = db
+    .prepare('SELECT uid, nombre FROM Usuarios WHERE nombre LIKE ?')
+    .get(`%${nombreJugador}%`);
+
+  let esInvitado = false;
+  let invitadoId = null;
+
+  if (!jugador) {
+    const invitado = db
+      .prepare('SELECT id, nombre FROM Invitados WHERE grupoId = ? AND nombre LIKE ? AND estado = "aprobado"')
+      .get(grupoId, `%${nombreJugador}%`);
+    if (invitado) {
+      esInvitado = true;
+      invitadoId = invitado.id;
+      jugador = { uid: null, nombre: invitado.nombre };
+    }
+  }
+
+  if (!jugador) return null;
+
+  const uid = jugador.uid;
+  const partido = obtenerProximoPartido(grupoId);
+  if (!partido) return { nombre: jugador.nombre, partido: null };
+
+  let inscripcion;
+  if (esInvitado) {
+    inscripcion = db
+      .prepare(
+        `SELECT estado, tipo FROM Inscripciones WHERE partidoId = ? AND invitadoId = ?`
+      )
+      .get(partido.id, invitadoId);
+  } else {
+    inscripcion = db
+      .prepare(
+        `SELECT estado, tipo FROM Inscripciones WHERE partidoId = ? AND usuarioId = ?`
+      )
+      .get(partido.id, uid);
+  }
+
+  const sancionado = db
+    .prepare('SELECT estaSancionado FROM UsuariosGrupos WHERE grupoId = ? AND usuarioId = ?')
+    .get(grupoId, uid);
+
+  return {
+    nombre: jugador.nombre,
+    partido: { id: partido.id, fecha: partido.fecha, cupoTitulares: partido.cupoTitulares, cupoSuplentes: partido.cupoSuplentes },
+    inscripcion,
+    estaSancionado: sancionado?.estaSancionado === 1,
+  };
+}
+
+function formatearEstadoJugador(grupoId, nombreJugador) {
+  const estado = obtenerEstadoJugadorProximoPartido(grupoId, nombreJugador);
+  if (!estado) return `No encontré a ningún jugador llamado "${nombreJugador}".`;
+
+  if (!estado.partido) {
+    return `📭 *${estado.nombre}*: No hay partido abierto por ahora.`;
+  }
+
+  const { dia, hora } = formatearDiaYHora(estado.partido.fecha);
+  let respuesta = `📋 *Estado de ${estado.nombre} para el ${dia} a las ${hora}:*\n`;
+
+  if (estado.estaSancionado) {
+    respuesta += `🚫 *Sancionado* — no puede anotarse.`;
+    return respuesta;
+  }
+
+  if (!estado.inscripcion) {
+    respuesta += `❌ No anotado.`;
+    return respuesta;
+  }
+
+  const tipo = estado.inscripcion.tipo === 'titular' ? '⚪ Titular' : '⚫ Suplente';
+  const estadoInscripcion = estado.inscripcion.estado === 'anotado' ? '✅ Anotado' : '❌ Dado de baja';
+  respuesta += `${tipo} — ${estadoInscripcion}.`;
+
+  return respuesta;
+}
+
 function parsearFechaDelTexto(texto) {
   const match = texto.match(/(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/);
   if (!match) return null;
@@ -452,7 +713,36 @@ function generarRespuestaLocal(grupoId, textoMensaje) {
   }
 
   if (preguntaPorMvp) {
+    const esMvpTotales = texto.includes('mas mvp') || texto.includes('más mvp') || texto.includes('total mvp') || texto.includes('mas mvps') || texto.includes('más mvps') || texto.includes('total mvps');
+    if (esMvpTotales) {
+      return formatearMvpsGrupo(grupoId);
+    }
     return formatearMvpUltimoPartido(grupoId);
+  }
+
+  if (texto.includes('sancionado') || (texto.includes('quien') && texto.includes('sancion')) || (texto.includes('quién') && texto.includes('sancion'))) {
+    return formatearSancionadosGrupo(grupoId);
+  }
+
+  if (texto.includes('cupo') || texto.includes('lugar') || texto.includes('disponible') || texto.includes('libre')) {
+    return formatearCuposLibres(grupoId);
+  }
+
+  if (texto.includes('mi estado') || texto.includes('como estoy') || texto.includes('cómo estoy') || (texto.includes('estado') && texto.includes('de '))) {
+    const match = texto.match(/estado\s+de\s+(.+)/i);
+    if (match) {
+      const nombreJugador = match[1].trim();
+      return formatearEstadoJugador(grupoId, nombreJugador);
+    }
+    return '¿De qué jugador querés saber el estado? Escribí "estado de [nombre]".';
+  }
+
+  if (preguntaPorEstadisticas && (texto.includes(' de ') || texto.includes('de '))) {
+    const match = texto.match(/estadisticas?\s+de\s+(.+)/i);
+    if (match) {
+      const nombreJugador = match[1].trim();
+      return formatearEstadisticasJugador(grupoId, nombreJugador);
+    }
   }
 
   if (preguntaPorAsistidor) {
@@ -537,6 +827,15 @@ async function enviarMensajeConMenciones(socket, chatId, texto, mensajeCitado = 
   return await socket.sendMessage(chatId, opcionesMensaje, opcionesExtra);
 }
 
+function esConsultaVotacionFormaciones(texto) {
+  const t = texto.toLowerCase();
+  return (
+    (t.includes('cómo va') || t.includes('como va') || t.includes('qué tal') || t.includes('que tal') || t.includes('cómo está') || t.includes('como esta') || t.includes('estado de')) &&
+    (t.includes('votación') || t.includes('votacion') || t.includes('voto') || t.includes('votos')) &&
+    (t.includes('formación') || t.includes('formacion') || t.includes('equipos') || t.includes('equipo'))
+  );
+}
+
 function registrarListenerBot(socket) {
   console.log('[BOT] Listener registrado. Usuario del socket:', socket.user?.id);
   socket.ev.on('messages.upsert', async (m) => {
@@ -561,6 +860,11 @@ function registrarListenerBot(socket) {
     if (!grupo) return;
 
     const cleanText = text.replace(/@\d+/g, '').trim();
+
+    if (esConsultaVotacionFormaciones(cleanText)) {
+      console.log('[BOT] Ignorando consulta sobre votación de formaciones:', cleanText);
+      return;
+    }
 
     try {
       await socket.sendPresenceUpdate('composing', chatId);
