@@ -238,18 +238,59 @@ async function guardarFoto(uid, archivo) {
     throw error;
   }
 
+  // Process image through remove.bg to remove background
+  let imagenProcesada;
+  try {
+    imagenProcesada = await procesarImagenRemoveBg(archivo.buffer);
+  } catch (error) {
+    console.error('Error procesando imagen con remove.bg:', error.message);
+    // Fallback: use original image if remove.bg fails
+    imagenProcesada = archivo.buffer;
+  }
+
+  // remove.bg returns PNG with transparency, so we save as PNG
+  const extensionFinal = 'png';
+
   fs.mkdirSync(DIRECTORIO_FOTOS, { recursive: true });
   for (const ext of new Set(Object.values(TIPOS_PERMITIDOS))) {
     const rutaPrevia = path.join(DIRECTORIO_FOTOS, `${uid}.${ext}`);
     if (fs.existsSync(rutaPrevia)) fs.unlinkSync(rutaPrevia);
   }
 
-  const nombreArchivo = `${uid}.${extension}`;
-  fs.writeFileSync(path.join(DIRECTORIO_FOTOS, nombreArchivo), archivo.buffer);
+  const nombreArchivo = `${uid}.${extensionFinal}`;
+  fs.writeFileSync(path.join(DIRECTORIO_FOTOS, nombreArchivo), imagenProcesada);
 
   const fotoUrl = `/uploads/perfiles/${nombreArchivo}?v=${Date.now()}`;
   db.prepare('UPDATE Usuarios SET fotoUrl = ? WHERE uid = ?').run(fotoUrl, uid);
   return obtenerUsuario(uid);
+}
+
+async function procesarImagenRemoveBg(bufferImagen) {
+  const apiKey = process.env.REMOVE_BG_API_KEY;
+  if (!apiKey) {
+    throw new Error('REMOVE_BG_API_KEY no configurada');
+  }
+
+  const formData = new FormData();
+  const blob = new Blob([bufferImagen]);
+  formData.append('image_file', blob, 'image.png');
+  formData.append('size', 'auto');
+
+  const response = await fetch('https://api.remove.bg/v1.0/removebg', {
+    method: 'POST',
+    headers: {
+      'X-Api-Key': apiKey,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`remove.bg API error: ${response.status} - ${errorText}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
 }
 
 const CAMPOS_HABILIDAD = ['velocidad', 'pegada', 'tocaPase', 'gambeta', 'marcaDefensa', 'fisico'];
