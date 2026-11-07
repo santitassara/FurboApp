@@ -215,9 +215,7 @@ export default function Home() {
 
                   <TarjetaInfoPartido partido={partido} />
 
-                  <div
-                    className={clsx(formacionesPorPartido[partido.id] && styles.gridDosColumnas)}
-                  >
+                  <div className={clsx(formacionesPorPartido[partido.id] && styles.gridDosColumnas)}>
                     <div>
                       <ListaConvocadosScroll
                         jugadores={inscripcionesPorPartido[partido.id] || []}
@@ -227,41 +225,47 @@ export default function Home() {
                       />
                     </div>
 
-                    {(() => {
-                      const ocupados = partido.ocupados || { titulares: 0, suplentes: 0 };
-                      const esperandoTitulares = ocupados.titulares < partido.cupoTitulares;
-                      if (!formacionesPorPartido[partido.id]) return null;
-                      return (
-                        <div id={`mapa-cancha-${partido.id}`} className={styles.mapaWrapper}>
-                          <div className={clsx(esperandoTitulares && styles.bloqueado)}>
-                            <MapaCancha
-                              partidoId={partido.id}
-                              formacion={formacionesPorPartido[partido.id]}
-                              esAdmin={grupoActivo?.rol === 'admin'}
-                              onGuardado={(data) =>
-                                setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))
-                              }
-                              propuestasInfo={propuestasPorPartido[partido.id]}
-                              previewPropuesta={previewPorPartido[partido.id] || null}
-                              previewEtiqueta={previewEtiquetaPorPartido[partido.id] || null}
-                              onPropuesto={cargarPartidos}
-                              onSalirPreview={() =>
-                                setPreviewPorPartido((anterior) => ({ ...anterior, [partido.id]: null }))
-                              }
-                              jugadores={inscripcionesPorPartido[partido.id] || []}
-                              onPromovido={cargarPartidos}
-                            />
-                          </div>
-                          {esperandoTitulares && (
+                    {formacionesPorPartido[partido.id] && (
+                      <div id={`mapa-cancha-${partido.id}`} className={styles.mapaWrapper}>
+                        {(() => {
+                          const ocupados = partido.ocupados || { titulares: 0, suplentes: 0 };
+                          const esperandoTitulares = ocupados.titulares < partido.cupoTitulares;
+                          return (
+                            <div className={clsx(esperandoTitulares && styles.bloqueado)}>
+                              <MapaCancha
+                                partidoId={partido.id}
+                                formacion={formacionesPorPartido[partido.id]}
+                                esAdmin={grupoActivo?.rol === 'admin'}
+                                onGuardado={(data) =>
+                                  setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))
+                                }
+                                propuestasInfo={propuestasPorPartido[partido.id]}
+                                previewPropuesta={previewPorPartido[partido.id] || null}
+                                previewEtiqueta={previewEtiquetaPorPartido[partido.id] || null}
+                                onPropuesto={cargarPartidos}
+                                onSalirPreview={() =>
+                                  setPreviewPorPartido((anterior) => ({ ...anterior, [partido.id]: null }))
+                                }
+                                jugadores={inscripcionesPorPartido[partido.id] || []}
+                                onPromovido={cargarPartidos}
+                              />
+                            </div>
+                          );
+                        })()}
+                        {(() => {
+                          const ocupados = partido.ocupados || { titulares: 0, suplentes: 0 };
+                          const esperandoTitulares = ocupados.titulares < partido.cupoTitulares;
+                          return esperandoTitulares && (
                             <div className={styles.overlayEsperando}>
                               <p className={styles.mensajeEsperando}>
                                 Esperando a todos los titulares
                               </p>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })()}
+                          );
+                        })()}
+                      </div>
+                    )}
+
                   </div>
 
                   {propuestasPorPartido[partido.id]?.propuestas?.length > 0 && (

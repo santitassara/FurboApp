@@ -5,7 +5,7 @@
 }
 
 .aside {
-  @apply flex shrink-0 flex-col border-white/10 bg-cancha-800 md:h-screen md:w-56 md:border-r md:sticky md:top-0;
+  @apply flex shrink-0 flex-col border-white/10 bg-cancha-950 md:h-screen md:w-56 md:border-r md:sticky md:top-0 elev-3;
 }
 
 .logoContenedor {
@@ -29,11 +29,11 @@
 }
 
 .navItem {
-  @apply flex items-center gap-3 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-semibold transition;
+  @apply flex items-center gap-3 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-semibold transition-all motion-base;
 }
 
 .navItemActivo {
-  @apply bg-pasto-600/20 text-pasto-500;
+  @apply bg-pasto-600/20 text-pasto-500 elev-1;
 }
 
 .navItemInactivo {
@@ -61,9 +61,9 @@
 }
 
 .botonSalir {
-  @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-white/60 transition hover:bg-white/5 hover:text-white;
+  @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-white/60 transition-all motion-base hover:bg-white/5 hover:text-white;
 }
 
 .main {
-  @apply min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-10;
+  @apply min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-10 bg-cancha-900;
 }

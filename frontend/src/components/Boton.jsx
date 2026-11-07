@@ -4,6 +4,8 @@ import styles from './Boton.module.css';
 const VARIANTES = {
   primario: styles.primario,
   peligro: styles.peligro,
+  info: styles.info,
+  celebracion: styles.celebracion,
   ghost: styles.ghost,
 };
 

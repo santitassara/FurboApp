@@ -1,17 +1,111 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Teko:wght@400;500;600;700&display=swap');
 
 @theme {
+  /* Colors - Cancha (dark field theme) */
+  --color-cancha-950: #030906;
   --color-cancha-900: #07130d;
+  --color-cancha-850: #0a1a11;
   --color-cancha-800: #0d1f16;
+  --color-cancha-750: #102a1e;
   --color-cancha-700: #123321;
-  --color-pasto-500: #22c55e;
-  --color-pasto-600: #16a34a;
-  --color-albiceleste: #75aadb;
-  --color-tarjeta: #eab308;
-  --color-sancion: #ef4444;
+  --color-cancha-650: #154029;
+  --color-cancha-600: #184d31;
+  --color-cancha-550: #1c5a3a;
+  --color-cancha-500: #1f6742;
+
+  /* Accents - Semantic split */
+  --color-pasto-500: #22c55e;   /* Primary action */
+  --color-pasto-600: #16a34a;   /* Primary action hover */
+  --color-albiceleste: #75aadb; /* Info / state / focus */
+  --color-tarjeta: #eab308;     /* Celebration / highlight */
+  --color-sancion: #ef4444;     /* Danger / error only */
+
+  /* Typography */
   --font-display: 'Teko', sans-serif;
+  --font-body: 'DM Sans', 'Space Grotesk', system-ui, sans-serif;
+
+  /* Elevation - pasto-tinted shadows */
+  --shadow-elev-1: 0 1px 2px rgb(22 163 74 / 0.08);
+  --shadow-elev-2: 0 4px 8px rgb(22 163 74 / 0.10);
+  --shadow-elev-3: 0 8px 24px rgb(22 163 74 / 0.12);
+  --shadow-elev-4: 0 16px 48px rgb(22 163 74 / 0.15);
+
+  /* Motion tokens */
+  --motion-fast: 100ms cubic-bezier(0.2, 0, 0, 1);
+  --motion-base: 200ms cubic-bezier(0.2, 0, 0, 1);
+  --motion-slow: 350ms cubic-bezier(0.2, 0, 0, 1);
+  --motion-enter: 400ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Base */
 body {
-  @apply bg-cancha-900 text-white;
+  @apply bg-cancha-900 text-white font-body antialiased;
 }
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-display;
+}
+
+/* Type scale utilities */
+@utility text-display-xl { @apply text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-none; }
+@utility text-display-lg { @apply text-4xl md:text-5xl font-semibold tracking-tight leading-none; }
+@utility text-display-md { @apply text-3xl md:text-4xl font-semibold tracking-tight leading-tight; }
+@utility text-display-sm { @apply text-2xl md:text-3xl font-semibold tracking-tight leading-tight; }
+@utility text-headline { @apply text-xl md:text-2xl font-semibold leading-snug; }
+@utility text-title { @apply text-lg md:text-xl font-medium leading-snug; }
+@utility text-body-lg { @apply text-base md:text-lg leading-relaxed; }
+@utility text-body { @apply text-sm md:text-base leading-relaxed; }
+@utility text-body-sm { @apply text-xs md:text-sm leading-normal; }
+@utility text-caption { @apply text-xs leading-normal uppercase tracking-wide; }
+
+/* Elevation utilities */
+@utility elev-1 { box-shadow: var(--shadow-elev-1); }
+@utility elev-2 { box-shadow: var(--shadow-elev-2); }
+@utility elev-3 { box-shadow: var(--shadow-elev-3); }
+@utility elev-4 { box-shadow: var(--shadow-elev-4); }
+
+/* Motion utilities */
+@utility motion-fast { transition-duration: var(--motion-fast); transition-timing-function: cubic-bezier(0.2, 0, 0, 1); }
+@utility motion-base { transition-duration: var(--motion-base); transition-timing-function: cubic-bezier(0.2, 0, 0, 1); }
+@utility motion-slow { transition-duration: var(--motion-slow); transition-timing-function: cubic-bezier(0.2, 0, 0, 1); }
+@utility motion-enter { transition-duration: var(--motion-enter); transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* Page enter animation */
+@utility pageEnter {
+  animation: pageEnter var(--motion-enter) forwards;
+  opacity: 0;
+  transform: translateY(16px) scale(0.98);
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus visible - albiceleste for info/state */
+:focus-visible {
+  @apply outline-none ring-2 ring-albiceleste ring-offset-2 ring-offset-cancha-900;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { @apply bg-cancha-900; }
+::-webkit-scrollbar-thumb { @apply bg-cancha-700 rounded-full hover:bg-cancha-600; }
+::-webkit-scrollbar-thumb:hover { @apply bg-cancha-600; }

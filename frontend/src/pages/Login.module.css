@@ -5,15 +5,15 @@
 }
 
 .titulo {
-  @apply text-4xl font-extrabold tracking-tight text-pasto-500;
+  @apply text-display-lg text-pasto-500;
 }
 
 .subtitulo {
-  @apply text-white/70;
+  @apply text-body text-white/70;
 }
 
 .botonGoogle {
-  @apply rounded-lg bg-albiceleste px-6 py-3 font-semibold text-cancha-900 transition hover:brightness-110;
+  @apply w-full max-w-xs rounded-lg bg-albiceleste px-6 py-3 font-semibold text-cancha-900 elev-1 hover:elev-2 hover:brightness-110 motion-base;
 }
 
 .separadorContenedor {
@@ -25,7 +25,7 @@
 }
 
 .textoSeparador {
-  @apply text-xs uppercase;
+  @apply text-caption;
 }
 
 .formulario {
@@ -33,17 +33,17 @@
 }
 
 .input {
-  @apply rounded-lg bg-white/10 px-4 py-2 text-white placeholder-white/40;
+  @apply rounded-lg bg-cancha-950 border border-white/10 px-4 py-2 text-white placeholder-white/40 elev-1 focus:border-albiceleste focus:ring-2 focus:ring-albiceleste/30 motion-base;
 }
 
 .botonSubmit {
-  @apply rounded-lg bg-pasto-500 px-6 py-2 font-semibold text-cancha-900 transition hover:brightness-110;
+  @apply w-full max-w-xs rounded-lg bg-pasto-600 px-6 py-2 font-semibold text-cancha-900 elev-1 hover:elev-2 hover:bg-pasto-500 motion-base;
 }
 
 .enlaceSecundario {
-  @apply text-sm text-white/60 underline;
+  @apply text-body-sm text-albiceleste underline underline-offset-2 hover:text-albiceleste/80;
 }
 
 .mensajeError {
-  @apply rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion;
+  @apply rounded-lg bg-sancion/20 px-4 py-2 text-body-sm text-sancion elev-1;
 }

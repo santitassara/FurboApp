@@ -5,7 +5,7 @@
 }
 
 .botonActivo {
-  @apply flex w-full items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-left text-sm font-semibold text-white;
+  @apply flex w-full items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-left text-body font-semibold text-white transition-all motion-base hover:bg-white/10;
 }
 
 .nombreGrupo {
@@ -21,11 +21,11 @@
 }
 
 .badgeModo {
-  @apply rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide;
+  @apply rounded-full px-2 py-0.5 text-caption font-bold tracking-wide;
 }
 
 .badgePlantel {
-  @apply bg-pasto-500/20 text-pasto-500;
+  @apply bg-pasto-500/20 text-pasto-500 elev-1;
 }
 
 .badgeConvocatoria {
@@ -37,15 +37,15 @@
 }
 
 .menu {
-  @apply absolute z-10 mt-1 w-full rounded-lg border border-white/10 bg-cancha-900 py-1 shadow-lg;
+  @apply absolute z-10 mt-1 w-full rounded-lg border border-white/10 bg-cancha-950 py-1 elev-3;
 }
 
 .opcionGrupo {
-  @apply block w-full px-3 py-2 text-left text-sm;
+  @apply block w-full px-3 py-2 text-left text-body transition-colors motion-fast;
 }
 
 .opcionActiva {
-  @apply text-pasto-500;
+  @apply text-pasto-500 bg-pasto-600/10;
 }
 
 .opcionInactiva {
@@ -53,7 +53,7 @@
 }
 
 .enlaceCrear {
-  @apply block w-full px-3 py-2 text-left text-sm text-white/60 hover:bg-white/5;
+  @apply block w-full px-3 py-2 text-left text-body text-albiceleste hover:bg-albiceleste/10;
 }
 
 .separador {
@@ -61,7 +61,7 @@
 }
 
 .botonAbandonar {
-  @apply block w-full px-3 py-2 text-left text-sm text-sancion hover:bg-sancion/10;
+  @apply block w-full px-3 py-2 text-left text-body text-sancion hover:bg-sancion/10;
 }
 
 .errorContenedor {
@@ -69,5 +69,5 @@
 }
 
 .errorTexto {
-  @apply text-xs text-sancion;
+  @apply text-caption text-sancion;
 }

@@ -5,5 +5,21 @@
 }
 
 .boton {
-  @apply w-full max-w-sm rounded-xl border border-white/10 bg-cancha-800 px-4 py-3 text-left text-sm font-semibold text-white shadow-lg transition hover:bg-cancha-700;
+  @apply w-full max-w-sm rounded-xl border border-white/10 bg-cancha-900/90 px-4 py-3 text-left text-body font-semibold text-white elev-3 motion-base hover:bg-cancha-800/90;
+}
+
+/* Toast enter animation */
+@keyframes toastEnter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.toastEnter {
+  animation: toastEnter var(--motion-enter) forwards;
 }

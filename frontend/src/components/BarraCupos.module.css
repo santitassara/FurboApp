@@ -5,7 +5,7 @@
 }
 
 .encabezado {
-  @apply mb-1 flex justify-between text-xs text-white/70;
+  @apply mb-1 flex justify-between text-caption text-white/70;
 }
 
 .track {
@@ -13,13 +13,13 @@
 }
 
 .barra {
-  @apply h-full rounded-full transition-all;
+  @apply h-full rounded-full transition-all motion-base;
 }
 
 .lleno {
-  @apply bg-tarjeta;
+  @apply bg-tarjeta elev-1;
 }
 
 .disponible {
-  @apply bg-pasto-500;
+  @apply bg-pasto-500 elev-1;
 }

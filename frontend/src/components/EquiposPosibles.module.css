@@ -1,7 +1,7 @@
 @reference "../styles/globals.css";
 
 .container {
-  @apply rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg;
+  @apply rounded-xl border border-white/10 bg-cancha-900 p-5 elev-2 motion-base;
 }
 
 .header {
@@ -9,11 +9,11 @@
 }
 
 .titulo {
-  @apply text-sm font-bold uppercase tracking-wide text-pasto-500;
+  @apply text-caption text-pasto-500;
 }
 
 .error {
-  @apply mb-3 rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion;
+  @apply mb-3 rounded-lg bg-sancion/20 px-4 py-2 text-body-sm text-sancion elev-1;
 }
 
 .lista {
@@ -21,11 +21,11 @@
 }
 
 .propuesta {
-  @apply rounded-lg border border-white/10 bg-cancha-700;
+  @apply rounded-lg border border-white/10 bg-cancha-900/80 elev-1 motion-base hover:elev-2;
 }
 
 .propuestaHeader {
-  @apply flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm text-white;
+  @apply flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-body text-white;
 }
 
 .propuestaNombre {
@@ -33,19 +33,19 @@
 }
 
 .badgeGanadora {
-  @apply ml-2 rounded bg-pasto-600 px-2 py-0.5 text-xs;
+  @apply ml-2 rounded bg-pasto-600 px-2 py-0.5 text-caption text-cancha-900;
 }
 
 .badgeMiVoto {
-  @apply ml-2 text-xs text-pasto-500;
+  @apply ml-2 text-caption text-albiceleste;
 }
 
 .votos {
-  @apply text-white/60;
+  @apply text-body-sm text-white/60;
 }
 
 .detalle {
-  @apply border-t border-white/10 px-4 py-3 text-sm text-white/80;
+  @apply border-t border-white/10 px-4 py-3 text-body text-white/80;
 }
 
 .equiposGrid {
@@ -53,7 +53,7 @@
 }
 
 .equipoLabel {
-  @apply mb-1 text-xs uppercase text-white/40;
+  @apply mb-1 text-caption text-white/40;
 }
 
 .acciones {
@@ -65,7 +65,7 @@
 }
 
 .opcion {
-  @apply rounded-lg border border-white/10 bg-cancha-800 px-3 py-2;
+  @apply rounded-lg border border-white/10 bg-cancha-950 px-3 py-2 elev-1 motion-fast hover:elev-2;
 }
 
 .opcionTexto {
@@ -73,7 +73,7 @@
 }
 
 .opcionTitulo {
-  @apply text-sm font-semibold text-white;
+  @apply text-body font-semibold text-white;
 }
 
 .formIntercambio {
@@ -81,5 +81,5 @@
 }
 
 .select {
-  @apply w-full rounded-lg border border-white/10 bg-cancha-800 px-3 py-2 text-sm text-white;
+  @apply w-full rounded-lg border border-white/10 bg-cancha-950 px-3 py-2 text-body text-white elev-1 focus:border-albiceleste focus:ring-2 focus:ring-albiceleste/30 motion-base;
 }

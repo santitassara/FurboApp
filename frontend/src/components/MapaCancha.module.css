@@ -1,5 +1,29 @@
 @reference "../styles/globals.css";
 
+/* Entrance animation for hero treatment */
+.contenedorEnter {
+  animation: pageEnter var(--motion-enter) forwards;
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contenedorEnter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
 .jugador {
   @apply relative flex flex-col items-center gap-0.5;
 }
@@ -166,6 +190,12 @@
 .cancha {
   @apply relative aspect-[1.83] w-full overflow-hidden rounded-lg border border-white/10 bg-cover bg-center shadow-inner;
   container-type: inline-size;
+  touch-action: none;
+  cursor: grab;
+}
+
+.cancha:active {
+  cursor: grabbing;
 }
 
 .divisor {

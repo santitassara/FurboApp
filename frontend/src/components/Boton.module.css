@@ -1,17 +1,25 @@
 @reference "../styles/globals.css";
 
 .boton {
-  @apply rounded-lg px-4 py-2 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  @apply rounded-lg px-4 py-2 font-semibold transition-all motion-base disabled:cursor-not-allowed disabled:opacity-50;
 }
 
 .primario {
-  @apply bg-pasto-600 hover:bg-pasto-500 text-white;
+  @apply bg-pasto-600 hover:bg-pasto-500 text-white elev-1 hover:elev-2 active:scale-[0.98];
 }
 
 .peligro {
-  @apply bg-sancion hover:brightness-110 text-white;
+  @apply bg-sancion hover:brightness-110 text-white elev-1 hover:elev-2 active:scale-[0.98];
+}
+
+.info {
+  @apply bg-albiceleste/10 border border-albiceleste/30 text-albiceleste hover:bg-albiceleste/20 hover:border-albiceleste/50 elev-1;
+}
+
+.celebracion {
+  @apply bg-tarjeta/10 border border-tarjeta/30 text-tarjeta hover:bg-tarjeta/20 hover:border-tarjeta/50 elev-1;
 }
 
 .ghost {
-  @apply bg-transparent border border-white/20 hover:bg-white/10 text-white;
+  @apply bg-transparent border border-white/20 hover:bg-white/10 text-white transition-all motion-base;
 }
