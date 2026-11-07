@@ -265,6 +265,10 @@ const tieneEnContra = columnasGoles.some((columna) => columna.name === 'enContra
 if (!tieneEnContra) {
   db.exec('ALTER TABLE Goles ADD COLUMN enContra INTEGER NOT NULL DEFAULT 0');
 }
+const tieneSegundo = columnasGoles.some((columna) => columna.name === 'segundo');
+if (!tieneSegundo) {
+  db.exec('ALTER TABLE Goles ADD COLUMN segundo INTEGER NOT NULL DEFAULT 0');
+}
 
 const columnasPartidosBeelup = db.prepare('PRAGMA table_info(Partidos)').all();
 const tieneBeelupUrl = columnasPartidosBeelup.some((columna) => columna.name === 'beelupUrl');

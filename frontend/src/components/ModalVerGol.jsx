@@ -4,8 +4,8 @@ import styles from './ModalVerGol.module.css';
 
 const DURACION_JUGADA_MS = 60 * 1000;
 
-function construirUrlConTiempo(beelupUrl, minuto) {
-  const segundos = minuto * 60;
+function construirUrlConTiempo(beelupUrl, minuto, segundo = 0) {
+  const segundos = minuto * 60 + segundo;
   const url = new URL(beelupUrl);
   url.searchParams.set('t', segundos);
   return url.toString();
@@ -20,7 +20,7 @@ export default function ModalVerGol({ abierto, beelupUrl, gol, onCerrar }) {
     if (!abierto) return;
 
     setFinalizado(false);
-    setSrc(construirUrlConTiempo(beelupUrl, gol.minuto));
+    setSrc(construirUrlConTiempo(beelupUrl, gol.minuto, gol.segundo));
     timeoutRef.current = setTimeout(() => setFinalizado(true), DURACION_JUGADA_MS);
 
     return () => clearTimeout(timeoutRef.current);
@@ -30,7 +30,7 @@ export default function ModalVerGol({ abierto, beelupUrl, gol, onCerrar }) {
 
   function verDeNuevo() {
     setFinalizado(false);
-    setSrc(construirUrlConTiempo(beelupUrl, gol.minuto));
+    setSrc(construirUrlConTiempo(beelupUrl, gol.minuto, gol.segundo));
     timeoutRef.current = setTimeout(() => setFinalizado(true), DURACION_JUGADA_MS);
   }
 
@@ -39,7 +39,7 @@ export default function ModalVerGol({ abierto, beelupUrl, gol, onCerrar }) {
       <div className={styles.modal}>
         <div className={styles.headerFila}>
           <h2 className={styles.titulo}>
-            Gol de {gol.nombre} — {gol.minuto}&apos;
+            Gol de {gol.nombre} — {gol.minuto}&apos;{gol.segundo ? `"${gol.segundo.toString().padStart(2, '0')}"` : `''`}
           </h2>
           <button type="button" onClick={onCerrar} className={styles.botonCerrar}>
             ✕ Cerrar
