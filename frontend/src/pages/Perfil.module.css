@@ -5,7 +5,7 @@
 }
 
 .titulo {
-  @apply font-display text-4xl leading-none text-white;
+  @apply text-display-md text-white;
 }
 
 .grilla {
@@ -21,11 +21,11 @@
 }
 
 .errorFoto {
-  @apply text-sm text-sancion;
+  @apply text-body-sm text-sancion;
 }
 
 .formulario {
-  @apply flex flex-col gap-5 rounded-2xl border border-white/10 bg-cancha-800/60 p-6;
+  @apply flex flex-col gap-5 rounded-2xl border border-white/10 bg-cancha-900/80 p-6 elev-2;
 }
 
 .campo {
@@ -33,15 +33,15 @@
 }
 
 .etiqueta {
-  @apply text-xs uppercase text-white/50;
+  @apply text-caption text-white/50;
 }
 
 .input {
-  @apply rounded-lg bg-white/10 px-4 py-2 text-white placeholder:text-white/40;
+  @apply rounded-lg bg-cancha-950 border border-white/10 px-4 py-2 text-white placeholder:text-white/40 elev-1 focus:border-albiceleste focus:ring-2 focus:ring-albiceleste/30 motion-base;
 }
 
 .inputFecha {
-  @apply rounded-lg bg-white/10 px-4 py-2 text-white;
+  @apply rounded-lg bg-cancha-950 border border-white/10 px-4 py-2 text-white elev-1 focus:border-albiceleste focus:ring-2 focus:ring-albiceleste/30 motion-base;
 }
 
 .grillaPosiciones {
@@ -49,11 +49,11 @@
 }
 
 .select {
-  @apply rounded-lg bg-white/10 px-4 py-2 text-white;
+  @apply rounded-lg bg-cancha-950 border border-white/10 px-4 py-2 text-white elev-1 focus:border-albiceleste focus:ring-2 focus:ring-albiceleste/30 motion-base;
 }
 
 .opcion {
-  @apply bg-cancha-800 text-white;
+  @apply bg-cancha-900 text-white;
 }
 
 .filaRadios {
@@ -65,15 +65,15 @@
 }
 
 .inputRadio {
-  @apply w-4 h-4;
+  @apply w-4 h-4 accent-pasto-500;
 }
 
 .textoRadio {
-  @apply text-sm text-white;
+  @apply text-body text-white;
 }
 
 .mensajeError {
-  @apply text-sm text-sancion;
+  @apply text-body-sm text-sancion;
 }
 
 .grupoHabilidades {
@@ -81,11 +81,11 @@
 }
 
 .tituloHabilidades {
-  @apply text-sm font-bold uppercase tracking-wide text-pasto-500;
+  @apply text-caption text-pasto-500;
 }
 
 .avisoHabilidadesBloqueadas {
-  @apply text-sm text-white/50;
+  @apply text-body-sm text-white/50;
 }
 
 .filaHabilidad {
@@ -93,21 +93,21 @@
 }
 
 .encabezadoHabilidad {
-  @apply flex items-center justify-between text-xs uppercase text-white/50;
+  @apply flex items-center justify-between text-caption text-white/50;
 }
 
 .valorHabilidad {
-  @apply text-white/90;
+  @apply text-body text-white/90;
 }
 
 .sliderHabilidad {
-  @apply w-full disabled:opacity-40;
+  @apply w-full disabled:opacity-40 accent-pasto-500;
 }
 
 .error {
-  @apply rounded-lg bg-sancion/20 px-4 py-2 text-sm text-sancion;
+  @apply rounded-lg bg-sancion/20 px-4 py-2 text-body-sm text-sancion elev-1;
 }
 
 .exito {
-  @apply text-sm text-pasto-500;
+  @apply text-body-sm text-pasto-500;
 }

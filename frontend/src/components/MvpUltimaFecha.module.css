@@ -1,11 +1,11 @@
 @reference "../styles/globals.css";
 
 .card {
-  @apply relative rounded-xl border border-white/10 bg-cancha-800 p-5 shadow-lg;
+  @apply relative rounded-xl border border-white/10 bg-cancha-900 p-5 elev-2 motion-base;
 }
 
 .titulo {
-  @apply mb-3 flex items-center gap-2 text-lg font-bold text-white;
+  @apply mb-3 flex items-center gap-2 text-title text-white;
 }
 
 .contenido {
@@ -17,7 +17,7 @@
 }
 
 .avatar {
-  @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cancha-700 text-lg font-bold text-white;
+  @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cancha-950 text-lg font-bold text-white elev-1;
 }
 
 .infoWrapper {
@@ -25,21 +25,21 @@
 }
 
 .nombre {
-  @apply font-bold text-white;
+  @apply font-semibold text-white;
 }
 
 .detalle {
-  @apply text-sm text-white/60;
+  @apply text-body-sm text-white/60;
 }
 
 .badgeVotos {
-  @apply shrink-0 rounded-full bg-pasto-600/20 px-3 py-1 text-xs font-bold text-pasto-500;
+  @apply shrink-0 rounded-full bg-tarjeta/20 px-3 py-1 text-caption font-bold text-tarjeta elev-1;
 }
 
 .overlay {
-  @apply absolute inset-0 flex items-center justify-center rounded-xl bg-cancha-900/60;
+  @apply absolute inset-0 flex items-center justify-center rounded-xl bg-cancha-950/80 elev-3;
 }
 
 .overlayTexto {
-  @apply rounded-lg bg-black/70 px-4 py-2 text-sm font-bold uppercase tracking-wide text-white;
+  @apply rounded-lg bg-cancha-900/90 px-4 py-2 text-caption text-white elev-2;
 }

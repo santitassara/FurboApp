@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaComment } from 'react-icons/fa';
 import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
@@ -730,8 +730,52 @@ export default function MapaCancha({
   const miEquipo = formacion.jugadores.find((jugador) => jugador.usuarioId === perfil?.uid)?.equipo;
   const puedeVerMiEquipo = Boolean(propuestasInfo?.votacionEquiposCerrada && miEquipo && !modoPreview);
 
+  const canchaRef = useRef(null);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [hasEntered, setHasEntered] = useState(false);
+
+  // Entrance animation
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setHasEntered(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Touch/mouse drag-pan for mobile
+  const handlePanStart = (e) => {
+    if (e.touches) {
+      setPanStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+    } else {
+      setPanStart({ x: e.clientX, y: e.clientY });
+    }
+    setIsPanning(true);
+  };
+
+  const handlePanMove = (e) => {
+    if (!isPanning) return;
+    e.preventDefault();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const deltaX = clientX - panStart.x;
+    const deltaY = clientY - panStart.y;
+    setPanOffset((prev) => ({
+      x: Math.max(-50, Math.min(50, prev.x + deltaX * 0.5)),
+      y: Math.max(-50, Math.min(50, prev.y + deltaY * 0.5)),
+    }));
+    setPanStart({ x: clientX, y: clientY });
+  };
+
+  const handlePanEnd = () => {
+    setIsPanning(false);
+    // Smooth return to center
+    setPanOffset({ x: 0, y: 0 });
+  };
+
   const contenido = (
-    <div className={styles.contenedor}>
+    <div className={clsx(styles.contenedor, hasEntered && styles.contenedorEnter)} style={hasEntered ? {} : { opacity: 0, transform: 'translateY(20px) scale(0.98)' }}>
       <div className={styles.headerFila}>
         <h4 className={styles.titulo}>Formación</h4>
         {puedeVerMiEquipo && (
@@ -804,8 +848,20 @@ export default function MapaCancha({
       )}
 
       <div
+        ref={canchaRef}
         className={styles.cancha}
-        style={{ backgroundImage: "url('/layout-cancha-futbol.jpeg')" }}
+        style={{
+          backgroundImage: "url('/layout-cancha-futbol.jpeg')",
+          transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+          transition: isPanning ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0, 0, 1)',
+        }}
+        onMouseDown={handlePanStart}
+        onTouchStart={(e) => handlePanStart(e)}
+        onMouseMove={handlePanMove}
+        onTouchMove={(e) => handlePanMove(e)}
+        onMouseUp={handlePanEnd}
+        onTouchEnd={handlePanEnd}
+        onMouseLeave={handlePanEnd}
       >
         {esPlantel ? (
           <MitadCancha
