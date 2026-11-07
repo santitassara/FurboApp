@@ -126,7 +126,9 @@ export default function ResultadoPartido({ partido, resultado, modo = 'convocato
                     <li key={gol.id || indice} className={styles.golItem}>
                       <FaFutbol className={styles.golIcono} />
                       <p className={styles.golTexto}>
-                        <span className={styles.textoBold}>{gol.minuto}&apos;</span>{' '}
+                        <span className={styles.textoBold}>
+                          {gol.minuto}&apos;{gol.segundo ? `"${gol.segundo.toString().padStart(2, '0')}"` : `''`}
+                        </span>{' '}
                         <span className={styles.textoBold}>{gol.nombre}</span>
                         {gol.enContra && <span className={styles.textoTenue}> (PP)</span>}
                         {gol.asistenciaNombre && (

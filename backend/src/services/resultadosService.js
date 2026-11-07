@@ -86,6 +86,11 @@ async function guardarResultado(partidoId, grupoId, payload = {}) {
     if (!Number.isInteger(gol.minuto) || gol.minuto < 0) {
       throw crearError('minuto debe ser un entero mayor o igual a 0', 400);
     }
+    if (gol.segundo !== undefined && gol.segundo !== null && gol.segundo !== '') {
+      if (!Number.isInteger(gol.segundo) || gol.segundo < 0 || gol.segundo > 59) {
+        throw crearError('segundo debe ser un entero entre 0 y 59', 400);
+      }
+    }
     if (gol.enContra && (gol.asistenciaUsuarioId || gol.asistenciaInvitadoId)) {
       throw crearError('Un gol en contra no puede tener asistencia', 400);
     }
@@ -122,9 +127,10 @@ async function guardarResultado(partidoId, grupoId, payload = {}) {
     db.prepare('DELETE FROM Resultados WHERE partidoId = ?').run(partidoId);
 
     for (const gol of goles) {
+      const segundo = (gol.segundo !== undefined && gol.segundo !== null && gol.segundo !== '') ? Number(gol.segundo) : 0;
       db.prepare(
-        `INSERT INTO Goles (id, partidoId, usuarioId, invitadoId, asistenciaUsuarioId, asistenciaInvitadoId, equipo, minuto, enContra)
-         VALUES (@id, @partidoId, @usuarioId, @invitadoId, @asistenciaUsuarioId, @asistenciaInvitadoId, @equipo, @minuto, @enContra)`
+        `INSERT INTO Goles (id, partidoId, usuarioId, invitadoId, asistenciaUsuarioId, asistenciaInvitadoId, equipo, minuto, segundo, enContra)
+         VALUES (@id, @partidoId, @usuarioId, @invitadoId, @asistenciaUsuarioId, @asistenciaInvitadoId, @equipo, @minuto, @segundo, @enContra)`
       ).run({
         id: crypto.randomUUID(),
         partidoId,
@@ -134,6 +140,7 @@ async function guardarResultado(partidoId, grupoId, payload = {}) {
         asistenciaInvitadoId: gol.enContra ? null : gol.asistenciaInvitadoId || null,
         equipo: gol.equipo,
         minuto: gol.minuto,
+        segundo,
         enContra: gol.enContra ? 1 : 0,
       });
     }
@@ -193,6 +200,11 @@ async function guardarResultadoPlantel(partido, grupoId, payload = {}) {
     if (!Number.isInteger(gol.minuto) || gol.minuto < 0) {
       throw crearError('minuto debe ser un entero mayor o igual a 0', 400);
     }
+    if (gol.segundo !== undefined && gol.segundo !== null && gol.segundo !== '') {
+      if (!Number.isInteger(gol.segundo) || gol.segundo < 0 || gol.segundo > 59) {
+        throw crearError('segundo debe ser un entero entre 0 y 59', 400);
+      }
+    }
     if (gol.enContra && (gol.asistenciaUsuarioId || gol.asistenciaInvitadoId)) {
       throw crearError('Un gol en contra no puede tener asistencia', 400);
     }
@@ -244,9 +256,10 @@ async function guardarResultadoPlantel(partido, grupoId, payload = {}) {
     db.prepare('DELETE FROM Resultados WHERE partidoId = ?').run(partidoId);
 
     for (const gol of goles) {
+      const segundo = (gol.segundo !== undefined && gol.segundo !== null && gol.segundo !== '') ? Number(gol.segundo) : 0;
       db.prepare(
-        `INSERT INTO Goles (id, partidoId, usuarioId, invitadoId, asistenciaUsuarioId, asistenciaInvitadoId, equipo, minuto, enContra)
-         VALUES (@id, @partidoId, @usuarioId, @invitadoId, @asistenciaUsuarioId, @asistenciaInvitadoId, @equipo, @minuto, @enContra)`
+        `INSERT INTO Goles (id, partidoId, usuarioId, invitadoId, asistenciaUsuarioId, asistenciaInvitadoId, equipo, minuto, segundo, enContra)
+         VALUES (@id, @partidoId, @usuarioId, @invitadoId, @asistenciaUsuarioId, @asistenciaInvitadoId, @equipo, @minuto, @segundo, @enContra)`
       ).run({
         id: crypto.randomUUID(),
         partidoId,
@@ -256,6 +269,7 @@ async function guardarResultadoPlantel(partido, grupoId, payload = {}) {
         asistenciaInvitadoId: gol.enContra ? null : gol.asistenciaInvitadoId || null,
         equipo: EQUIPO_PLANEL,
         minuto: gol.minuto,
+        segundo,
         enContra: gol.enContra ? 1 : 0,
       });
     }
@@ -324,6 +338,7 @@ async function obtenerResultado(partidoId, grupoId, esAdmin = false) {
         nombre,
         equipo: gol.equipo,
         minuto: gol.minuto,
+        segundo: gol.segundo,
         enContra: !!gol.enContra,
         asistenciaUsuarioId: gol.asistenciaUsuarioId,
         asistenciaInvitadoId: gol.asistenciaInvitadoId,

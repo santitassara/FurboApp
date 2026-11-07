@@ -21,7 +21,7 @@ function declave(valor) {
 }
 
 function golVacio() {
-  return { clave: '', equipo: 'A', minuto: '', asistenciaClave: '', enContra: false };
+  return { clave: '', equipo: 'A', minuto: '', segundo: '', asistenciaClave: '', enContra: false };
 }
 
 function sancionVacia() {
@@ -72,6 +72,7 @@ export default function ModalCargarResultado({
             clave: clave(gol.usuarioId, gol.invitadoId),
             equipo: gol.equipo,
             minuto: String(gol.minuto),
+            segundo: String(gol.segundo || 0),
             asistenciaClave: clave(gol.asistenciaUsuarioId, gol.asistenciaInvitadoId),
             enContra: !!gol.enContra,
           }))
@@ -133,6 +134,7 @@ export default function ModalCargarResultado({
             ...declave(gol.clave),
             equipo: gol.equipo,
             minuto: Number(gol.minuto),
+            segundo: gol.segundo !== '' ? Number(gol.segundo) : 0,
             asistenciaUsuarioId: asistencia.usuarioId,
             asistenciaInvitadoId: asistencia.invitadoId,
             enContra: gol.enContra,
@@ -222,6 +224,15 @@ export default function ModalCargarResultado({
                 value={gol.minuto}
                 onChange={(e) => actualizarGol(indice, 'minuto', e.target.value)}
                 className={styles.inputMinuto}
+              />
+              <input
+                type="number"
+                min="0"
+                max="59"
+                placeholder="Seg."
+                value={gol.segundo}
+                onChange={(e) => actualizarGol(indice, 'segundo', e.target.value)}
+                className={styles.inputSegundo}
               />
               <select
                 value={gol.asistenciaClave}

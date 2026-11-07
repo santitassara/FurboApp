@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS Goles (
   asistenciaInvitadoId TEXT REFERENCES Invitados(id),
   equipo TEXT NOT NULL CHECK (equipo IN ('A', 'B')),
   minuto INTEGER NOT NULL,
+  segundo INTEGER NOT NULL DEFAULT 0,
   enContra INTEGER NOT NULL DEFAULT 0,
   CHECK ((usuarioId IS NOT NULL AND invitadoId IS NULL) OR (usuarioId IS NULL AND invitadoId IS NOT NULL)),
   CHECK (NOT (asistenciaUsuarioId IS NOT NULL AND asistenciaInvitadoId IS NOT NULL))
