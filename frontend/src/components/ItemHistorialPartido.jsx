@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import clsx from 'clsx';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -10,10 +10,10 @@ import ModalVotarValoraciones from './ModalVotarValoraciones';
 import Boton from './Boton';
 import styles from './ItemHistorialPartido.module.css';
 
-export default function ItemHistorialPartido({ partido }) {
+export default function ItemHistorialPartido({ partido, autoOpenVote = false }) {
   const { perfil } = useAuth();
   const { grupoActivo } = useGrupo();
-  const [expandido, setExpandido] = useState(false);
+  const [expandido, setExpandido] = useState(autoOpenVote);
   const [resultado, setResultado] = useState(null);
   const [elegibles, setElegibles] = useState([]);
   const [cargando, setCargando] = useState(false);
@@ -26,35 +26,32 @@ export default function ItemHistorialPartido({ partido }) {
   const [eliminando, setEliminando] = useState(false);
   const [cerrandoVotacion, setCerrandoVotacion] = useState(false);
 
-  const cantidadJugadores = (partido.ocupados?.titulares || 0) + (partido.ocupados?.suplentes || 0);
-  const soyElegible = elegibles.some((j) => j.usuarioId === perfil?.uid);
-  const elegiblesParaVotar = useMemo(
-    () => elegibles.filter((j) => j.usuarioId !== perfil?.uid),
-    [elegibles, perfil?.uid],
+  // Track if we've already auto-opened the vote to prevent reopening after cancel
+  const autoOpenedRef = useRef(false);
+
+  const alternar = () => setExpandido((prev) => !prev);
+
+  const cantidadJugadores = useMemo(() => elegibles.length, [elegibles]);
+
+  const soyElegible = useMemo(
+    () => perfil && elegibles.some((j) => j.usuarioId === perfil.uid),
+    [perfil?.uid, elegibles]
   );
 
-  async function alternar() {
-    const nuevoExpandido = !expandido;
-    setExpandido(nuevoExpandido);
-    if (nuevoExpandido && !resultado) {
-      setCargando(true);
-      setError('');
-      try {
-        const [{ data: datosResultado }, { data: datosFormacion }] = await Promise.all([
-          api.get(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/resultado`)),
-          api.get(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/formacion`)),
-        ]);
-        setResultado(datosResultado);
-        setElegibles((datosFormacion.jugadores || []).filter((j) => j.equipo));
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setCargando(false);
-      }
-    }
-  }
+  const elegiblesParaVotar = useMemo(
+    () => elegibles.filter((j) => j.usuarioId !== perfil?.uid),
+    [elegibles, perfil?.uid]
+  );
 
-  async function abrirVotacion() {
+  // Auto-expand when autoOpenVote is true
+  useEffect(() => {
+    if (autoOpenVote && !expandido) {
+      setExpandido(true);
+    }
+  }, [autoOpenVote, expandido]);
+
+  // Function to open voting modal
+  const abrirVotacion = useCallback(async () => {
     setErrorVoto('');
     try {
       const { data } = await api.get(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/votos/mios`));
@@ -63,7 +60,35 @@ export default function ItemHistorialPartido({ partido }) {
     } catch (err) {
       setErrorVoto(err.message);
     }
-  }
+  }, [grupoActivo?.id, partido.id]);
+
+  // Load data when expanding (including auto-expand) and auto-open vote if needed
+  useEffect(() => {
+    if (expandido && !resultado) {
+      setCargando(true);
+      setError('');
+      (async () => {
+        try {
+          const [{ data: datosResultado }, { data: datosFormacion }] = await Promise.all([
+            api.get(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/resultado`)),
+            api.get(rutaGrupo(grupoActivo.id, `/partidos/${partido.id}/formacion`)),
+          ]);
+          setResultado(datosResultado);
+          setElegibles((datosFormacion.jugadores || []).filter((j) => j.equipo));
+
+          // Auto-open vote after data loads if needed
+          if (autoOpenVote && !autoOpenedRef.current && !partido.votacionCerrada) {
+            autoOpenedRef.current = true;
+            await abrirVotacion();
+          }
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setCargando(false);
+        }
+      })();
+    }
+  }, [expandido, partido.id, grupoActivo?.id, autoOpenVote, abrirVotacion]);
 
   async function confirmarVoto(payload) {
     setVotando(true);

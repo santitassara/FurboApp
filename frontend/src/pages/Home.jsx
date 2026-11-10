@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import clsx from 'clsx';
+import { useNavigate } from 'react-router-dom';
 import styles from './Home.module.css';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +25,7 @@ export default function Home() {
   const { perfil, actualizarPosicionesPerfil } = useAuth();
   const { grupoActivo, refrescarGrupos } = useGrupo();
   const { canInstall, triggerInstall } = useInstallPrompt();
+  const navigate = useNavigate();
   const [partidos, setPartidos] = useState([]);
   const [inscripcionesPorPartido, setInscripcionesPorPartido] = useState({});
   const [formacionesPorPartido, setFormacionesPorPartido] = useState({});
@@ -36,6 +38,36 @@ export default function Home() {
   const [partidoEnProceso, setPartidoEnProceso] = useState(null);
   const [guardandoPosicionPerfil, setGuardandoPosicionPerfil] = useState(false);
   const [partidoParaAnotarse, setPartidoParaAnotarse] = useState(null);
+  const [ultimoJugado, setUltimoJugado] = useState(null);
+
+  // Detectar si hay un partido jugado con votación de performance abierta
+  const partidoConVotoAbierto = useMemo(() => {
+    console.log('[Home] useMemo check:', {
+      hasUltimoJugado: !!ultimoJugado,
+      hasPerfil: !!perfil,
+      votacionCerrada: ultimoJugado?.votacionCerrada,
+      perfilUid: perfil?.uid,
+      inscripcionesKeys: Object.keys(inscripcionesPorPartido),
+      inscripcionesForMatch: inscripcionesPorPartido[ultimoJugado?.id]?.length
+    });
+    if (!ultimoJugado || !perfil) return null;
+    if (ultimoJugado.votacionCerrada) return null;
+    // Verificar si el usuario actual fue titular en ese partido
+    const inscripciones = inscripcionesPorPartido[ultimoJugado.id] || [];
+    const fueTitular = inscripciones.some(
+      (j) => j.usuarioId === perfil.uid && j.tipo === 'titular'
+    );
+    console.log('[Home] fueTitular check:', { fueTitular, inscripcionesSample: inscripciones.slice(0, 2) });
+    if (!fueTitular) return null;
+    return ultimoJugado;
+  }, [ultimoJugado, perfil, inscripcionesPorPartido]);
+
+  const irAVotar = () => {
+    if (partidoConVotoAbierto) {
+      // Navegar al historial con parámetro para auto-expandir y abrir votación
+      navigate(`/historial?voteMatch=${partidoConVotoAbierto.id}`);
+    }
+  };
 
   const cargarPartidos = useCallback(async () => {
     if (!grupoActivo) return;
@@ -44,6 +76,18 @@ export default function Home() {
     try {
       const { data: partidosAbiertos } = await api.get(rutaGrupo(grupoActivo.id, '/partidos'));
       setPartidos(partidosAbiertos);
+
+      // Also load match history to detect open voting on played matches
+      const { data: historial } = await api.get(rutaGrupo(grupoActivo.id, '/partidos/historial'));
+      const ultimosJugados = historial.filter((p) => p.estado === 'jugado').sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      const ultimoJugado = ultimosJugados[0] || null;
+      setUltimoJugado(ultimoJugado);
+
+      // Load inscripciones for the last played match (needed for vote detection)
+      if (ultimoJugado) {
+        const { data: inscripcionesUltimo } = await api.get(rutaGrupo(grupoActivo.id, `/partidos/${ultimoJugado.id}/inscripciones`));
+        setInscripcionesPorPartido((prev) => ({ ...prev, [ultimoJugado.id]: inscripcionesUltimo }));
+      }
 
       // Modo plantel: la pizarra táctica se habilita con solo los titulares
       // (no hay suplentes ni dos equipos). Convocatoria: se habilita cuando
@@ -167,29 +211,51 @@ export default function Home() {
           <h1 className={styles.titulo}>Próximos partidos</h1>
           <p className={styles.saludo}>Hola, {perfil?.nombre}</p>
         </div>
-        {canInstall && (
-          <button
-            onClick={triggerInstall}
-            className={styles.botonInstalar}
-            aria-label="Instalar aplicación"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+        <div className={styles.headerActions}>
+          {canInstall && (
+            <button
+              onClick={triggerInstall}
+              className={styles.botonInstalar}
+              aria-label="Instalar aplicación"
             >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            Instalar como App
-          </button>
-        )}
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Instalar como App
+            </button>
+          )}
+          {partidoConVotoAbierto && (
+            <div className={styles.votoFabWrapper}>
+              <button
+                type="button"
+                onClick={irAVotar}
+                className={styles.votoFab}
+                aria-label="Votar performance de jugadores"
+              >
+                <span className={styles.votoFabIcon}>⚽</span>
+                <span>Vota la actuacion de los jugadores del ultimo partido</span>
+              </button>
+              <span className={styles.votoFabTooltip}>
+                <svg className={styles.tooltipIcon} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 9v4M12 17h.01" />
+                </svg>
+                No dar tu voto puede bajar tu puntaje o quitarte beneficios
+              </span>
+            </div>
+          )}
+        </div>
       </header>
 
       {error && <p className={styles.error}>{error}</p>}

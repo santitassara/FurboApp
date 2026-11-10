@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { useGrupo } from '../context/GrupoContext';
 import { rutaGrupo } from '../utils/rutasGrupo';
@@ -7,6 +8,8 @@ import styles from './UltimosPartidos.module.css';
 
 export default function UltimosPartidos() {
   const { grupoActivo } = useGrupo();
+  const [searchParams] = useSearchParams();
+  const autoOpenVoteMatchId = useMemo(() => searchParams.get('voteMatch'), [searchParams]);
   const [partidos, setPartidos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -43,7 +46,11 @@ export default function UltimosPartidos() {
       ) : (
         <div className={styles.lista}>
           {partidos.map((partido) => (
-            <ItemHistorialPartido key={partido.id} partido={partido} />
+            <ItemHistorialPartido
+              key={partido.id}
+              partido={partido}
+              autoOpenVote={partido.id === autoOpenVoteMatchId}
+            />
           ))}
         </div>
       )}
