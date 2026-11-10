@@ -235,28 +235,31 @@ export default function Home() {
               Instalar como App
             </button>
           )}
-          {partidoConVotoAbierto && (
-            <div className={styles.votoFabWrapper}>
-              <button
-                type="button"
-                onClick={irAVotar}
-                className={styles.votoFab}
-                aria-label="Votar performance de jugadores"
-              >
-                <span className={styles.votoFabIcon}>⚽</span>
-                <span>Vota la actuacion de los jugadores del ultimo partido</span>
-              </button>
-              <span className={styles.votoFabTooltip}>
-                <svg className={styles.tooltipIcon} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 9v4M12 17h.01" />
-                </svg>
-                No dar tu voto puede bajar tu puntaje o quitarte beneficios
-              </span>
-            </div>
-          )}
         </div>
       </header>
+
+      {partidoConVotoAbierto && (
+        <div className={styles.votoBanner}>
+          <div className={styles.votoFabWrapper}>
+            <button
+              type="button"
+              onClick={irAVotar}
+              className={styles.votoFab}
+              aria-label="Votar performance de jugadores"
+            >
+              <span className={styles.votoFabIcon}>⚽</span>
+              <span>Vota la actuacion de los jugadores del ultimo partido</span>
+            </button>
+            <span className={styles.votoFabTooltip}>
+              <svg className={styles.tooltipIcon} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 9v4M12 17h.01" />
+              </svg>
+              No dar tu voto puede bajar tu puntaje o quitarte beneficios
+            </span>
+          </div>
+        </div>
+      )}
 
       {error && <p className={styles.error}>{error}</p>}
 

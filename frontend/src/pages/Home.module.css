@@ -69,6 +69,10 @@
   animation: pulse-subtle 2.5s ease-in-out infinite;
 }
 
+.votoBanner {
+  @apply w-full flex justify-center;
+}
+
 .votoFabWrapper {
   @apply relative;
 }
