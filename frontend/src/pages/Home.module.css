@@ -8,6 +8,10 @@
   @apply flex items-start justify-between gap-4;
 }
 
+.headerActions {
+  @apply flex items-center gap-3;
+}
+
 .titulo {
   @apply text-display-md text-white;
 }
@@ -58,4 +62,38 @@
 
 .resumenGrid {
   @apply grid grid-cols-1 gap-6 md:grid-cols-3;
+}
+
+.votoFab {
+  @apply flex items-center gap-3 rounded-full bg-gradient-to-r from-albiceleste to-pasto-500 px-4 py-2 text-body-sm font-semibold text-white elev-2 transition-all motion-base hover:elev-3 hover:scale-105 active:scale-95;
+  animation: pulse-subtle 2.5s ease-in-out infinite;
+}
+
+.votoFabWrapper {
+  @apply relative;
+}
+
+.votoFabTooltip {
+  @apply absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap rounded bg-cancha-950 px-3 py-1.5 text-xs text-white elev-3 opacity-0 pointer-events-none transition-opacity motion-base flex items-center gap-2;
+}
+
+.votoFabWrapper:hover .votoFabTooltip {
+  @apply opacity-100;
+}
+
+.tooltipIcon {
+  @apply flex-shrink-0 text-albiceleste;
+}
+
+.votoFabIcon {
+  @apply flex-shrink-0;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% {
+    box-shadow: 0 4px 14px 0 rgb(75 85 99 / 0.4), 0 0 0 0 rgb(120 221 101 / 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 14px 0 rgb(75 85 99 / 0.4), 0 0 0 8px rgb(120 221 101 / 0);
+  }
 }
