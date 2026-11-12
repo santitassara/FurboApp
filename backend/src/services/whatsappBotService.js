@@ -52,6 +52,8 @@ function obtenerTitularesPorEquipo(partidoId) {
     .all(partidoId);
 }
 
+const MENSAJE_VOTACION_NO_DISPONIBLE = '🗳️ El estado de la votación de formaciones no se puede consultar.';
+
 function hayVotacionFormacionAbierta(partidoId) {
   const partidoRow = db.prepare('SELECT votacionEquiposCerrada FROM Partidos WHERE id = ?').get(partidoId);
   if (!partidoRow || partidoRow.votacionEquiposCerrada) return false;
@@ -59,94 +61,6 @@ function hayVotacionFormacionAbierta(partidoId) {
     .prepare('SELECT COUNT(*) AS total FROM FormacionesPropuestas WHERE partidoId = ?')
     .get(partidoId);
   return total > 0;
-}
-
-function obtenerPropuestasConVotos(partidoId) {
-  return db
-    .prepare(
-      `SELECT p.id, p.numero, COUNT(v.id) AS votos
-       FROM FormacionesPropuestas p
-       LEFT JOIN VotosFormacion v ON v.propuestaId = p.id
-       WHERE p.partidoId = ?
-       GROUP BY p.id
-       ORDER BY votos DESC, p.numero ASC`
-    )
-    .all(partidoId);
-}
-
-function seleccionarPropuestasMasVotadas(propuestas) {
-  if (propuestas.length === 0) return [];
-
-  const valoresDeVotos = [...new Set(propuestas.map((propuesta) => propuesta.votos))].sort((a, b) => b - a);
-  let seleccionadas = propuestas.filter((propuesta) => propuesta.votos === valoresDeVotos[0]);
-
-  if (seleccionadas.length < 2 && valoresDeVotos.length > 1) {
-    seleccionadas = seleccionadas.concat(
-      propuestas.filter((propuesta) => propuesta.votos === valoresDeVotos[1])
-    );
-  }
-
-  return seleccionadas;
-}
-
-function obtenerDetallePropuesta(propuestaId) {
-  return db
-    .prepare(
-      `SELECT d.equipo AS equipo,
-              COALESCE(u.nombre, i.nombre) AS nombre
-       FROM FormacionesPropuestasDetalle d
-       JOIN FormacionesPropuestas p ON p.id = d.propuestaId
-       JOIN Partidos pa ON pa.id = p.partidoId
-       LEFT JOIN Usuarios u ON u.uid = d.usuarioId
-       LEFT JOIN Invitados i ON i.id = d.invitadoId AND i.grupoId = pa.grupoId
-       WHERE d.propuestaId = ?
-       ORDER BY d.equipo ASC, d.ordenLinea ASC, nombre ASC`
-    )
-    .all(propuestaId);
-}
-
-function formatearPropuestaVotacion(propuesta) {
-  const detalle = obtenerDetallePropuesta(propuesta.id);
-  const equipoA = detalle.filter((jugador) => jugador.equipo === 'A').map((jugador) => `• ${jugador.nombre}`);
-  const equipoB = detalle.filter((jugador) => jugador.equipo === 'B').map((jugador) => `• ${jugador.nombre}`);
-
-  const bloques = [];
-  if (equipoA.length > 0) bloques.push(`⚪ *Equipo A* (${equipoA.length})\n${equipoA.join('\n')}`);
-  if (equipoB.length > 0) bloques.push(`⚫ *Equipo B* (${equipoB.length})\n${equipoB.join('\n')}`);
-
-  const etiquetaVotos = propuesta.votos === 1 ? 'voto' : 'votos';
-  return `*Propuesta ${propuesta.numero}* (${propuesta.votos} ${etiquetaVotos})\n${bloques.join('\n\n')}`;
-}
-
-function formatearVotacionFormacion(partidoId) {
-  const propuestas = obtenerPropuestasConVotos(partidoId);
-  if (propuestas.length === 0) {
-    return 'Todavía no hay propuestas de formación para votar.';
-  }
-
-  const masVotadas = seleccionarPropuestasMasVotadas(propuestas);
-  const encabezado = '🗳️ La votación de formación está abierta. Estas son las más votadas hasta ahora:';
-  return `${encabezado}\n\n${masVotadas.map(formatearPropuestaVotacion).join('\n\n')}`;
-}
-
-function formatearEstadoVotacion(partidoId) {
-  const propuestas = obtenerPropuestasConVotos(partidoId);
-  if (propuestas.length === 0) {
-    return 'Todavía no hay ninguna votación de formación en curso.';
-  }
-
-  const partidoRow = db
-    .prepare('SELECT votacionEquiposCerrada, propuestaGanadoraId FROM Partidos WHERE id = ?')
-    .get(partidoId);
-
-  if (partidoRow?.votacionEquiposCerrada) {
-    const ganadora = propuestas.find((propuesta) => propuesta.id === partidoRow.propuestaGanadoraId);
-    if (ganadora) {
-      return `✅ La votación ya cerró. Formación elegida:\n\n${formatearPropuestaVotacion(ganadora)}`;
-    }
-  }
-
-  return formatearVotacionFormacion(partidoId);
 }
 
 function formatearEquipos(partidoId) {
@@ -766,7 +680,7 @@ function generarRespuestaLocal(grupoId, textoMensaje) {
     texto.includes('voto') ||
     texto.includes('votos')
   ) {
-    return formatearEstadoVotacion(partido.id);
+    return MENSAJE_VOTACION_NO_DISPONIBLE;
   }
 
   if (
@@ -778,7 +692,7 @@ function generarRespuestaLocal(grupoId, textoMensaje) {
     texto.includes('alineación')
   ) {
     if (hayVotacionFormacionAbierta(partido.id)) {
-      return formatearVotacionFormacion(partido.id);
+      return '🗳️ La votación de formación está abierta. Los equipos se van a conocer cuando cierre.';
     }
     return formatearEquipos(partido.id);
   }
@@ -827,15 +741,6 @@ async function enviarMensajeConMenciones(socket, chatId, texto, mensajeCitado = 
   return await socket.sendMessage(chatId, opcionesMensaje, opcionesExtra);
 }
 
-function esConsultaVotacionFormaciones(texto) {
-  const t = texto.toLowerCase();
-  return (
-    (t.includes('cómo va') || t.includes('como va') || t.includes('qué tal') || t.includes('que tal') || t.includes('cómo está') || t.includes('como esta') || t.includes('estado de')) &&
-    (t.includes('votación') || t.includes('votacion') || t.includes('voto') || t.includes('votos')) &&
-    (t.includes('formación') || t.includes('formacion') || t.includes('equipos') || t.includes('equipo'))
-  );
-}
-
 function registrarListenerBot(socket) {
   console.log('[BOT] Listener registrado. Usuario del socket:', socket.user?.id);
   socket.ev.on('messages.upsert', async (m) => {
@@ -860,11 +765,6 @@ function registrarListenerBot(socket) {
     if (!grupo) return;
 
     const cleanText = text.replace(/@\d+/g, '').trim();
-
-    if (esConsultaVotacionFormaciones(cleanText)) {
-      console.log('[BOT] Ignorando consulta sobre votación de formaciones:', cleanText);
-      return;
-    }
 
     try {
       await socket.sendPresenceUpdate('composing', chatId);
