@@ -1,11 +1,19 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useGrupo } from '../context/GrupoContext';
 import Boton from '../components/Boton';
 import TarjetaJugadorFIFA from '../components/TarjetaJugadorFIFA';
+import RadarHabilidades from '../components/RadarHabilidades';
 import { POSICIONES } from '../constants/posiciones';
 import { RESISTENCIA } from '../constants/resistencia';
 import { RITMO_JUEGO } from '../constants/ritmoJuego';
+import { etiquetaPosicion } from '../constants/posiciones';
+import { etiquetaResistencia } from '../constants/resistencia';
+import { etiquetaRitmoJuego } from '../constants/ritmoJuego';
+import { etiquetaPiernaHabil } from '../constants/piernaHabil';
 import { SERVER_URL } from '../services/api';
+import api from '../services/api';
+import clsx from 'clsx';
 import styles from './Perfil.module.css';
 
 const HABILIDADES = [
@@ -17,8 +25,157 @@ const HABILIDADES = [
   { campo: 'fisico', etiqueta: 'Físico' },
 ];
 
-export default function Perfil() {
-  const { perfil, actualizarMiPerfil, subirFotoPerfil } = useAuth();
+function PerfilDatos({ perfil, grupoActivo }) {
+  const [estadisticas, setEstadisticas] = useState(null);
+  const [estadisticasTotales, setEstadisticasTotales] = useState(null);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let activo = true;
+    setCargando(true);
+    setError('');
+
+    Promise.all([
+      grupoActivo ? api.get(`/usuarios/${perfil.uid}/estadisticas/${grupoActivo.id}`) : Promise.resolve(null),
+      api.get(`/usuarios/${perfil.uid}/estadisticas`),
+    ])
+      .then(([statsRes, statsTotalesRes]) => {
+        if (activo) {
+          if (statsRes) setEstadisticas(statsRes.data);
+          setEstadisticasTotales(statsTotalesRes.data);
+        }
+      })
+      .catch((err) => {
+        if (activo) setError(err.message);
+      })
+      .finally(() => {
+        if (activo) setCargando(false);
+      });
+
+    return () => {
+      activo = false;
+    };
+  }, [perfil.uid, grupoActivo]);
+
+  const tiles = perfil
+    ? [
+        { etiqueta: 'Edad', valor: perfil.edad != null ? `${perfil.edad} años` : 'Sin dato' },
+        {
+          etiqueta: 'Posición',
+          valor:
+            [etiquetaPosicion(perfil.posicionPrincipal), etiquetaPosicion(perfil.posicionSecundaria)]
+              .filter((p) => p !== 'Sin posición')
+              .join(' / ') || 'Sin dato',
+          ancha: Boolean(perfil.posicionPrincipal && perfil.posicionSecundaria),
+        },
+        { etiqueta: 'Pierna hábil', valor: etiquetaPiernaHabil(perfil.piernaHabil) },
+        { etiqueta: 'Resistencia', valor: etiquetaResistencia(perfil.resistencia) },
+        { etiqueta: 'Ritmo de juego', valor: etiquetaRitmoJuego(perfil.ritmoJuego) },
+      ]
+    : [];
+
+  return (
+    <div className={styles.container}>
+      <h1 className={styles.titulo}>Mi Perfil</h1>
+
+      {cargando && <p className={styles.cargando}>Cargando…</p>}
+      {error && <p className={styles.error}>{error}</p>}
+
+      {perfil && (
+        <div className={styles.grid}>
+          <div className={styles.tarjetaWrap}>
+            <TarjetaJugadorFIFA
+              nombre={perfil.nombreCompleto || perfil.nombre}
+              posicion={perfil.posicionPrincipal}
+              habilidades={perfil}
+              fotoUrl={perfil.fotoUrl ? `${SERVER_URL}${perfil.fotoUrl}` : null}
+            />
+          </div>
+
+          <div className={styles.columnaDerecha}>
+            <div className={styles.panel}>
+              <h2 className={styles.panelTitulo}>Resumen</h2>
+              <div className={styles.tilesGrid}>
+                {tiles.map((tile) => (
+                  <div
+                    key={tile.etiqueta}
+                    className={clsx(styles.tile, tile.ancha && styles.tileAncha)}
+                  >
+                    <p className={styles.tileLabel}>{tile.etiqueta}</p>
+                    <p className={styles.tileValor}>{tile.valor}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {estadisticas && (
+              <div className={styles.panel}>
+                <h2 className={styles.panelTitulo}>
+                  Estadísticas en grupo {grupoActivo?.nombre}
+                </h2>
+                <div className={styles.tilesGrid}>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>Partidos Jugados</p>
+                    <p className={styles.statValor}>{estadisticas.pj}</p>
+                  </div>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>Goles</p>
+                    <p className={styles.statValor}>{estadisticas.goles}</p>
+                  </div>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>Asistencias</p>
+                    <p className={styles.statValor}>{estadisticas.asistencias}</p>
+                  </div>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>Valoración</p>
+                    <p className={styles.statValor}>{estadisticas.valoracion}</p>
+                  </div>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>MVPs</p>
+                    <p className={styles.statValor}>{estadisticas.mvps}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {estadisticasTotales && (
+              <div className={styles.panel}>
+                <h2 className={styles.panelTitulo}>Totales</h2>
+                <div className={styles.tilesGrid}>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>
+                      Goles en grupo {grupoActivo?.nombre}
+                    </p>
+                    <p className={styles.statValor}>{estadisticas?.goles || 0}</p>
+                  </div>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>Goles Totales</p>
+                    <p className={styles.statValor}>{estadisticasTotales.goles}</p>
+                  </div>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>
+                      MVPs en grupo {grupoActivo?.nombre}
+                    </p>
+                    <p className={styles.statValor}>{estadisticas?.mvps || 0}</p>
+                  </div>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>MVPs Totales</p>
+                    <p className={styles.statValor}>{estadisticasTotales.mvps}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <RadarHabilidades perfil={perfil} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PerfilEditar({ perfil, actualizarMiPerfil, subirFotoPerfil }) {
   const inputFotoRef = useRef(null);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [errorFoto, setErrorFoto] = useState('');
@@ -36,14 +193,6 @@ export default function Perfil() {
     gambeta: perfil?.gambeta ?? 50,
     marcaDefensa: perfil?.marcaDefensa ?? 50,
     fisico: perfil?.fisico ?? 50,
-  });
-  const [tocado, setTocado] = useState({
-    velocidad: false,
-    pegada: false,
-    tocaPase: false,
-    gambeta: false,
-    marcaDefensa: false,
-    fisico: false,
   });
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
@@ -63,7 +212,6 @@ export default function Perfil() {
 
   function actualizarHabilidad(campo, valor) {
     actualizarCampo(campo, valor);
-    setTocado((anterior) => ({ ...anterior, [campo]: true }));
   }
 
   async function manejarSeleccionFoto(evento) {
@@ -288,6 +436,42 @@ export default function Perfil() {
         </Boton>
         </form>
       </div>
+    </div>
+  );
+}
+
+export default function Perfil() {
+  const { perfil, actualizarMiPerfil, subirFotoPerfil } = useAuth();
+  const { grupoActivo } = useGrupo();
+  const [pestanaActiva, setPestanaActiva] = useState('datos');
+
+  return (
+    <div className={styles.pagina}>
+      <div className={styles.pestanas}>
+        <button
+          className={clsx(styles.pestana, pestanaActiva === 'datos' && styles.pestanaActiva)}
+          onClick={() => setPestanaActiva('datos')}
+        >
+          Datos
+        </button>
+        <button
+          className={clsx(styles.pestana, pestanaActiva === 'editar' && styles.pestanaActiva)}
+          onClick={() => setPestanaActiva('editar')}
+        >
+          Editar
+        </button>
+      </div>
+
+      {pestanaActiva === 'datos' && (
+        <PerfilDatos perfil={perfil} grupoActivo={grupoActivo} />
+      )}
+      {pestanaActiva === 'editar' && (
+        <PerfilEditar
+          perfil={perfil}
+          actualizarMiPerfil={actualizarMiPerfil}
+          subirFotoPerfil={subirFotoPerfil}
+        />
+      )}
     </div>
   );
 }
