@@ -49,11 +49,6 @@ function procesarPartido(partidoId, elegibles) {
       )
       .get(jugadorId);
 
-    if (CAMPOS_HABILIDAD.some((campo) => usuario[campo] == null)) {
-      saltados.push({ usuarioId: jugadorId, motivo: 'perfil_incompleto' });
-      continue;
-    }
-
     const inscripcion = db
       .prepare(
         `SELECT posicionPrincipal FROM Inscripciones
@@ -70,6 +65,53 @@ function procesarPartido(partidoId, elegibles) {
 
     const promedioOlimpico = calcularPromedioOlimpico(puntajes);
     const puntajeEscalado = promedioOlimpico * 10;
+
+    // Check if user has missing skills
+    const habilidadesFaltantes = CAMPOS_HABILIDAD.filter(campo => usuario[campo] == null);
+
+    if (habilidadesFaltantes.length > 0) {
+      // Initialize missing skills with position-weighted rating
+      const inicializadas = inicializarHabilidades(usuario, pesos, puntajeEscalado);
+
+      // Merge: keep existing, fill missing
+      const baseHabilidades = {};
+      for (const campo of CAMPOS_HABILIDAD) {
+        baseHabilidades[campo] = usuario[campo] != null ? usuario[campo] : inicializadas[campo];
+      }
+
+      // Use baseHabilidades for ovrPrevio calculation
+      const ovrPrevio = CAMPOS_HABILIDAD.reduce((suma, campo) => suma + baseHabilidades[campo], 0) / CAMPOS_HABILIDAD.length;
+
+      // Apply delta to all skills (existing + initialized)
+      const nuevosValores = {};
+      const cambios = {};
+      for (const campo of CAMPOS_HABILIDAD) {
+        const delta = (K_RATING * pesos[campo] * (puntajeEscalado - ovrPrevio)) / 100;
+        const nuevo = clamp(baseHabilidades[campo] + delta, 0, 100);
+        nuevosValores[campo] = nuevo;
+        cambios[campo] = Math.round((nuevo - baseHabilidades[campo]) * 1000) / 1000;
+      }
+
+      // Save to DB
+      db.prepare(
+        `UPDATE Usuarios SET
+           velocidad = @velocidad, pegada = @pegada, tocaPase = @tocaPase,
+           gambeta = @gambeta, marcaDefensa = @marcaDefensa, fisico = @fisico
+         WHERE uid = @uid`
+      ).run({ ...nuevosValores, uid: jugadorId });
+
+      procesados.push({
+        usuarioId: jugadorId,
+        promedioOlimpico,
+        ovrPrevio: Math.round(ovrPrevio * 10) / 10,
+        cambios,
+        inicializado: true,
+        habilidadesInicializadas: habilidadesFaltantes,
+      });
+      continue;
+    }
+
+    // Normal Elo evolution for players with complete skills
     const ovrPrevio =
       CAMPOS_HABILIDAD.reduce((suma, campo) => suma + usuario[campo], 0) / CAMPOS_HABILIDAD.length;
 
@@ -173,4 +215,4 @@ async function cerrarVotacionesVencidas() {
   }
 }
 
-module.exports = { calcularPromedioOlimpico, cerrarVotacion, cerrarVotacionesVencidas, inicializarHabilidades };
+module.exports = { calcularPromedioOlimpico, cerrarVotacion, cerrarVotacionesVencidas, inicializarHabilidades, procesarPartido };
