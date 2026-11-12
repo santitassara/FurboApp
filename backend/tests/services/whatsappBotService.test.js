@@ -113,3 +113,15 @@ describe('generarRespuestaLocal — consulta de equipos', () => {
     expect(generarRespuestaLocal(GRUPO_ID, 'equipos')).toBe('No hay ningún partido abierto por ahora.');
   });
 });
+
+describe('generarRespuestaLocal — votación de formaciones', () => {
+  it.each(['¿cómo va la votación?', 'cuántos votos tiene cada formación', 'votos'])(
+    'no informa el estado de la votación (%s)',
+    (consulta) => {
+      const respuesta = generarRespuestaLocal(GRUPO_ID, consulta);
+
+      expect(respuesta).toBe('🗳️ El estado de la votación de formaciones no se puede consultar.');
+      expect(respuesta).not.toMatch(/Propuesta \d/);
+    }
+  );
+});
