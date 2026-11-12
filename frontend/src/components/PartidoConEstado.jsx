@@ -1,6 +1,6 @@
 import styles from './PartidoConEstado.module.css';
 
-export default function PartidoConEstado({ partido, children }) {
+export default function PartidoConEstado({ partido, children, equipos }) {
   if (partido.estado === 'jugado') {
     return null;
   }
@@ -14,6 +14,7 @@ export default function PartidoConEstado({ partido, children }) {
             Esperando resultados
           </p>
         </div>
+        {equipos && <div className={styles.equiposVisibles}>{equipos}</div>}
       </div>
     );
   }
