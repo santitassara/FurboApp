@@ -105,14 +105,10 @@ export default function Home() {
         setUltimoJugadoYaVoto(false);
       }
 
-      // Modo plantel: la pizarra táctica se habilita con solo los titulares
-      // (no hay suplentes ni dos equipos). Convocatoria: se habilita cuando
-      // titulares + suplentes cubren el cupo.
-      const esPlantel = grupoActivo.modo === 'plantel';
+      // La pizarra táctica se habilita cuando se completa el cupo de titulares
+      // (tanto en modo plantel como en convocatoria; los suplentes son solo banco).
       const cuposCubiertos = (partido) =>
-        esPlantel
-          ? (partido.ocupados?.titulares || 0) >= partido.cupoTitulares
-          : (partido.ocupados?.titulares || 0) + (partido.ocupados?.suplentes || 0) >= partido.cupoTitulares;
+        (partido.ocupados?.titulares || 0) >= partido.cupoTitulares;
 
       const entradas = await Promise.all(
         partidosAbiertos.map(async (partido) => {
