@@ -17,6 +17,16 @@ function clamp(valor, minimo, maximo) {
   return Math.max(minimo, Math.min(maximo, valor));
 }
 
+function inicializarHabilidades(usuario, pesos, puntajeEscalado) {
+  const totalPeso = Object.values(pesos).reduce((a, b) => a + b, 0);
+  const inicializadas = {};
+  for (const campo of CAMPOS_HABILIDAD) {
+    const peso = pesos[campo] || 0;
+    inicializadas[campo] = Math.round((puntajeEscalado * peso / totalPeso) * 100) / 100;
+  }
+  return inicializadas;
+}
+
 function procesarPartido(partidoId, elegibles) {
   const procesados = [];
   const saltados = [];
@@ -163,4 +173,4 @@ async function cerrarVotacionesVencidas() {
   }
 }
 
-module.exports = { calcularPromedioOlimpico, cerrarVotacion, cerrarVotacionesVencidas };
+module.exports = { calcularPromedioOlimpico, cerrarVotacion, cerrarVotacionesVencidas, inicializarHabilidades };
