@@ -746,6 +746,9 @@ export default function MapaCancha({
 
   // Touch/mouse drag-pan for mobile
   const handlePanStart = (e) => {
+    // Si el gesto arranca sobre un jugador arrastrable, es un drag de dnd-kit:
+    // no paneamos la cancha (si no, se mueven los asientos droppable bajo el cursor).
+    if (e.target.closest?.('[aria-roledescription="draggable"]')) return;
     if (e.touches) {
       setPanStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
     } else {
