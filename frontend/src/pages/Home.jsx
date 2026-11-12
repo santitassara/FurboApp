@@ -105,6 +105,7 @@ export default function Home() {
         setUltimoJugadoYaVoto(false);
       }
 
+      const esPlantel = grupoActivo.modo === 'plantel';
       // La pizarra táctica se habilita cuando se completa el cupo de titulares
       // (tanto en modo plantel como en convocatoria; los suplentes son solo banco).
       const cuposCubiertos = (partido) =>
@@ -216,6 +217,45 @@ export default function Home() {
     return null;
   }
 
+  function renderCancha(partido, { conOverlayEspera = false } = {}) {
+    if (!formacionesPorPartido[partido.id]) return null;
+    const ocupados = partido.ocupados || { titulares: 0, suplentes: 0 };
+    const esperandoTitulares = conOverlayEspera && ocupados.titulares < partido.cupoTitulares;
+    return (
+      <div id={`mapa-cancha-${partido.id}`} className={styles.mapaWrapper}>
+        <div className={clsx(esperandoTitulares && styles.bloqueado)}>
+          <MapaCancha
+            partidoId={partido.id}
+            formacion={formacionesPorPartido[partido.id]}
+            esAdmin={grupoActivo?.rol === 'admin'}
+            onGuardado={(data) => setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))}
+            propuestasInfo={propuestasPorPartido[partido.id]}
+            previewPropuesta={previewPorPartido[partido.id] || null}
+            previewEtiqueta={previewEtiquetaPorPartido[partido.id] || null}
+            onPropuesto={cargarPartidos}
+            onSalirPreview={() => setPreviewPorPartido((anterior) => ({ ...anterior, [partido.id]: null }))}
+            jugadores={inscripcionesPorPartido[partido.id] || []}
+            onPromovido={cargarPartidos}
+          />
+        </div>
+        {esperandoTitulares && (
+          <div className={styles.overlayEsperando}>
+            <p className={styles.mensajeEsperando}>Esperando a todos los titulares</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Partido cerrado: la cancha se muestra por encima del overlay (prop `equipos`
+  // de PartidoConEstado). Abierto: se renderiza inline en la grilla.
+  const canchaInline = (partido, opciones) =>
+    partido.estado === 'cerrado'
+      ? formacionesPorPartido[partido.id] && <div className={styles.mapaWrapperPlaceholder} />
+      : renderCancha(partido, opciones);
+  const canchaSobreOverlay = (partido, opciones) =>
+    partido.estado === 'cerrado' ? renderCancha(partido, opciones) : null;
+
   return (
     <div className={styles.contenedor}>
       <header className={styles.header}>
@@ -286,48 +326,7 @@ export default function Home() {
               <PartidoConEstado
                 key={partido.id}
                 partido={partido}
-                equipos={
-                  formacionesPorPartido[partido.id] && (
-                    <div id={`mapa-cancha-${partido.id}`} className={styles.mapaWrapper}>
-                      {(() => {
-                        const ocupados = partido.ocupados || { titulares: 0, suplentes: 0 };
-                        const esperandoTitulares = ocupados.titulares < partido.cupoTitulares;
-                        return (
-                          <div className={clsx(esperandoTitulares && styles.bloqueado)}>
-                            <MapaCancha
-                              partidoId={partido.id}
-                              formacion={formacionesPorPartido[partido.id]}
-                              esAdmin={grupoActivo?.rol === 'admin'}
-                              onGuardado={(data) =>
-                                setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))
-                              }
-                              propuestasInfo={propuestasPorPartido[partido.id]}
-                              previewPropuesta={previewPorPartido[partido.id] || null}
-                              previewEtiqueta={previewEtiquetaPorPartido[partido.id] || null}
-                              onPropuesto={cargarPartidos}
-                              onSalirPreview={() =>
-                                setPreviewPorPartido((anterior) => ({ ...anterior, [partido.id]: null }))
-                              }
-                              jugadores={inscripcionesPorPartido[partido.id] || []}
-                              onPromovido={cargarPartidos}
-                            />
-                          </div>
-                        );
-                      })()}
-                      {(() => {
-                        const ocupados = partido.ocupados || { titulares: 0, suplentes: 0 };
-                        const esperandoTitulares = ocupados.titulares < partido.cupoTitulares;
-                        return esperandoTitulares && (
-                          <div className={styles.overlayEsperando}>
-                            <p className={styles.mensajeEsperando}>
-                              Esperando a todos los titulares
-                            </p>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  )
-                }
+                equipos={canchaSobreOverlay(partido, { conOverlayEspera: true })}
               >
                 <div className={styles.contenidoPrimero}>
                   <HeroPartido
@@ -351,9 +350,7 @@ export default function Home() {
                       />
                     </div>
 
-                    {formacionesPorPartido[partido.id] && (
-                      <div className={styles.mapaWrapperPlaceholder} />
-                    )}
+                    {canchaInline(partido, { conOverlayEspera: true })}
 
                   </div>
 
@@ -384,32 +381,12 @@ export default function Home() {
               <PartidoConEstado
                 key={partido.id}
                 partido={partido}
-                equipos={
-                  formacionesPorPartido[partido.id] && (
-                    <div id={`mapa-cancha-${partido.id}`}>
-                      <MapaCancha
-                        partidoId={partido.id}
-                        formacion={formacionesPorPartido[partido.id]}
-                        esAdmin={grupoActivo?.rol === 'admin'}
-                        onGuardado={(data) => setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))}
-                        propuestasInfo={propuestasPorPartido[partido.id]}
-                        previewPropuesta={previewPorPartido[partido.id] || null}
-                              previewEtiqueta={previewEtiquetaPorPartido[partido.id] || null}
-                        onPropuesto={cargarPartidos}
-                        onSalirPreview={() => setPreviewPorPartido((anterior) => ({ ...anterior, [partido.id]: null }))}
-                        jugadores={inscripcionesPorPartido[partido.id] || []}
-                        onPromovido={cargarPartidos}
-                      />
-                    </div>
-                  )
-                }
+                equipos={canchaSobreOverlay(partido)}
               >
                 <div
                   className={clsx(formacionesPorPartido[partido.id] && styles.gridDosColumnas)}
                 >
-                  {formacionesPorPartido[partido.id] && (
-                    <div className={styles.mapaWrapperPlaceholder} />
-                  )}
+                  {canchaInline(partido)}
                   <TarjetaPartido
                     partido={partido}
                     inscripcionUsuario={inscripcionDelUsuario(partido.id)}
