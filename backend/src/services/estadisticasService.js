@@ -1,4 +1,6 @@
 const { db } = require('../config/db');
+const usuariosService = require('./usuariosService');
+const { CAMPOS_HABILIDAD } = usuariosService;
 
 function obtenerEstadisticasJugador(usuarioId, grupoId) {
   const pj = db
@@ -26,24 +28,16 @@ function obtenerEstadisticasJugador(usuarioId, grupoId) {
     )
     .get(usuarioId, grupoId)?.total || 0;
 
-  const resultado = db
-    .prepare(
-      `SELECT AVG(
-         CASE
-           WHEN p.votacionCerrada = 1 AND NOT EXISTS (
-             SELECT 1 FROM RendimientosJugador v
-             WHERE v.partidoId = r.partidoId AND v.votanteId = r.jugadorId
-           ) THEN r.puntaje / 2.0
-           ELSE r.puntaje
-         END
-       ) as promedio
-       FROM RendimientosJugador r
-       JOIN Partidos p ON r.partidoId = p.id
-       WHERE r.jugadorId = ? AND p.grupoId = ?`
-    )
-    .get(usuarioId, grupoId);
+  // Get user's current skills to calculate OVR (overall rating)
+  const usuario = db
+    .prepare('SELECT velocidad, pegada, tocaPase, gambeta, marcaDefensa, fisico FROM Usuarios WHERE uid = ?')
+    .get(usuarioId);
 
-  const valoracion = resultado?.promedio ? parseFloat(resultado.promedio).toFixed(1) : '0.0';
+  const ovr = usuario && CAMPOS_HABILIDAD.every(c => usuario[c] != null)
+    ? CAMPOS_HABILIDAD.reduce((sum, c) => sum + usuario[c], 0) / CAMPOS_HABILIDAD.length
+    : 0;
+
+  const valoracion = ovr > 0 ? parseFloat(ovr).toFixed(1) : '0.0';
 
   // Los MVPs salen de dos fuentes: la votación de los compañeros (convocatoria) y la
   // figura que el admin elige al cargar el resultado (plantel).
