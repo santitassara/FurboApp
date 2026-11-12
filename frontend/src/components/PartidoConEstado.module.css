@@ -8,6 +8,10 @@
   @apply pointer-events-none blur-sm;
 }
 
+.equiposVisibles {
+  @apply absolute inset-0 z-10 pointer-events-auto;
+}
+
 .overlay {
   @apply absolute inset-0 flex items-center justify-center rounded-xl bg-cancha-950/80 elev-3;
 }

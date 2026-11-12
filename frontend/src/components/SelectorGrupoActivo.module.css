@@ -5,23 +5,23 @@
 }
 
 .botonActivo {
-  @apply flex w-full items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-left text-body font-semibold text-white transition-all motion-base hover:bg-white/10;
+  @apply relative flex flex-wrap items-center justify-between gap-2 w-full rounded-lg bg-white/5 px-3 py-3 pr-10 text-left text-body font-semibold text-white transition-all motion-base hover:bg-white/10;
 }
 
 .nombreGrupo {
-  @apply truncate;
+  @apply min-w-0 whitespace-normal break-words;
 }
 
 .flechaIcono {
-  @apply text-white/50;
+  @apply absolute right-3 top-1/2 -translate-y-1/2 flex-shrink-0 text-white/50;
 }
 
-.derechaBoton {
-  @apply ml-2 flex shrink-0 items-center gap-2;
+.infoPrincipal {
+  @apply flex flex-wrap items-center gap-2 min-w-0;
 }
 
 .badgeModo {
-  @apply rounded-full px-2 py-0.5 text-caption font-bold tracking-wide;
+  @apply rounded-full px-2 py-1 text-caption font-bold tracking-wide shrink-0;
 }
 
 .badgePlantel {
@@ -41,7 +41,7 @@
 }
 
 .opcionGrupo {
-  @apply block w-full px-3 py-2 text-left text-body transition-colors motion-fast;
+  @apply flex flex-col items-start gap-1 w-full px-3 py-2 text-left text-body transition-colors motion-fast;
 }
 
 .opcionActiva {
@@ -50,6 +50,10 @@
 
 .opcionInactiva {
   @apply text-white/80 hover:bg-white/5;
+}
+
+.nombreOpcion {
+  @apply min-w-0 whitespace-normal break-words;
 }
 
 .enlaceCrear {

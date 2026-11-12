@@ -48,6 +48,10 @@
   @apply relative;
 }
 
+.mapaWrapperPlaceholder {
+  @apply relative min-h-[300px];
+}
+
 .bloqueado {
   @apply pointer-events-none blur-sm;
 }

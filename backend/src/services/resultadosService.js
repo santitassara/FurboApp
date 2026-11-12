@@ -24,11 +24,12 @@ function claveJugador(usuarioId, invitadoId) {
 
 // Solo usuarios reales: usado por el motor de rating (que actualiza habilidades
 // en Usuarios) y para validar quién puede votar (los invitados no tienen login).
+// Incluye titulares y suplentes (los suplentes pueden haber jugado si reemplazaron a un titular).
 async function obtenerElegibles(partidoId) {
   const filas = db
     .prepare(
       `SELECT usuarioId FROM Inscripciones
-       WHERE partidoId = ? AND estado = 'anotado' AND tipo = 'titular' AND equipo IS NOT NULL
+       WHERE partidoId = ? AND estado = 'anotado' AND tipo IN ('titular', 'suplente') AND equipo IS NOT NULL
              AND usuarioId IS NOT NULL`
     )
     .all(partidoId);
@@ -37,11 +38,12 @@ async function obtenerElegibles(partidoId) {
 
 // Jugadores reales + invitados: usado para validar y mostrar goles, asistencias,
 // sanciones y a quién se puede calificar/votar MVP.
+// Incluye titulares y suplentes (los suplentes pueden haber jugado si reemplazaron a un titular).
 async function obtenerElegiblesJugadores(partidoId, grupoId) {
   const filas = db
     .prepare(
       `SELECT usuarioId, invitadoId FROM Inscripciones
-       WHERE partidoId = ? AND estado = 'anotado' AND tipo = 'titular' AND equipo IS NOT NULL`
+       WHERE partidoId = ? AND estado = 'anotado' AND tipo IN ('titular', 'suplente') AND equipo IS NOT NULL`
     )
     .all(partidoId);
   return Promise.all(
@@ -179,11 +181,11 @@ async function guardarResultadoPlantel(partido, grupoId, payload = {}) {
     throw crearError('beelupUrl debe ser una URL válida', 400);
   }
 
-  // Elegibles: todos los anotados titulares (no depende de que la pizarra esté guardada).
+  // Elegibles: todos los anotados titulares y suplentes (los suplentes pueden haber jugado si reemplazaron a un titular).
   const filasTitulares = db
     .prepare(
       `SELECT usuarioId, invitadoId FROM Inscripciones
-       WHERE partidoId = ? AND estado = 'anotado' AND tipo = 'titular'`
+       WHERE partidoId = ? AND estado = 'anotado' AND tipo IN ('titular', 'suplente')`
     )
     .all(partidoId);
   const clavesElegibles = new Set(filasTitulares.map((fila) => claveJugador(fila.usuarioId, fila.invitadoId)));
@@ -245,8 +247,8 @@ async function guardarResultadoPlantel(partido, grupoId, payload = {}) {
 
   let jugadorDestacadoId = null;
   if (payload.jugadorDestacadoId) {
-    const esTitular = filasTitulares.some((fila) => fila.usuarioId === payload.jugadorDestacadoId);
-    if (!esTitular) throw crearError('La figura debe ser uno de los titulares del partido', 400);
+    const esElegible = filasTitulares.some((fila) => fila.usuarioId === payload.jugadorDestacadoId);
+    if (!esElegible) throw crearError('La figura debe ser uno de los jugadores del partido (titular o suplente)', 400);
     jugadorDestacadoId = payload.jugadorDestacadoId;
   }
 

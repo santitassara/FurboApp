@@ -39,6 +39,7 @@ export default function Home() {
   const [guardandoPosicionPerfil, setGuardandoPosicionPerfil] = useState(false);
   const [partidoParaAnotarse, setPartidoParaAnotarse] = useState(null);
   const [ultimoJugado, setUltimoJugado] = useState(null);
+  const [ultimoJugadoYaVoto, setUltimoJugadoYaVoto] = useState(false);
 
   // Detectar si hay un partido jugado con votación de performance abierta
   const partidoConVotoAbierto = useMemo(() => {
@@ -46,21 +47,23 @@ export default function Home() {
       hasUltimoJugado: !!ultimoJugado,
       hasPerfil: !!perfil,
       votacionCerrada: ultimoJugado?.votacionCerrada,
+      yaVoto: ultimoJugadoYaVoto,
       perfilUid: perfil?.uid,
       inscripcionesKeys: Object.keys(inscripcionesPorPartido),
       inscripcionesForMatch: inscripcionesPorPartido[ultimoJugado?.id]?.length
     });
     if (!ultimoJugado || !perfil) return null;
     if (ultimoJugado.votacionCerrada) return null;
-    // Verificar si el usuario actual fue titular en ese partido
+    if (ultimoJugadoYaVoto) return null;
+    // Verificar si el usuario actual jugó en ese partido (titular o suplente)
     const inscripciones = inscripcionesPorPartido[ultimoJugado.id] || [];
-    const fueTitular = inscripciones.some(
-      (j) => j.usuarioId === perfil.uid && j.tipo === 'titular'
+    const jugoPartido = inscripciones.some(
+      (j) => j.usuarioId === perfil.uid && (j.tipo === 'titular' || j.tipo === 'suplente')
     );
-    console.log('[Home] fueTitular check:', { fueTitular, inscripcionesSample: inscripciones.slice(0, 2) });
-    if (!fueTitular) return null;
+    console.log('[Home] jugoPartido check:', { jugoPartido, inscripcionesSample: inscripciones.slice(0, 2) });
+    if (!jugoPartido) return null;
     return ultimoJugado;
-  }, [ultimoJugado, perfil, inscripcionesPorPartido]);
+  }, [ultimoJugado, perfil, inscripcionesPorPartido, ultimoJugadoYaVoto]);
 
   const irAVotar = () => {
     if (partidoConVotoAbierto) {
@@ -87,6 +90,19 @@ export default function Home() {
       if (ultimoJugado) {
         const { data: inscripcionesUltimo } = await api.get(rutaGrupo(grupoActivo.id, `/partidos/${ultimoJugado.id}/inscripciones`));
         setInscripcionesPorPartido((prev) => ({ ...prev, [ultimoJugado.id]: inscripcionesUltimo }));
+
+        // Check if the current user has already voted for this match
+        try {
+          const { data: misVotos } = await api.get(rutaGrupo(grupoActivo.id, `/partidos/${ultimoJugado.id}/votos/mios`));
+          // If the user has votes (valoraciones or mvp), they already voted
+          const yaVoto = misVotos && (misVotos.valoraciones?.length > 0 || misVotos.mvpUsuarioId || misVotos.mvpInvitadoId);
+          setUltimoJugadoYaVoto(!!yaVoto);
+        } catch (err) {
+          // If there's an error (e.g., 404, 403), assume they haven't voted
+          setUltimoJugadoYaVoto(false);
+        }
+      } else {
+        setUltimoJugadoYaVoto(false);
       }
 
       // Modo plantel: la pizarra táctica se habilita con solo los titulares
@@ -271,7 +287,52 @@ export default function Home() {
         <div className={styles.listaPartidos}>
           {partidos.map((partido, indice) =>
             indice === 0 ? (
-              <PartidoConEstado key={partido.id} partido={partido}>
+              <PartidoConEstado
+                key={partido.id}
+                partido={partido}
+                equipos={
+                  formacionesPorPartido[partido.id] && (
+                    <div id={`mapa-cancha-${partido.id}`} className={styles.mapaWrapper}>
+                      {(() => {
+                        const ocupados = partido.ocupados || { titulares: 0, suplentes: 0 };
+                        const esperandoTitulares = ocupados.titulares < partido.cupoTitulares;
+                        return (
+                          <div className={clsx(esperandoTitulares && styles.bloqueado)}>
+                            <MapaCancha
+                              partidoId={partido.id}
+                              formacion={formacionesPorPartido[partido.id]}
+                              esAdmin={grupoActivo?.rol === 'admin'}
+                              onGuardado={(data) =>
+                                setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))
+                              }
+                              propuestasInfo={propuestasPorPartido[partido.id]}
+                              previewPropuesta={previewPorPartido[partido.id] || null}
+                              previewEtiqueta={previewEtiquetaPorPartido[partido.id] || null}
+                              onPropuesto={cargarPartidos}
+                              onSalirPreview={() =>
+                                setPreviewPorPartido((anterior) => ({ ...anterior, [partido.id]: null }))
+                              }
+                              jugadores={inscripcionesPorPartido[partido.id] || []}
+                              onPromovido={cargarPartidos}
+                            />
+                          </div>
+                        );
+                      })()}
+                      {(() => {
+                        const ocupados = partido.ocupados || { titulares: 0, suplentes: 0 };
+                        const esperandoTitulares = ocupados.titulares < partido.cupoTitulares;
+                        return esperandoTitulares && (
+                          <div className={styles.overlayEsperando}>
+                            <p className={styles.mensajeEsperando}>
+                              Esperando a todos los titulares
+                            </p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )
+                }
+              >
                 <div className={styles.contenidoPrimero}>
                   <HeroPartido
                     partido={partido}
@@ -295,44 +356,7 @@ export default function Home() {
                     </div>
 
                     {formacionesPorPartido[partido.id] && (
-                      <div id={`mapa-cancha-${partido.id}`} className={styles.mapaWrapper}>
-                        {(() => {
-                          const ocupados = partido.ocupados || { titulares: 0, suplentes: 0 };
-                          const esperandoTitulares = ocupados.titulares < partido.cupoTitulares;
-                          return (
-                            <div className={clsx(esperandoTitulares && styles.bloqueado)}>
-                              <MapaCancha
-                                partidoId={partido.id}
-                                formacion={formacionesPorPartido[partido.id]}
-                                esAdmin={grupoActivo?.rol === 'admin'}
-                                onGuardado={(data) =>
-                                  setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))
-                                }
-                                propuestasInfo={propuestasPorPartido[partido.id]}
-                                previewPropuesta={previewPorPartido[partido.id] || null}
-                                previewEtiqueta={previewEtiquetaPorPartido[partido.id] || null}
-                                onPropuesto={cargarPartidos}
-                                onSalirPreview={() =>
-                                  setPreviewPorPartido((anterior) => ({ ...anterior, [partido.id]: null }))
-                                }
-                                jugadores={inscripcionesPorPartido[partido.id] || []}
-                                onPromovido={cargarPartidos}
-                              />
-                            </div>
-                          );
-                        })()}
-                        {(() => {
-                          const ocupados = partido.ocupados || { titulares: 0, suplentes: 0 };
-                          const esperandoTitulares = ocupados.titulares < partido.cupoTitulares;
-                          return esperandoTitulares && (
-                            <div className={styles.overlayEsperando}>
-                              <p className={styles.mensajeEsperando}>
-                                Esperando a todos los titulares
-                              </p>
-                            </div>
-                          );
-                        })()}
-                      </div>
+                      <div className={styles.mapaWrapperPlaceholder} />
                     )}
 
                   </div>
@@ -361,11 +385,11 @@ export default function Home() {
                 </div>
               </PartidoConEstado>
             ) : (
-              <PartidoConEstado key={partido.id} partido={partido}>
-                <div
-                  className={clsx(formacionesPorPartido[partido.id] && styles.gridDosColumnas)}
-                >
-                  {formacionesPorPartido[partido.id] && (
+              <PartidoConEstado
+                key={partido.id}
+                partido={partido}
+                equipos={
+                  formacionesPorPartido[partido.id] && (
                     <div id={`mapa-cancha-${partido.id}`}>
                       <MapaCancha
                         partidoId={partido.id}
@@ -381,6 +405,14 @@ export default function Home() {
                         onPromovido={cargarPartidos}
                       />
                     </div>
+                  )
+                }
+              >
+                <div
+                  className={clsx(formacionesPorPartido[partido.id] && styles.gridDosColumnas)}
+                >
+                  {formacionesPorPartido[partido.id] && (
+                    <div className={styles.mapaWrapperPlaceholder} />
                   )}
                   <TarjetaPartido
                     partido={partido}

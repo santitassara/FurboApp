@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { useGrupo } from '../context/GrupoContext';
@@ -24,6 +24,21 @@ export default function SelectorGrupoActivo() {
   const [abierto, setAbierto] = useState(false);
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState('');
+  const contenedorRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(evento) {
+      if (contenedorRef.current && !contenedorRef.current.contains(evento.target)) {
+        setAbierto(false);
+      }
+    }
+    if (abierto) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [abierto]);
 
   if (!grupoActivo) return null;
 
@@ -42,16 +57,16 @@ export default function SelectorGrupoActivo() {
   }
 
   return (
-    <div className={styles.contenedor}>
+    <div ref={contenedorRef} className={styles.contenedor}>
       <button
         onClick={() => setAbierto((valor) => !valor)}
         className={styles.botonActivo}
       >
-        <span className={styles.nombreGrupo}>{grupoActivo.nombre}</span>
-        <span className={styles.derechaBoton}>
+        <div className={styles.infoPrincipal}>
+          <span className={styles.nombreGrupo}>{grupoActivo.nombre}</span>
           <BadgeModo modo={grupoActivo.modo} />
-          <span className={styles.flechaIcono}>▾</span>
-        </span>
+        </div>
+        <span className={styles.flechaIcono}>▾</span>
       </button>
       {abierto && (
         <ul className={styles.menu}>
