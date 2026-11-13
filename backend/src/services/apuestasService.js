@@ -265,7 +265,7 @@ async function resolverPartido(partidoId, grupoId) {
   if (!partido.votacionCerrada) throw crearError('La votación de performance no está cerrada', 400);
 
   // Obtener resultado real
-  const resultado = await resultadosService.obtener(partidoId);
+  const resultado = await resultadosService.obtenerResultado(partidoId, grupoId);
   if (!resultado) throw crearError('Resultado no cargado', 400);
 
   // Obtener goles
@@ -279,11 +279,11 @@ async function resolverPartido(partidoId, grupoId) {
 
   // Obtener MVP (jugador con más votos)
   const mvpVotos = db.prepare(`
-    SELECT jugadorId, COUNT(*) as votos, MIN(fecha) as primerVoto
+    SELECT jugadorId, COUNT(*) as votos
     FROM VotosMvp
     WHERE partidoId = ? AND jugadorId IS NOT NULL
     GROUP BY jugadorId
-    ORDER BY votos DESC, primerVoto ASC
+    ORDER BY votos DESC
   `).all(partidoId);
   const mvpGanador = mvpVotos.length > 0 ? mvpVotos[0].jugadorId : null;
 
