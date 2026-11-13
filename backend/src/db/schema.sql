@@ -78,6 +78,8 @@ CREATE TABLE IF NOT EXISTS Partidos (
   recordatorioEnviado INTEGER NOT NULL DEFAULT 0,
   recordatorioPostPartidoEnviado INTEGER NOT NULL DEFAULT 0,
   votacionCerrada INTEGER NOT NULL DEFAULT 0,
+  votacionEquiposCerrada INTEGER NOT NULL DEFAULT 0,
+  propuestaGanadoraId TEXT REFERENCES FormacionesPropuestas(id),
   beelupUrl TEXT,
   numero INTEGER,
   estadio TEXT,
