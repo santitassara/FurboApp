@@ -78,6 +78,12 @@ async function sincronizarUsuario({ uid, email, nombre, emailVerificado }) {
       `INSERT INTO Usuarios (uid, nombre, email, esSuperAdmin, fechaCreacion)
        VALUES (@uid, @nombre, @email, @esSuperAdmin, @fechaCreacion)`
     ).run({ ...nuevoUsuario, esSuperAdmin: esSuperAdmin ? 1 : 0 });
+
+    // Grant initial 100 betting points
+    db.prepare(
+      'INSERT INTO UsuarioPuntos (usuarioId, saldo, actualizadoEn) VALUES (?, 100, ?)'
+    ).run(uid, new Date().toISOString());
+
     return { ...nuevoUsuario };
   }
 
@@ -351,6 +357,12 @@ async function registrarConPassword({ nombre, email, password }) {
       `INSERT INTO Usuarios (uid, nombre, email, fechaCreacion, passwordHash)
        VALUES (@uid, @nombre, @email, @fechaCreacion, @passwordHash)`
     ).run({ ...nuevoUsuario, passwordHash });
+
+    // Grant initial 100 betting points
+    db.prepare(
+      'INSERT INTO UsuarioPuntos (usuarioId, saldo, actualizadoEn) VALUES (?, 100, ?)'
+    ).run(nuevoUsuario.uid, new Date().toISOString());
+
     return { ...nuevoUsuario, passwordHash };
   })();
 
