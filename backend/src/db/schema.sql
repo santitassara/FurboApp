@@ -78,6 +78,8 @@ CREATE TABLE IF NOT EXISTS Partidos (
   recordatorioEnviado INTEGER NOT NULL DEFAULT 0,
   recordatorioPostPartidoEnviado INTEGER NOT NULL DEFAULT 0,
   votacionCerrada INTEGER NOT NULL DEFAULT 0,
+  votacionEquiposCerrada INTEGER NOT NULL DEFAULT 0,
+  propuestaGanadoraId TEXT REFERENCES FormacionesPropuestas(id),
   beelupUrl TEXT,
   numero INTEGER,
   estadio TEXT,
@@ -151,6 +153,7 @@ CREATE TABLE IF NOT EXISTS VotosMvp (
   votanteId TEXT NOT NULL REFERENCES Usuarios(uid),
   jugadorId TEXT REFERENCES Usuarios(uid),
   invitadoId TEXT REFERENCES Invitados(id),
+  fecha TEXT NOT NULL,
   CHECK ((jugadorId IS NOT NULL AND invitadoId IS NULL) OR (jugadorId IS NULL AND invitadoId IS NOT NULL))
 );
 
@@ -288,3 +291,32 @@ CREATE TABLE IF NOT EXISTS ProgramacionesPartido (
 
 CREATE INDEX IF NOT EXISTS idx_programaciones_disparo
   ON ProgramacionesPartido (activa, proximoDisparo);
+
+-- Apuestas: puntos virtuales de usuario
+CREATE TABLE IF NOT EXISTS UsuarioPuntos (
+  usuarioId TEXT PRIMARY KEY REFERENCES Usuarios(uid),
+  saldo INTEGER NOT NULL DEFAULT 100,
+  actualizadoEn TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_usuario_puntos_saldo ON UsuarioPuntos(saldo);
+
+-- Apuestas: apuestas realizadas por usuarios
+CREATE TABLE IF NOT EXISTS Apuestas (
+  id TEXT PRIMARY KEY,
+  partidoId TEXT NOT NULL REFERENCES Partidos(id),
+  usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
+  tipo TEXT NOT NULL,
+  seleccion TEXT NOT NULL,
+  cuota REAL NOT NULL,
+  monto INTEGER NOT NULL,
+  estado TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente','ganada','perdida','reembolsada')),
+  gananciaPotencial INTEGER NOT NULL,
+  gananciaReal INTEGER DEFAULT 0,
+  fechaCreacion TEXT NOT NULL,
+  fechaResolucion TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_apuestas_partido_usuario ON Apuestas(partidoId, usuarioId);
+CREATE INDEX IF NOT EXISTS idx_apuestas_estado ON Apuestas(estado);
+CREATE INDEX IF NOT EXISTS idx_apuestas_partido_tipo ON Apuestas(partidoId, tipo);

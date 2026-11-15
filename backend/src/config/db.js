@@ -366,6 +366,17 @@ permitirInvitadoComoJugador(
   `CREATE INDEX IF NOT EXISTS idx_votos_mvp_partido ON VotosMvp (partidoId);
    CREATE UNIQUE INDEX IF NOT EXISTS idx_votos_mvp_unico ON VotosMvp (partidoId, votanteId);`
 );
+
+// Migración: agregar columna fecha a VotosMvp para tie-breaking MVP
+const columnasVotosMvpFecha = db.prepare('PRAGMA table_info(VotosMvp)').all();
+if (!columnasVotosMvpFecha.some((columna) => columna.name === 'fecha')) {
+  // SQLite no permite DEFAULT no-constante en ALTER TABLE, así que agregamos sin default
+  db.exec('ALTER TABLE VotosMvp ADD COLUMN fecha TEXT');
+  // Actualizar filas existentes con timestamp actual
+  const now = new Date().toISOString();
+  db.exec(`UPDATE VotosMvp SET fecha = '${now}' WHERE fecha IS NULL`);
+}
+
 permitirInvitadoComoJugador(
   'SancionesPartido',
   'usuarioId',
@@ -437,6 +448,55 @@ for (const [columna, tipo] of Object.entries(columnasPartidosBitacora)) {
 const columnasResultadosGolesRival = db.prepare('PRAGMA table_info(Resultados)').all();
 if (!columnasResultadosGolesRival.some((columna) => columna.name === 'golesRival')) {
   db.exec('ALTER TABLE Resultados ADD COLUMN golesRival INTEGER NOT NULL DEFAULT 0');
+}
+
+// Tabla UsuarioPuntos (puntos virtuales para apuestas)
+const tieneUsuarioPuntos = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='UsuarioPuntos'").get();
+if (!tieneUsuarioPuntos) {
+  db.exec(`
+    CREATE TABLE UsuarioPuntos (
+      usuarioId TEXT PRIMARY KEY REFERENCES Usuarios(uid),
+      saldo INTEGER NOT NULL DEFAULT 100,
+      actualizadoEn TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_usuario_puntos_saldo ON UsuarioPuntos(saldo);
+  `);
+}
+
+// Tabla Apuestas
+const tieneApuestas = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='Apuestas'").get();
+if (!tieneApuestas) {
+  db.exec(`
+    CREATE TABLE Apuestas (
+      id TEXT PRIMARY KEY,
+      partidoId TEXT NOT NULL REFERENCES Partidos(id),
+      usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
+      tipo TEXT NOT NULL,
+      seleccion TEXT NOT NULL,
+      cuota REAL NOT NULL,
+      monto INTEGER NOT NULL,
+      estado TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente','ganada','perdida','reembolsada')),
+      gananciaPotencial INTEGER NOT NULL,
+      gananciaReal INTEGER DEFAULT 0,
+      fechaCreacion TEXT NOT NULL,
+      fechaResolucion TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_apuestas_partido_usuario ON Apuestas(partidoId, usuarioId);
+    CREATE INDEX IF NOT EXISTS idx_apuestas_estado ON Apuestas(estado);
+    CREATE INDEX IF NOT EXISTS idx_apuestas_partido_tipo ON Apuestas(partidoId, tipo);
+  `);
+}
+
+// Backfill: usuarios existentes sin puntos -> 100
+const usuariosSinPuntos = db.prepare(`
+  SELECT u.uid FROM Usuarios u
+  LEFT JOIN UsuarioPuntos up ON u.uid = up.usuarioId
+  WHERE up.usuarioId IS NULL
+`).all();
+if (usuariosSinPuntos.length > 0) {
+  const insert = db.prepare('INSERT INTO UsuarioPuntos (usuarioId, saldo, actualizadoEn) VALUES (?, 100, ?)');
+  const now = new Date().toISOString();
+  for (const u of usuariosSinPuntos) insert.run(u.uid, now);
 }
 
 module.exports = { db, DB_PATH };

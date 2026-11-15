@@ -1,0 +1,84 @@
+@reference "../styles/globals.css";
+
+.apostar {
+  @apply mx-auto px-4 py-6 max-w-xl;
+}
+
+.header {
+  @apply mb-6 flex items-center justify-between gap-4;
+}
+
+.headerIzquierda {
+  @apply flex flex-col gap-1;
+}
+
+.titulo {
+  @apply text-display-md text-white;
+}
+
+.subtitulo {
+  @apply text-body-sm text-white/50;
+}
+
+.saldoContenedor {
+  @apply flex flex-col items-end gap-1 rounded-xl border border-white/10 bg-cancha-800/50 px-5 py-3 elev-1 motion-base;
+}
+
+.saldoEtiqueta {
+  @apply text-caption text-white/50;
+}
+
+.saldoValor {
+  @apply text-display-sm font-semibold text-pasto-500;
+}
+
+.saldoUnidad {
+  @apply text-body text-white/40;
+}
+
+.contenedorCargando {
+  @apply flex flex-col items-center justify-center gap-4 py-12;
+}
+
+.spinner {
+  @apply w-8 h-8 border-3 border-white/10 border-t-pasto-500 rounded-full;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cargandoTexto {
+  @apply text-body text-white/60;
+}
+
+.contenedorError {
+  @apply flex flex-col items-center justify-center gap-4 py-12 text-center;
+}
+
+.mensajeError {
+  @apply text-body text-sancion;
+}
+
+.sinPartidos {
+  @apply flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/10 bg-cancha-800/50 p-8 text-center;
+}
+
+.sinPartidosIcono {
+  @apply text-5xl;
+}
+
+.sinPartidosTitulo {
+  @apply text-title text-white;
+}
+
+.sinPartidosDescripcion {
+  @apply text-body text-white/60 max-w-xs;
+}
+
+.listaPartidos {
+  @apply flex flex-col gap-4;
+}

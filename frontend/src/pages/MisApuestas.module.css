@@ -1,0 +1,274 @@
+.misApuestas {
+  padding: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 16px;
+}
+
+.titulo {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.filtros {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filtroBoton {
+  flex: 0 0 auto;
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.filtroBoton:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.filtroActivo {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+}
+
+.contenedorCargando {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  gap: 16px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.contenedorError {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  gap: 16px;
+  text-align: center;
+}
+
+.mensajeError {
+  color: #ef4444;
+  font-size: 1rem;
+}
+
+.botonReintentar {
+  padding: 10px 24px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.botonReintentar:hover {
+  background: #2563eb;
+}
+
+.sinApuestas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  gap: 12px;
+  text-align: center;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.sinApuestasTexto {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.sinApuestasDetalle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  max-width: 400px;
+}
+
+.listaApuestas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.apuestaCard {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.apuestaHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.apuestaTipo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iconoTipo {
+  font-size: 1.25rem;
+}
+
+.nombreTipo {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.estadoBadge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.apuestaInfo {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.infoFila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.infoFila:last-child {
+  border-bottom: none;
+}
+
+.infoEtiqueta {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.infoValor {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  text-align: right;
+}
+
+.infoValor.prediccion {
+  font-family: monospace;
+  background: #f3f4f6;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.infoValor.cuota {
+  color: #059669;
+}
+
+.infoValor.monto {
+  color: #3b82f6;
+}
+
+.infoFila.ganancia .infoValor {
+  color: #10b981;
+}
+
+.infoFila.perdida .infoValor {
+  color: #ef4444;
+}
+
+.infoFila.resultado .infoValor {
+  font-family: monospace;
+  font-weight: 700;
+  color: #374151;
+  background: #f3f4f6;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.fechaPartido {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.apuestaFooter {
+  padding: 10px 16px;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+}
+
+.fechaCreacion {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+@media (max-width: 480px) {
+  .filtros {
+    gap: 6px;
+  }
+
+  .filtroBoton {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+  }
+}
