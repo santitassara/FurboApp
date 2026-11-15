@@ -36,6 +36,12 @@ const ICONOS = {
       <path d="M9 2h6" />
     </>
   ),
+  apuestas: (
+    <>
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+      <path d="M12 6v6l4 2" />
+    </>
+  ),
   salir: (
     <>
       <path d="M9 4H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h3" />
@@ -67,6 +73,7 @@ export default function Layout({ children }) {
 
   const items = [
     { to: '/inicio', etiqueta: 'Inicio', icono: 'inicio' },
+    { to: '/apuestas', etiqueta: 'Apuestas', icono: 'apuestas' },
     { to: '/perfil', etiqueta: 'Mi Perfil', icono: 'perfil' },
     { to: '/jugadores', etiqueta: 'Jugadores', icono: 'jugadores' },
     { to: '/historial', etiqueta: 'Últimos partidos', icono: 'historial' },

@@ -18,14 +18,14 @@ const TIPOS_APUESTA_VALIDOS = [
   'goal_scorer_anytime', 'goal_scorer_first', 'assist_provider', 'mvp', 'exact_score'
 ];
 
-// Selecciones válidas por tipo
+// Selecciones válidas por tipo (para tipos estáticos con opciones predefinidas)
 const SELECCIONES_VALIDAS = {
   winner: ['A', 'B', 'draw'],
   loser: ['A', 'B'],
   total_goals_exact: ['0', '1', '2', '3', '4', '5+'],
   total_goals_over: ['2.5', '3.5', '4.5'],
   total_goals_under: ['2.5', '1.5', '0.5'],
-  exact_score: Object.keys(CUOTAS.exact_score)
+  // exact_score ya no tiene opciones predefinidas - se valida con regex X-Y
 };
 
 async function obtenerSaldo(usuarioId) {
@@ -69,18 +69,21 @@ async function obtenerOpcionesPartidoCompleto(partidoId, grupoId) {
   const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
 
-  // Obtener jugadores que están en el partido (titulares y suplentes con equipo asignado)
+  // Obtener TODOS los jugadores inscritos en el partido (titulares y suplentes, con o sin equipo)
+  // La validación de si jugaron realmente se hace en la resolución
   const inscripciones = db.prepare(`
     SELECT i.*, u.nombre, u.uid
     FROM Inscripciones i
     JOIN Usuarios u ON i.usuarioId = u.uid
-    WHERE i.partidoId = ? AND i.estado = 'anotado' AND i.equipo IS NOT NULL
+    WHERE i.partidoId = ? AND i.estado = 'anotado'
   `).all(partidoId);
 
   // Separar por equipo
   const equipoA = inscripciones.filter(i => i.equipo === 'A');
   const equipoB = inscripciones.filter(i => i.equipo === 'B');
-  const todosJugadores = [...equipoA, ...equipoB];
+  // Incluir también jugadores sin equipo (suplentes que no jugaron, lesionados)
+  const sinEquipo = inscripciones.filter(i => i.equipo === null || i.equipo === undefined);
+  const todosJugadores = [...equipoA, ...equipoB, ...sinEquipo];
 
   // Construir opciones
   const opciones = {
@@ -113,33 +116,29 @@ async function obtenerOpcionesPartidoCompleto(partidoId, grupoId) {
     ],
     goal_scorer_anytime: todosJugadores.map(j => ({
       valor: j.uid,
-      etiqueta: `${j.nombre} (Equipo ${j.equipo})`,
+      etiqueta: `${j.nombre} (${j.equipo ? `Equipo ${j.equipo}` : 'Sin equipo'})`,
       cuota: obtenerCuota('goal_scorer_anytime'),
       jugador: { uid: j.uid, nombre: j.nombre, equipo: j.equipo }
     })),
     goal_scorer_first: todosJugadores.map(j => ({
       valor: j.uid,
-      etiqueta: `${j.nombre} (Equipo ${j.equipo})`,
+      etiqueta: `${j.nombre} (${j.equipo ? `Equipo ${j.equipo}` : 'Sin equipo'})`,
       cuota: obtenerCuota('goal_scorer_first'),
       jugador: { uid: j.uid, nombre: j.nombre, equipo: j.equipo }
     })),
     assist_provider: todosJugadores.map(j => ({
       valor: j.uid,
-      etiqueta: `${j.nombre} (Equipo ${j.equipo})`,
+      etiqueta: `${j.nombre} (${j.equipo ? `Equipo ${j.equipo}` : 'Sin equipo'})`,
       cuota: obtenerCuota('assist_provider'),
       jugador: { uid: j.uid, nombre: j.nombre, equipo: j.equipo }
     })),
     mvp: todosJugadores.map(j => ({
       valor: j.uid,
-      etiqueta: `${j.nombre} (Equipo ${j.equipo})`,
+      etiqueta: `${j.nombre} (${j.equipo ? `Equipo ${j.equipo}` : 'Sin equipo'})`,
       cuota: obtenerCuota('mvp'),
       jugador: { uid: j.uid, nombre: j.nombre, equipo: j.equipo }
     })),
-    exact_score: Object.entries(CUOTAS.exact_score).map(([marcador, cuota]) => ({
-      valor: marcador,
-      etiqueta: `Marcador ${marcador}`,
-      cuota
-    }))
+    exact_score: [] // Marcador exacto usa inputs libres en frontend
   };
 
   return opciones;
@@ -152,6 +151,18 @@ function validarApuesta(tipo, seleccion, monto) {
 
   if (!Number.isInteger(monto) || monto <= 0) {
     throw crearError('Monto inválido', 400);
+  }
+
+  // Validación específica para exact_score: formato X-Y (ej: 2-1, 0-0, 3-2)
+  if (tipo === 'exact_score') {
+    if (!/^\d+-\d+$/.test(seleccion)) {
+      throw crearError('Selección inválida: formato de marcador debe ser X-Y (ej: 2-1)', 400);
+    }
+    const [golesA, golesB] = seleccion.split('-').map(Number);
+    if (golesA < 0 || golesB < 0 || golesA > 20 || golesB > 20) {
+      throw crearError('Selección inválida: goles deben estar entre 0 y 20', 400);
+    }
+    return;
   }
 
   const validas = SELECCIONES_VALIDAS[tipo];
@@ -277,13 +288,13 @@ async function resolverPartido(partidoId, grupoId) {
     ORDER BY g.minuto ASC, g.segundo ASC
   `).all(partidoId);
 
-  // Obtener MVP (jugador con más votos)
+  // Obtener MVP (jugador con más votos, tie-break por fecha más temprana del voto)
   const mvpVotos = db.prepare(`
-    SELECT jugadorId, COUNT(*) as votos
+    SELECT jugadorId, COUNT(*) as votos, MIN(fecha) as primeraFecha
     FROM VotosMvp
     WHERE partidoId = ? AND jugadorId IS NOT NULL
     GROUP BY jugadorId
-    ORDER BY votos DESC
+    ORDER BY votos DESC, primeraFecha ASC
   `).all(partidoId);
   const mvpGanador = mvpVotos.length > 0 ? mvpVotos[0].jugadorId : null;
 
@@ -382,11 +393,16 @@ async function resolverPartido(partidoId, grupoId) {
 
       if (gana) {
         gananciaReal = Math.round(apuesta.monto * apuesta.cuota);
+        const gananciaNeta = gananciaReal - apuesta.monto;
         totalPagado += gananciaReal;
 
-        // Actualizar saldo del usuario
+        // Actualizar saldo del usuario (sumar solo la ganancia neta, ya que el monto apostado ya está en el saldo)
         db.prepare('UPDATE UsuarioPuntos SET saldo = saldo + ?, actualizadoEn = ? WHERE usuarioId = ?')
-          .run(gananciaReal, new Date().toISOString(), apuesta.usuarioId);
+          .run(gananciaNeta, new Date().toISOString(), apuesta.usuarioId);
+      } else {
+        // Pierde: descontar el monto apostado del saldo (ya que estaba reservado pero no descontado)
+        db.prepare('UPDATE UsuarioPuntos SET saldo = saldo - ?, actualizadoEn = ? WHERE usuarioId = ?')
+          .run(apuesta.monto, new Date().toISOString(), apuesta.usuarioId);
       }
 
       // Actualizar apuesta

@@ -14,6 +14,8 @@ import UltimosPartidos from './pages/UltimosPartidos';
 import AdminPanel from './pages/AdminPanel';
 import AdminUsuarios from './pages/AdminUsuarios';
 import MiEquipo from './pages/MiEquipo';
+import Apostar from './pages/Apostar';
+import MisApuestas from './pages/MisApuestas';
 import RutaPrivada from './components/RutaPrivada';
 import RutaAdmin from './components/RutaAdmin';
 import RutaSuperAdmin from './components/RutaSuperAdmin';
@@ -107,6 +109,26 @@ export default function App() {
           <RutaPrivada>
             <Layout>
               <UltimosPartidos />
+            </Layout>
+          </RutaPrivada>
+        }
+      />
+      <Route
+        path="/apuestas"
+        element={
+          <RutaPrivada>
+            <Layout>
+              <Apostar />
+            </Layout>
+          </RutaPrivada>
+        }
+      />
+      <Route
+        path="/mis-apuestas"
+        element={
+          <RutaPrivada>
+            <Layout>
+              <MisApuestas />
             </Layout>
           </RutaPrivada>
         }

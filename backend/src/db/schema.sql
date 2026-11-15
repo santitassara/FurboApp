@@ -153,6 +153,7 @@ CREATE TABLE IF NOT EXISTS VotosMvp (
   votanteId TEXT NOT NULL REFERENCES Usuarios(uid),
   jugadorId TEXT REFERENCES Usuarios(uid),
   invitadoId TEXT REFERENCES Invitados(id),
+  fecha TEXT NOT NULL,
   CHECK ((jugadorId IS NOT NULL AND invitadoId IS NULL) OR (jugadorId IS NULL AND invitadoId IS NOT NULL))
 );
 

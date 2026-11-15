@@ -481,9 +481,9 @@ describe('Apuestas API Routes', () => {
 
       // Add MVP vote for user-1
       mockDb.prepare(`
-        INSERT INTO VotosMvp (id, partidoId, votanteId, jugadorId)
-        VALUES (?, ?, ?, ?)
-      `).run('mvp-1', testData.partido.id, 'user-2', 'user-1');
+        INSERT INTO VotosMvp (id, partidoId, votanteId, jugadorId, fecha)
+        VALUES (?, ?, ?, ?, ?)
+      `).run('mvp-1', testData.partido.id, 'user-2', 'user-1', new Date().toISOString());
 
       const response = await agent
         .post(`/api/grupos/${GRUPO_ID}/apuestas/partido/${testData.partido.id}/resolver`)

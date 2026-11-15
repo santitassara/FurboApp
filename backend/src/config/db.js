@@ -366,6 +366,17 @@ permitirInvitadoComoJugador(
   `CREATE INDEX IF NOT EXISTS idx_votos_mvp_partido ON VotosMvp (partidoId);
    CREATE UNIQUE INDEX IF NOT EXISTS idx_votos_mvp_unico ON VotosMvp (partidoId, votanteId);`
 );
+
+// Migración: agregar columna fecha a VotosMvp para tie-breaking MVP
+const columnasVotosMvpFecha = db.prepare('PRAGMA table_info(VotosMvp)').all();
+if (!columnasVotosMvpFecha.some((columna) => columna.name === 'fecha')) {
+  // SQLite no permite DEFAULT no-constante en ALTER TABLE, así que agregamos sin default
+  db.exec('ALTER TABLE VotosMvp ADD COLUMN fecha TEXT');
+  // Actualizar filas existentes con timestamp actual
+  const now = new Date().toISOString();
+  db.exec(`UPDATE VotosMvp SET fecha = '${now}' WHERE fecha IS NULL`);
+}
+
 permitirInvitadoComoJugador(
   'SancionesPartido',
   'usuarioId',
