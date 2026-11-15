@@ -116,6 +116,34 @@ export function obtenerIconoTipo(tipo) {
   return TIPOS_APUESTA_ICONOS[tipo] || '❓';
 }
 
+// Descripciones de cada tipo de apuesta
+export const TIPOS_APUESTA_DESCRIPCIONES = {
+  winner: 'Apuesta a qué equipo ganará el partido (o si habrá empate).',
+  loser: 'Apuesta a qué equipo perderá el partido. No incluye empate.',
+  total_goals_exact: 'Apuesta al número exacto de goles totales en el partido.',
+  total_goals_over: 'Apuesta a que habrá más goles totales que el umbral indicado (ej: más de 2.5 = 3 o más goles).',
+  total_goals_under: 'Apuesta a que habrá menos goles totales que el umbral indicado (ej: menos de 2.5 = 2 o menos goles).',
+  goal_scorer_anytime: 'Apuesta a que un jugador específico marcará al menos un gol en cualquier momento del partido.',
+  goal_scorer_first: 'Apuesta a que un jugador específico marcará el primer gol del partido.',
+  assist_provider: 'Apuesta a que un jugador específico dará al menos una asistencia de gol.',
+  mvp: 'Apuesta a qué jugador será elegido MVP (mejor valorado) en la votación post-partido.',
+  exact_score: 'Apuesta al marcador exacto final (ej: 2-1, 1-1, 3-0). Paga cuotas altas por su dificultad.',
+};
+
+// Ejemplos de uso para cada tipo de apuesta
+export const TIPOS_APUESTA_EJEMPLOS = {
+  winner: 'Ej: Apestas a "Equipo A gana" (cuota 1.80). Si el Equipo A gana, cobras 1.80x tu apuesta.',
+  loser: 'Ej: Apestas a "Equipo B pierde" (cuota 2.50). Si el Equipo B pierde, cobras 2.50x tu apuesta.',
+  total_goals_exact: 'Ej: Apestas a "2 goles totales" (cuota 6.0). Si el partido termina 1-1, 2-0 o 0-2, cobras 6.0x.',
+  total_goals_over: 'Ej: Apestas a "Más de 2.5 goles" (cuota 1.90). Si hay 3 o más goles totales, cobras 1.90x.',
+  total_goals_under: 'Ej: Apestas a "Menos de 1.5 goles" (cuota 3.50). Si hay 0 o 1 gol total, cobras 3.50x.',
+  goal_scorer_anytime: 'Ej: Apestas a "Juan Pérez" (cuota 6.0). Si Juan marca al menos un gol, cobras 6.0x.',
+  goal_scorer_first: 'Ej: Apestas a "Carlos López" (cuota 10.0). Si Carlos marca el primer gol del partido, cobras 10.0x.',
+  assist_provider: 'Ej: Apestas a "Martín Gómez" (cuota 8.0). Si Martín da una asistencia, cobras 8.0x.',
+  mvp: 'Ej: Apestas a "Lucas Fernández" (cuota 10.0). Si Lucas es votado MVP, cobras 10.0x.',
+  exact_score: 'Ej: Apestas a "2-1" (cuota 9.0). Si el partido termina exactamente 2-1, cobras 9.0x.',
+};
+
 // Helper: obtener color según estado
 export function obtenerColorEstado(estado) {
   return ESTADOS_APUESTA_COLORES[estado] || '#6b7280';

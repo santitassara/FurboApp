@@ -5,6 +5,8 @@ import {
   SELECCIONES_ESTATICAS,
   TIPOS_APUESTA_ETIQUETAS,
   TIPOS_APUESTA_ICONOS,
+  TIPOS_APUESTA_DESCRIPCIONES,
+  TIPOS_APUESTA_EJEMPLOS,
   esTipoJugador,
   formatearCuota,
   formatearGanancia,
@@ -210,6 +212,11 @@ export default function ModalOpcionesApuesta({
             ✕
           </button>
         </header>
+
+        <div className={styles.descripcionContenedor}>
+          <p className={styles.descripcion}>{TIPOS_APUESTA_DESCRIPCIONES[tipo]}</p>
+          <p className={styles.ejemplo}>{TIPOS_APUESTA_EJEMPLOS[tipo]}</p>
+        </div>
 
         {error && <div className={styles.error}>{error}</div>}
 

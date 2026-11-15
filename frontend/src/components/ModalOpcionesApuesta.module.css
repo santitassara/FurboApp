@@ -44,6 +44,19 @@
   @apply px-5 py-3 bg-sancion/20 text-sm text-sancion border-b border-white/10;
 }
 
+.descripcionContenedor {
+  @apply px-5 py-3 border-b border-white/10 bg-cancha-850/50;
+  gap: 0.5rem; /* gap-2 */
+}
+
+.descripcion {
+  @apply text-body text-white/80;
+}
+
+.ejemplo {
+  @apply text-body-sm text-white/50 font-mono;
+}
+
 .contenido {
   @apply flex-1 overflow-y-auto px-5 py-5 space-y-6;
 }
