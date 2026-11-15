@@ -1,0 +1,85 @@
+@reference "../styles/globals.css";
+
+.card {
+  @apply rounded-2xl border border-white/10 bg-cancha-800/50 overflow-hidden elev-1;
+}
+
+.header {
+  @apply px-5 py-4 border-b border-white/10 bg-cancha-850;
+}
+
+.infoPartido {
+  @apply flex flex-col gap-1;
+}
+
+.fechaHora {
+  @apply flex items-center gap-3;
+}
+
+.fecha {
+  @apply text-body font-semibold text-white;
+}
+
+.hora {
+  @apply text-body-sm text-white/50 bg-cancha-900/50 px-2.5 py-0.5 rounded-full border border-white/10;
+}
+
+.rival {
+  @apply text-title font-semibold text-pasto-500;
+}
+
+.estadio {
+  @apply text-body-sm text-white/40;
+}
+
+.tiposApuesta {
+  @apply grid gap-3 p-5;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.botonTipo {
+  @apply flex flex-col items-center gap-2 p-4 rounded-xl border-2 bg-cancha-900/50 transition-all motion-base cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[100px] justify-center;
+  border-color: white/10;
+}
+
+.botonTipo:hover:not(:disabled) {
+  @apply border-pasto-500/50 bg-cancha-900 elev-1;
+}
+
+.botonTipo:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+.iconoTipo {
+  @apply text-3xl;
+}
+
+.nombreTipo {
+  @apply text-caption font-medium text-white text-center leading-snug;
+}
+
+.cuotaPreview {
+  @apply text-caption font-bold text-pasto-500 bg-pasto-500/10 px-2 py-0.5 rounded-full;
+}
+
+.error {
+  @apply px-5 py-3 bg-sancion/20 text-sm text-sancion border-t border-white/10;
+}
+
+/* Colores específicos por tipo (borde izquierdo) */
+.tipo-winner { border-left-color: var(--color-azul-500); }
+.tipo-loser { border-left-color: var(--color-sancion); }
+.tipo-total_goals_exact { border-left-color: var(--color-violeta-500); }
+.tipo-total_goals_over { border-left-color: var(--color-pasto-500); }
+.tipo-total_goals_under { border-left-color: var(--color-amarillo-500); }
+.tipo-goal_scorer_anytime { border-left-color: var(--color-rosa-500); }
+.tipo-goal_scorer_first { border-left-color: var(--color-naranja-500); }
+.tipo-assist_provider { border-left-color: var(--color-celeste-500); }
+.tipo-mvp { border-left-color: var(--color-dorado-500); }
+.tipo-exact_score { border-left-color: var(--color-indigo-500); }
+
+@media (max-width: 480px) {
+  .tiposApuesta {
+    grid-template-columns: 1fr;
+  }
+}

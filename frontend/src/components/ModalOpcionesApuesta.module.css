@@ -1,0 +1,205 @@
+@reference "../styles/globals.css";
+
+.overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4;
+  animation: fadeIn var(--motion-fast) ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  @apply w-full max-w-lg rounded-t-2xl border-t border-white/10 bg-cancha-800 motion-enter;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  @apply flex items-center justify-between px-5 py-4 border-b border-white/10 bg-cancha-850;
+  gap: 0.75rem; /* gap-3 */
+}
+
+.tituloContenedor {
+  @apply flex items-center;
+  gap: 0.75rem; /* gap-3 */
+}
+
+.icono {
+  @apply text-2xl;
+}
+
+.titulo {
+  @apply text-headline font-display text-white;
+}
+
+.botonCerrar {
+  @apply flex h-9 w-9 items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors motion-fast disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.error {
+  @apply px-5 py-3 bg-sancion/20 text-sm text-sancion border-b border-white/10;
+}
+
+.contenido {
+  @apply flex-1 overflow-y-auto px-5 py-5 space-y-6;
+}
+
+.seccion {
+  @apply flex flex-col;
+  gap: 0.75rem; /* gap-3 */
+}
+
+.label {
+  @apply text-caption text-white/60;
+}
+
+.opcionesGrid {
+  @apply grid;
+  gap: 0.75rem; /* gap-3 */
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.opcionesJugadores {
+  grid-template-columns: 1fr;
+}
+
+.opcion {
+  @apply flex items-center justify-between rounded-xl border-2 bg-cancha-900/50 px-4 py-3 text-left transition-all motion-fast cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+  border-color: white/10;
+}
+
+.opcion:hover:not(:disabled) {
+  @apply border-pasto-500/50 bg-cancha-900 elev-1;
+}
+
+.opcionSeleccionada {
+  @apply border-pasto-500 bg-pasto-500/10;
+  box-shadow: 0 0 0 1px var(--color-pasto-500);
+}
+
+.opcionEtiqueta {
+  @apply text-body font-medium text-white;
+}
+
+.opcionCuota {
+  @apply text-body-sm font-bold text-pasto-500;
+}
+
+.sinOpciones {
+  @apply text-center py-6 text-body text-white/40;
+}
+
+/* Exact Score Styles */
+.exactScoreContenedor {
+  @apply flex items-center justify-center py-2;
+  gap: 1rem; /* gap-4 */
+}
+
+.exactScoreInputWrapper {
+  @apply flex flex-col items-center;
+}
+
+.exactScoreLabel {
+  @apply text-caption text-white/60 mb-2;
+}
+
+.exactScoreInput {
+  @apply w-full max-w-xs rounded-xl border-2 bg-cancha-900/50 px-4 py-3 text-center text-body-lg font-bold text-white focus-visible:ring-0;
+  border-color: white/10;
+  transition: all var(--motion-fast);
+}
+
+.exactScoreInput:focus {
+  @apply outline-none;
+}
+
+.exactScoreInput:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+.exactScoreSeparador {
+  @apply text-title font-bold text-white/50;
+}
+
+.montoInputContenedor {
+  @apply flex items-center rounded-xl border-2 bg-cancha-900/50 px-4 py-3 transition-all motion-fast;
+  gap: 0.75rem; /* gap-3 */
+  border-color: white/10;
+}
+
+.montoPrefijo {
+  @apply text-title font-semibold text-white/50;
+}
+
+.montoInput {
+  @apply flex-1 bg-transparent border-none outline-none focus-visible:ring-0 text-body-lg font-bold text-white text-right;
+}
+
+.montoInput::placeholder {
+  @apply text-white/30;
+}
+
+.montoInfo {
+  @apply flex flex-col text-body-sm text-white/50;
+  gap: 0.25rem; /* gap-1 */
+}
+
+.gananciaPotencial {
+  @apply text-pasto-500 font-medium;
+}
+
+.montosRapidos {
+  @apply flex flex-wrap;
+  gap: 0.5rem; /* gap-2 */
+}
+
+.botonMontoRapido {
+  @apply rounded-full border px-4 py-2 text-body-sm font-medium transition-all motion-fast cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+  border-color: white/10;
+  @apply bg-cancha-900/50 text-white;
+}
+
+.botonMontoRapido:hover:not(:disabled) {
+  @apply border-pasto-500/50 bg-pasto-500/10;
+}
+
+.botonMontoRapido:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+.botonMontoRapidoActivo {
+  @apply border-pasto-500 bg-pasto-500 text-white;
+}
+
+.footer {
+  @apply flex items-center px-5 py-4 border-t border-white/10 bg-cancha-850;
+  gap: 0.75rem; /* gap-3 */
+}
+
+.footer > * {
+  @apply flex-1;
+}
+
+@media (max-width: 480px) {
+  .modal {
+    max-height: 90vh;
+    border-radius: 1.5rem 1.5rem 0 0;
+  }
+
+  .opcionesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .exactScoreContenedor {
+    flex-direction: column;
+    gap: 0.5rem; /* gap-2 */
+  }
+
+  .exactScoreSeparador {
+    transform: rotate(90deg);
+  }
+}
