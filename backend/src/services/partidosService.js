@@ -102,13 +102,10 @@ async function obtenerPartido(partidoId, grupoId) {
 }
 
 function listarPartidosVisibles(grupoId) {
-  const abiertos = db
-    .prepare("SELECT * FROM Partidos WHERE estado = 'abierto' AND grupoId = ? ORDER BY fecha ASC")
-    .all(grupoId);
-  const ultimoNoAbierto = db
-    .prepare("SELECT * FROM Partidos WHERE estado IN ('cerrado','jugado') AND grupoId = ? ORDER BY fecha DESC LIMIT 1")
-    .get(grupoId);
-  return ultimoNoAbierto ? [...abiertos, ultimoNoAbierto] : abiertos;
+  const ahora = new Date().toISOString();
+  return db
+    .prepare("SELECT * FROM Partidos WHERE estado = 'abierto' AND grupoId = ? AND fecha > ? ORDER BY fecha ASC")
+    .all(grupoId, ahora);
 }
 
 async function eliminarPartido(partidoId, grupoId, uid) {

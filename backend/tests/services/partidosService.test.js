@@ -129,7 +129,7 @@ describe('partidosService.obtenerPartido — aislamiento por grupo', () => {
 });
 
 describe('partidosService.listarPartidosVisibles', () => {
-  it('devuelve los partidos abiertos cuando no hay ningún cerrado ni jugado', async () => {
+  it('devuelve solo los partidos abiertos con fecha futura', async () => {
     const abierto = await partidosService.crearPartido({
       fecha: '2099-01-01T20:00:00.000Z',
       cupoTitulares: 10,
@@ -140,19 +140,13 @@ describe('partidosService.listarPartidosVisibles', () => {
 
     const partidos = await partidosService.listarPartidosVisibles(GRUPO_ID);
 
-    expect(partidos).toEqual([abierto]);
+    expect(partidos).toHaveLength(1);
+    expect(partidos[0]).toMatchObject({ id: abierto.id, estado: 'abierto' });
   });
 
-  it('agrega el partido cerrado o jugado más reciente al final', async () => {
+  it('no devuelve partidos cerrados ni jugados aunque sean recientes', async () => {
     const abierto = await partidosService.crearPartido({
       fecha: '2099-03-01T20:00:00.000Z',
-      cupoTitulares: 10,
-      cupoSuplentes: 5,
-      creadoPor: 'admin-1',
-      grupoId: GRUPO_ID,
-    });
-    const viejoJugado = await partidosService.crearPartido({
-      fecha: '2099-01-01T20:00:00.000Z',
       cupoTitulares: 10,
       cupoSuplentes: 5,
       creadoPor: 'admin-1',
@@ -165,12 +159,27 @@ describe('partidosService.listarPartidosVisibles', () => {
       creadoPor: 'admin-1',
       grupoId: GRUPO_ID,
     });
-    mockDb.prepare("UPDATE Partidos SET estado = 'jugado' WHERE id = ?").run(viejoJugado.id);
     mockDb.prepare("UPDATE Partidos SET estado = 'cerrado' WHERE id = ?").run(recienCerrado.id);
 
     const partidos = await partidosService.listarPartidosVisibles(GRUPO_ID);
 
-    expect(partidos.map((p) => p.id)).toEqual([abierto.id, recienCerrado.id]);
+    expect(partidos).toHaveLength(1);
+    expect(partidos[0]).toMatchObject({ id: abierto.id, estado: 'abierto' });
+  });
+
+  it('no devuelve partidos abiertos con fecha pasada', async () => {
+    const pasado = await partidosService.crearPartido({
+      fecha: '2099-01-01T20:00:00.000Z',
+      cupoTitulares: 10,
+      cupoSuplentes: 5,
+      creadoPor: 'admin-1',
+      grupoId: GRUPO_ID,
+    });
+    mockDb.prepare("UPDATE Partidos SET fecha = '2020-01-01T00:00:00.000Z' WHERE id = ?").run(pasado.id);
+
+    const partidos = await partidosService.listarPartidosVisibles(GRUPO_ID);
+
+    expect(partidos).toEqual([]);
   });
 });
 
