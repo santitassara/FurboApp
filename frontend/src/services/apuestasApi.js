@@ -35,3 +35,8 @@ export async function reembolsarPartido(grupoId, partidoId) {
   const { data } = await api.post(rutaGrupo(grupoId, `/apuestas/partido/${partidoId}/reembolsar`));
   return data;
 }
+
+export async function obtenerApuestasPartido(grupoId, partidoId) {
+  const { data } = await api.get(rutaGrupo(grupoId, `/apuestas/partido/${partidoId}/apuestas`));
+  return data;
+}

@@ -8,6 +8,7 @@ import { formatearFechaPartido } from '../utils/fecha';
 import ResultadoPartido from './ResultadoPartido';
 import ModalVotarValoraciones from './ModalVotarValoraciones';
 import Boton from './Boton';
+import ResultadosApuestasPartido from './ResultadosApuestasPartido';
 import styles from './ItemHistorialPartido.module.css';
 
 export default function ItemHistorialPartido({ partido, autoOpenVote = false }) {
@@ -167,6 +168,13 @@ export default function ItemHistorialPartido({ partido, autoOpenVote = false }) 
           ) : (
             <>
               <ResultadoPartido partido={partido} resultado={resultado} modo={grupoActivo?.modo} />
+              <ResultadosApuestasPartido
+                partidoId={partido.id}
+                partidoEstado={partido.estado}
+                partidoResultado={resultado?.golesA !== undefined && resultado?.golesB !== undefined
+                  ? `${resultado.golesA}-${resultado.golesB}`
+                  : null}
+              />
               <div className={styles.accionesRow}>
                 {soyElegible && !partido.votacionCerrada && (
                   <button

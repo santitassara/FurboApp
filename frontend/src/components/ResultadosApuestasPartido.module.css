@@ -1,0 +1,175 @@
+@reference "../styles/globals.css";
+
+.contenedor {
+  @apply relative;
+}
+
+.botonToggle {
+  @apply flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl bg-cancha-800/50 border border-white/10 text-white/80 hover:bg-cancha-800 hover:border-pasto-500/30 hover:text-white transition-all motion-fast cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.iconoDropdown {
+  @apply text-body-sm transition-transform motion-fast;
+}
+
+.textoToggle {
+  @apply text-body font-medium;
+}
+
+.spinner {
+  @apply w-5 h-5 border-2 border-pasto-500/30 border-t-pasto-500 rounded-full animate-spin;
+}
+
+.dropdown {
+  @apply absolute top-full left-0 right-0 mt-2 rounded-2xl border bg-cancha-800 border-white/10 overflow-hidden elev-3 z-20 motion-enter;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.cargando {
+  @apply flex flex-col items-center justify-center p-8 gap-3 text-white/50;
+}
+
+.error {
+  @apply p-4 text-center text-sancion bg-sancion/10 border-b border-white/10;
+}
+
+.botonReintentar {
+  @apply mt-2 px-3 py-1 rounded-lg bg-pasto-500/20 text-pasto-500 hover:bg-pasto-500/30 transition-colors motion-fast cursor-pointer text-body-sm;
+}
+
+.sinResultados {
+  @apply p-6 text-center text-white/40 text-body;
+}
+
+.listaUsuarios {
+  @apply p-4 space-y-4;
+}
+
+.usuarioCard {
+  @apply bg-cancha-900/50 rounded-xl border border-white/10 p-4;
+}
+
+.usuarioHeader {
+  @apply flex items-center justify-between mb-3 gap-4 flex-wrap;
+}
+
+.usuarioNombre {
+  @apply text-body-lg font-semibold text-white;
+}
+
+.usuarioResumen {
+  @apply flex items-center gap-2 flex-wrap;
+}
+
+.badge {
+  @apply px-2 py-1 rounded-full text-caption font-medium;
+}
+
+.badgeApostado {
+  @apply bg-albiceleste/20 text-albiceleste;
+}
+
+.badgeGanado {
+  @apply bg-pasto-500/20 text-pasto-500;
+}
+
+.badgePerdido {
+  @apply bg-sancion/20 text-sancion;
+}
+
+.usuarioApuestas {
+  @apply space-y-2 border-t border-white/10 pt-3;
+}
+
+.apuestaItem {
+  @apply flex items-center justify-between gap-3 p-3 rounded-lg bg-cancha-850/50 border border-white/5 transition-all motion-fast;
+}
+
+.apuestaGanada {
+  @apply border-pasto-500/30 bg-pasto-500/5;
+}
+
+.apuestaPerdida {
+  @apply border-sancion/30 bg-sancion/5;
+}
+
+.apuestaInfo {
+  @apply flex items-center gap-2 flex-1 min-w-0;
+  overflow: hidden;
+}
+
+.apuestaIcono {
+  @apply text-body;
+  flex-shrink: 0;
+}
+
+.apuestaTipo {
+  @apply text-body-sm text-white/70 truncate;
+  flex: 1;
+  min-width: 0;
+}
+
+.apuestaSeleccion {
+  @apply text-body-sm font-medium text-white/90 whitespace-nowrap;
+}
+
+.apuestaCuota {
+  @apply text-body-sm text-albiceleste font-mono;
+}
+
+.apuestaMonto {
+  @apply text-body-sm text-white/80 font-mono;
+}
+
+.apuestaResultado {
+  @apply flex items-center gap-2;
+}
+
+.estadoBadge {
+  @apply px-2 py-1 rounded-full text-caption font-bold;
+}
+
+.estadoGanada {
+  @apply bg-pasto-500/20 text-pasto-500;
+}
+
+.estadoPerdida {
+  @apply bg-sancion/20 text-sancion;
+}
+
+.estadoReembolsada {
+  @apply bg-albiceleste/20 text-albiceleste;
+}
+
+.gananciaReal {
+  @apply text-body-sm font-bold text-pasto-500;
+}
+
+.perdidaReal {
+  @apply text-body-sm font-bold text-sancion;
+}
+
+.reembolsadaReal {
+  @apply text-body-sm font-medium text-albiceleste;
+}
+
+.resultadoPartido {
+  @apply flex items-center justify-center gap-2 mt-4 pt-4 border-t border-white/10;
+}
+
+.resultadoLabel {
+  @apply text-caption text-white/50;
+}
+
+.resultadoValor {
+  @apply text-title font-display font-bold text-white;
+}
+
+@media (max-width: 480px) {
+  .dropdown {
+    left: -1rem;
+    right: -1rem;
+    border-radius: 1rem 1rem 1rem 1rem;
+  }
+}

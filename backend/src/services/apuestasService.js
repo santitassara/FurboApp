@@ -458,6 +458,21 @@ async function reembolsarPartido(partidoId, grupoId) {
   return { reembolsadas: apuestasPendientes.length };
 }
 
+async function obtenerApuestasPartido(partidoId, grupoId) {
+  const partido = await partidosService.obtenerPartido(partidoId, grupoId);
+  if (!partido) throw crearError('Partido no encontrado', 404);
+
+  const apuestas = db.prepare(`
+    SELECT a.*, u.nombre as usuarioNombre, u.uid as usuarioUid
+    FROM Apuestas a
+    JOIN Usuarios u ON a.usuarioId = u.uid
+    WHERE a.partidoId = ?
+    ORDER BY a.fechaCreacion ASC
+  `).all(partidoId);
+
+  return apuestas;
+}
+
 module.exports = {
   obtenerSaldo,
   obtenerSaldoDisponible,
@@ -466,5 +481,6 @@ module.exports = {
   crearApuestas,
   obtenerMisApuestas,
   resolverPartido,
-  reembolsarPartido
+  reembolsarPartido,
+  obtenerApuestasPartido
 };

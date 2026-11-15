@@ -12,6 +12,7 @@ router.get('/saldo', verificarToken, verificarMiembroGrupo(), envolverAsync(apue
 router.get('/partido/:partidoId/opciones', verificarToken, verificarMiembroGrupo(), envolverAsync(apuestasController.obtenerOpcionesPartido));
 router.post('/partido/:partidoId/apostar', verificarToken, verificarMiembroGrupo(), envolverAsync(apuestasController.crearApuestas));
 router.get('/mis-apuestas', verificarToken, verificarMiembroGrupo(), envolverAsync(apuestasController.obtenerMisApuestas));
+router.get('/partido/:partidoId/apuestas', verificarToken, verificarMiembroGrupo(), envolverAsync(apuestasController.obtenerApuestasPartido));
 
 // Admin only
 router.post('/partido/:partidoId/resolver', verificarToken, verificarMiembroGrupo('admin'), envolverAsync(apuestasController.resolverPartido));
