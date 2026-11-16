@@ -301,6 +301,15 @@ CREATE TABLE IF NOT EXISTS UsuarioPuntos (
 
 CREATE INDEX IF NOT EXISTS idx_usuario_puntos_saldo ON UsuarioPuntos(saldo);
 
+-- Apuestas: pozo de la casa (singleton, solo se incrementa con excedentes)
+CREATE TABLE IF NOT EXISTS CasaPuntos (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  saldo INTEGER NOT NULL DEFAULT 0,
+  actualizadoEn TEXT NOT NULL
+);
+
+INSERT OR IGNORE INTO CasaPuntos (id, saldo, actualizadoEn) VALUES (1, 0, datetime('now'));
+
 -- Apuestas: apuestas realizadas por usuarios
 CREATE TABLE IF NOT EXISTS Apuestas (
   id TEXT PRIMARY KEY,
@@ -320,3 +329,53 @@ CREATE TABLE IF NOT EXISTS Apuestas (
 CREATE INDEX IF NOT EXISTS idx_apuestas_partido_usuario ON Apuestas(partidoId, usuarioId);
 CREATE INDEX IF NOT EXISTS idx_apuestas_estado ON Apuestas(estado);
 CREATE INDEX IF NOT EXISTS idx_apuestas_partido_tipo ON Apuestas(partidoId, tipo);
+
+-- Premios: Catálogo de premios disponibles
+CREATE TABLE IF NOT EXISTS PremiosCatalogo (
+  id TEXT PRIMARY KEY,
+  clave TEXT UNIQUE NOT NULL,
+  nombre TEXT NOT NULL,
+  descripcion TEXT NOT NULL,
+  costo INTEGER NOT NULL,
+  categoria TEXT NOT NULL CHECK (categoria IN ('formacion', 'informacion', 'social', 'estetica', 'apuestas', 'rating', 'exotico')),
+  activo INTEGER NOT NULL DEFAULT 1,
+  metadata TEXT,
+  creadoEn TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_premios_categoria ON PremiosCatalogo(categoria);
+CREATE INDEX IF NOT EXISTS idx_premios_activo ON PremiosCatalogo(activo);
+
+-- Premios: Compras y usos de premios por usuario
+CREATE TABLE IF NOT EXISTS UsuarioPremios (
+  id TEXT PRIMARY KEY,
+  usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
+  premioId TEXT NOT NULL REFERENCES PremiosCatalogo(id),
+  partidoId TEXT REFERENCES Partidos(id),
+  grupoId TEXT REFERENCES Grupos(id),
+  estado TEXT NOT NULL DEFAULT 'disponible' CHECK (estado IN ('disponible','usado','expirado','reembolsado')),
+  fechaCompra TEXT NOT NULL,
+  fechaUso TEXT,
+  metadata TEXT,
+  creadoEn TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_usuario_premios_usuario ON UsuarioPremios(usuarioId);
+CREATE INDEX IF NOT EXISTS idx_usuario_premios_partido ON UsuarioPremios(partidoId);
+CREATE INDEX IF NOT EXISTS idx_usuario_premios_estado ON UsuarioPremios(estado);
+
+-- Premios: Efectos activos temporales
+CREATE TABLE IF NOT EXISTS EfectosActivos (
+  id TEXT PRIMARY KEY,
+  usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
+  grupoId TEXT REFERENCES Grupos(id),
+  partidoId TEXT REFERENCES Partidos(id),
+  tipo TEXT NOT NULL,
+  expiraEn TEXT NOT NULL,
+  metadata TEXT,
+  creadoEn TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_efectos_usuario ON EfectosActivos(usuarioId);
+CREATE INDEX IF NOT EXISTS idx_efectos_expira ON EfectosActivos(expiraEn);
+CREATE INDEX IF NOT EXISTS idx_efectos_tipo_partido ON EfectosActivos(tipo, partidoId);
