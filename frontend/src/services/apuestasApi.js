@@ -11,6 +11,42 @@ export async function obtenerSaldo(grupoId) {
   return data;
 }
 
+export async function obtenerSaldoCasa(grupoId) {
+  const { data } = await api.get(rutaGrupo(grupoId, '/apuestas/casa'));
+  return data;
+}
+
+// Premios
+export async function obtenerCatalogoPremios(grupoId) {
+  const { data } = await api.get(rutaGrupo(grupoId, '/premios/catalogo'));
+  return data;
+}
+
+export async function comprarPremio(grupoId, premioId, partidoId) {
+  const { data } = await api.post(rutaGrupo(grupoId, '/premios/comprar'), { premioId, partidoId });
+  return data;
+}
+
+export async function usarPremio(grupoId, compraId, metadata) {
+  const { data } = await api.post(rutaGrupo(grupoId, `/premios/usar/${compraId}`), metadata);
+  return data;
+}
+
+export async function obtenerMisPremios(grupoId) {
+  const { data } = await api.get(rutaGrupo(grupoId, '/premios/mis-premios'));
+  return data;
+}
+
+export async function obtenerEfectosActivos(grupoId) {
+  const { data } = await api.get(rutaGrupo(grupoId, '/premios/efectos-activos'));
+  return data;
+}
+
+export async function obtenerEfectosActivosPartido(grupoId, partidoId) {
+  const { data } = await api.get(rutaGrupo(grupoId, `/premios/efectos-partido/${partidoId}`));
+  return data;
+}
+
 export async function obtenerOpcionesPartido(grupoId, partidoId) {
   const { data } = await api.get(rutaGrupo(grupoId, `/apuestas/partido/${partidoId}/opciones`));
   return data;

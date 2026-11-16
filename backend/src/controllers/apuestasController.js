@@ -16,6 +16,11 @@ async function obtenerSaldo(req, res) {
   res.json({ saldo });
 }
 
+async function obtenerSaldoCasa(req, res) {
+  const saldo = await apuestasService.obtenerSaldoCasa();
+  res.json({ saldo });
+}
+
 async function obtenerOpcionesPartido(req, res) {
   const opciones = await apuestasService.obtenerOpcionesPartido(req.params.partidoId, req.params.grupoId);
   res.json(opciones);
@@ -52,4 +57,4 @@ async function obtenerApuestasPartido(req, res) {
   res.json(apuestas);
 }
 
-module.exports = { listarPartidosApostables, obtenerSaldo, obtenerOpcionesPartido, crearApuestas, obtenerMisApuestas, resolverPartido, reembolsarPartido, obtenerApuestasPartido };
+module.exports = { listarPartidosApostables, obtenerSaldo, obtenerSaldoCasa, obtenerOpcionesPartido, crearApuestas, obtenerMisApuestas, resolverPartido, reembolsarPartido, obtenerApuestasPartido };
