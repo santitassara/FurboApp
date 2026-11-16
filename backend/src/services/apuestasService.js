@@ -33,6 +33,11 @@ async function obtenerSaldo(usuarioId) {
   return row ? row.saldo : 0;
 }
 
+async function obtenerSaldoCasa() {
+  const row = db.prepare('SELECT saldo FROM CasaPuntos WHERE id = 1').get();
+  return row ? row.saldo : 0;
+}
+
 async function obtenerSaldoDisponible(usuarioId) {
   const saldo = await obtenerSaldo(usuarioId);
   // Restar apuestas pendientes
@@ -423,6 +428,12 @@ async function resolverPartido(partidoId, grupoId) {
 
   const excedenteCasa = totalApostado - totalPagado;
 
+  // Actualizar pozo de la casa
+  if (excedenteCasa > 0) {
+    db.prepare('UPDATE CasaPuntos SET saldo = saldo + ?, actualizadoEn = ? WHERE id = 1')
+      .run(excedenteCasa, new Date().toISOString());
+  }
+
   return {
     totalApostado,
     totalPagado,
@@ -476,6 +487,7 @@ async function obtenerApuestasPartido(partidoId, grupoId) {
 module.exports = {
   obtenerSaldo,
   obtenerSaldoDisponible,
+  obtenerSaldoCasa,
   obtenerPartidosApostables,
   obtenerOpcionesPartido: obtenerOpcionesPartidoCompleto,
   crearApuestas,

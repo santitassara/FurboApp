@@ -9,6 +9,7 @@ const router = express.Router({ mergeParams: true });
 // All routes require membership in grupo
 router.get('/partidos-disponibles', verificarToken, verificarMiembroGrupo(), envolverAsync(apuestasController.listarPartidosApostables));
 router.get('/saldo', verificarToken, verificarMiembroGrupo(), envolverAsync(apuestasController.obtenerSaldo));
+router.get('/casa', verificarToken, verificarMiembroGrupo(), envolverAsync(apuestasController.obtenerSaldoCasa));
 router.get('/partido/:partidoId/opciones', verificarToken, verificarMiembroGrupo(), envolverAsync(apuestasController.obtenerOpcionesPartido));
 router.post('/partido/:partidoId/apostar', verificarToken, verificarMiembroGrupo(), envolverAsync(apuestasController.crearApuestas));
 router.get('/mis-apuestas', verificarToken, verificarMiembroGrupo(), envolverAsync(apuestasController.obtenerMisApuestas));

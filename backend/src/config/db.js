@@ -463,6 +463,19 @@ if (!tieneUsuarioPuntos) {
   `);
 }
 
+// Tabla CasaPuntos (pozo de la casa - solo lectura, se incrementa con excedentes)
+const tieneCasaPuntos = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='CasaPuntos'").get();
+if (!tieneCasaPuntos) {
+  db.exec(`
+    CREATE TABLE CasaPuntos (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      saldo INTEGER NOT NULL DEFAULT 0,
+      actualizadoEn TEXT NOT NULL
+    );
+    INSERT INTO CasaPuntos (id, saldo, actualizadoEn) VALUES (1, 0, datetime('now'));
+  `);
+}
+
 // Tabla Apuestas
 const tieneApuestas = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='Apuestas'").get();
 if (!tieneApuestas) {
@@ -485,6 +498,129 @@ if (!tieneApuestas) {
     CREATE INDEX IF NOT EXISTS idx_apuestas_estado ON Apuestas(estado);
     CREATE INDEX IF NOT EXISTS idx_apuestas_partido_tipo ON Apuestas(partidoId, tipo);
   `);
+}
+
+// Tabla PremiosCatalogo
+const tienePremiosCatalogo = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='PremiosCatalogo'").get();
+if (!tienePremiosCatalogo) {
+  db.exec(`
+    CREATE TABLE PremiosCatalogo (
+      id TEXT PRIMARY KEY,
+      clave TEXT UNIQUE NOT NULL,
+      nombre TEXT NOT NULL,
+      descripcion TEXT NOT NULL,
+      costo INTEGER NOT NULL,
+      categoria TEXT NOT NULL CHECK (categoria IN ('formacion', 'informacion', 'social', 'estetica', 'apuestas', 'rating', 'exotico')),
+      activo INTEGER NOT NULL DEFAULT 1,
+      metadata TEXT,
+      creadoEn TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_premios_categoria ON PremiosCatalogo(categoria);
+    CREATE INDEX IF NOT EXISTS idx_premios_activo ON PremiosCatalogo(activo);
+  `);
+}
+
+// Tabla UsuarioPremios
+const tieneUsuarioPremios = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='UsuarioPremios'").get();
+if (!tieneUsuarioPremios) {
+  db.exec(`
+    CREATE TABLE UsuarioPremios (
+      id TEXT PRIMARY KEY,
+      usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
+      premioId TEXT NOT NULL REFERENCES PremiosCatalogo(id),
+      partidoId TEXT REFERENCES Partidos(id),
+      grupoId TEXT REFERENCES Grupos(id),
+      estado TEXT NOT NULL DEFAULT 'disponible' CHECK (estado IN ('disponible','usado','expirado','reembolsado')),
+      fechaCompra TEXT NOT NULL,
+      fechaUso TEXT,
+      metadata TEXT,
+      creadoEn TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_usuario_premios_usuario ON UsuarioPremios(usuarioId);
+    CREATE INDEX IF NOT EXISTS idx_usuario_premios_partido ON UsuarioPremios(partidoId);
+    CREATE INDEX IF NOT EXISTS idx_usuario_premios_estado ON UsuarioPremios(estado);
+  `);
+}
+
+// Tabla EfectosActivos
+const tieneEfectosActivos = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='EfectosActivos'").get();
+if (!tieneEfectosActivos) {
+  db.exec(`
+    CREATE TABLE EfectosActivos (
+      id TEXT PRIMARY KEY,
+      usuarioId TEXT NOT NULL REFERENCES Usuarios(uid),
+      grupoId TEXT REFERENCES Grupos(id),
+      partidoId TEXT REFERENCES Partidos(id),
+      tipo TEXT NOT NULL,
+      expiraEn TEXT NOT NULL,
+      metadata TEXT,
+      creadoEn TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_efectos_usuario ON EfectosActivos(usuarioId);
+    CREATE INDEX IF NOT EXISTS idx_efectos_expira ON EfectosActivos(expiraEn);
+    CREATE INDEX IF NOT EXISTS idx_efectos_tipo_partido ON EfectosActivos(tipo, partidoId);
+  `);
+}
+
+// Seed catálogo inicial de premios
+// Primero eliminamos partido_secreto si existe (ya no se usa)
+db.prepare("DELETE FROM PremiosCatalogo WHERE clave = 'partido_secreto'").run();
+
+const premiosExistentes = db.prepare("SELECT COUNT(*) as count FROM PremiosCatalogo").get();
+if (premiosExistentes.count === 0) {
+  const PREMIOS_INICIALES = [
+    // Formaciones (×10, excepto cambiar_jugador_equipo = 1000)
+    { clave: 'elegir_equipo', nombre: 'Elegir tu equipo', descripcion: 'Fuerza tu equipo (A o B) al confirmar formación', costo: 1500, categoria: 'formacion', metadata: { requierePartidoId: true, maxPorPartido: 1 } },
+    { clave: 'armar_equipo_completo', nombre: 'Armar equipo a tu gusto', descripcion: 'Defines toda la formación titular y suplentes del partido', costo: 8000, categoria: 'formacion', metadata: { requierePartidoId: true, maxPorPartido: 1 } },
+    { clave: 'cambiar_jugador_equipo', nombre: 'Cambiar un jugador de equipo', descripcion: 'Mueve a un jugador del Equipo A al B (o viceversa)', costo: 1000, categoria: 'formacion', metadata: { requierePartidoId: true, maxPorPartido: 1 } },
+    { clave: 'bloquear_formacion', nombre: 'Bloquear formación 24hs', descripcion: 'Nadie puede cambiar la formación por 24 horas', costo: 2500, categoria: 'formacion', metadata: { requierePartidoId: true, duracionHoras: 24 } },
+
+    // Información (SIN CAMBIOS)
+    { clave: 'ver_votos_formacion', nombre: 'Ver votos de formación en vivo', descripcion: 'Ve cuántos votos tiene cada formación antes de cerrar', costo: 120, categoria: 'informacion', metadata: { requierePartidoId: true } },
+    { clave: 'ver_faltan_votar', nombre: 'Ver quién no votó aún', descripcion: 'Lista de titulares que aún no votaron en la votación de equipos', costo: 180, categoria: 'informacion', metadata: { requierePartidoId: true } },
+    { clave: 'voto_doble_formacion', nombre: 'Voto doble en formación', descripcion: 'Tu voto en la votación de equipos cuenta x2', costo: 350, categoria: 'informacion', metadata: { requierePartidoId: true } },
+    { clave: 'cancelar_apuesta', nombre: 'Cancelar apuesta propia', descripcion: 'Anula una apuesta pendiente y recupera el monto (>2hs antes)', costo: 200, categoria: 'informacion', metadata: { requierePartidoId: true, minHorasAntes: 2 } },
+
+    // Sociales (×10, excepto perdonar sanciones)
+    { clave: 'admin_temporal_semana', nombre: 'Ser admin del grupo 1 semana', descripcion: 'Permisos de admin: crear partidos, perdonar sanciones, cerrar votaciones', costo: 12000, categoria: 'social', metadata: { duracionDias: 7, maxPorGrupo: 1 } },
+    { clave: 'perdonar_propia_sancion', nombre: 'Perdonar tu propia sanción', descripcion: 'Quita tu sanción actual sin pedir al admin', costo: 500, categoria: 'social', metadata: { requiereGrupoId: true } },
+    { clave: 'perdonar_sancion_otro', nombre: 'Perdonar sanción a otro', descripcion: 'Eliges a qué jugador perdonar (log visible)', costo: 700, categoria: 'social', metadata: { requiereGrupoId: true } },
+
+    // Estética (SIN CAMBIOS)
+    { clave: 'badge_apostador_pro', nombre: 'Badge "Apostador Pro"', descripcion: 'Insignia en tu perfil', costo: 100, categoria: 'estetica', metadata: { permanente: true, badgeId: 'apostador_pro' } },
+    { clave: 'badge_mvp_hunter', nombre: 'Badge "MVP Hunter"', descripcion: 'Insignia en tu perfil', costo: 200, categoria: 'estetica', metadata: { permanente: true, badgeId: 'mvp_hunter' } },
+    { clave: 'badge_goleador', nombre: 'Badge "Goleador"', descripcion: 'Insignia en tu perfil', costo: 200, categoria: 'estetica', metadata: { permanente: true, badgeId: 'goleador' } },
+    { clave: 'badge_estratega', nombre: 'Badge "Estratega"', descripcion: 'Insignia en tu perfil', costo: 300, categoria: 'estetica', metadata: { permanente: true, badgeId: 'estratega' } },
+    { clave: 'badge_ballena', nombre: 'Badge "Ballena"', descripcion: 'Insignia en tu perfil (gastaste 5000+ pts)', costo: 400, categoria: 'estetica', metadata: { permanente: true, badgeId: 'ballena' } },
+    { clave: 'color_nombre', nombre: 'Color de nombre personalizado', descripcion: 'Tu nombre en dorado/rosa/azul/verde en listas', costo: 250, categoria: 'estetica', metadata: { permanente: true, colores: ['#FFD700', '#FF69B4', '#00BFFF', '#32CD32', '#FF4500', '#9370DB'] } },
+    { clave: 'fondo_carta', nombre: 'Fondo de carta personalizado', descripcion: 'Tu tarjeta de jugador tiene fondo especial', costo: 200, categoria: 'estetica', metadata: { permanente: true, fondos: ['degradado_oro', 'degradado_fuego', 'patron_rombos', 'brillo_neon'] } },
+    { clave: 'emoji_personalizado', nombre: 'Emoji exclusivo', descripcion: '🎯 🏆 💰 ⚡ 🔥 👑 junto a tu nombre', costo: 120, categoria: 'estetica', metadata: { permanente: true, emojis: ['🎯', '🏆', '💰', '⚡', '🔥', '👑', '🧠', '🛡️', '⚽', '🥅'] } },
+    { clave: 'titulo_personalizado', nombre: 'Título personalizado', descripcion: '"El Arquero", "El 10", "Pichichi", "Muro", "Cerebro"', costo: 350, categoria: 'estetica', metadata: { permanente: true, titulos: ['El Arquero', 'El 10', 'Pichichi', 'Muro', 'Cerebro', 'Pared', 'Motor', 'Magia', 'Garra', 'Jefe'] } },
+
+    // Apuestas (×10)
+    { clave: 'freebet_50', nombre: 'Apuesta gratis 50 pts', descripcion: 'Apuestas 50 pts sin arriesgar saldo. Si ganas: neto. Si pierdes: 0', costo: 2500, categoria: 'apuestas', metadata: { monto: 50, maxPorUsuario: 3 } },
+    { clave: 'cuota_mejorada', nombre: 'Cuota mejorada +0.25', descripcion: 'Le sumas 0.25 a la cuota de una apuesta', costo: 2000, categoria: 'apuestas', metadata: { bonus: 0.25, maxPorApuesta: 1 } },
+    { clave: 'seguro_apuesta', nombre: 'Seguro de apuesta (50%)', descripcion: 'Si pierdes, te devuelven 50% del monto', costo: 3000, categoria: 'apuestas', metadata: { cobertura: 0.5, maxPorApuesta: 1 } },
+    { clave: 'ver_pool_apuestas', nombre: 'Ver distribución de apuestas', descripcion: 'Ves % del pozo en cada opción (anónimo)', costo: 2500, categoria: 'apuestas', metadata: { requierePartidoId: true } },
+
+    // Rating/MVP (×10)
+    { clave: 'voto_valoracion_doble', nombre: 'Voto de valoración x2', descripcion: 'Tu voto en rendimiento post-partido cuenta doble', costo: 3000, categoria: 'rating', metadata: { requierePartidoId: true } },
+    { clave: 'elegir_mvp_directo', nombre: 'Elegir MVP directo', descripcion: 'Tú decides quién es MVP del partido (override votación)', costo: 6000, categoria: 'rating', metadata: { requierePartidoId: true, requiereAdmin: false } },
+    { clave: 'ver_votos_valoracion', nombre: 'Ver votos de valoración en vivo', descripcion: 'Ves quién votó a quién en rendimiento', costo: 1800, categoria: 'rating', metadata: { requierePartidoId: true } },
+
+    // Exóticos (×10)
+    { clave: 'cambiar_rival', nombre: 'Cambiar nombre del rival', descripcion: 'Cambia el rival del partido a lo que quieras', costo: 10000, categoria: 'exotico', metadata: { requierePartidoId: true, maxLongitud: 30 } },
+    { clave: 'dios_del_partido', nombre: 'Dios del Partido', descripcion: 'Armás la formación de AMBOS equipos a mano y decidís quién gana', costo: 25000, categoria: 'exotico', metadata: { requierePartidoId: true, maxPorPartido: 1 } },
+  ];
+
+  const insertPremio = db.prepare(`
+    INSERT INTO PremiosCatalogo (id, clave, nombre, descripcion, costo, categoria, activo, metadata, creadoEn)
+    VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+  `);
+  const now = new Date().toISOString();
+  for (const p of PREMIOS_INICIALES) {
+    insertPremio.run(crypto.randomUUID(), p.clave, p.nombre, p.descripcion, p.costo, p.categoria, JSON.stringify(p.metadata), now);
+  }
 }
 
 // Backfill: usuarios existentes sin puntos -> 100
