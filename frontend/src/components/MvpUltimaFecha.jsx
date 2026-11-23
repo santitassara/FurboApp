@@ -4,6 +4,7 @@ import api from '../services/api';
 import { useGrupo } from '../context/GrupoContext';
 import { rutaGrupo } from '../utils/rutasGrupo';
 import styles from './MvpUltimaFecha.module.css';
+import NombreConEfectos from './NombreConEfectos';
 
 export default function MvpUltimaFecha({ grupoId }) {
   const { grupoActivo } = useGrupo();
@@ -37,6 +38,7 @@ export default function MvpUltimaFecha({ grupoId }) {
           setVotacionCerrada(Boolean(esPlantel || resultado.votacionCerrada));
           setMvp({
             nombre: destacado.nombre,
+            usuarioId: destacado.usuarioId,
             goles,
             asistencias,
             valoracion: rendimiento?.promedio ?? null,
@@ -66,7 +68,7 @@ export default function MvpUltimaFecha({ grupoId }) {
           {mvp.nombre?.trim()?.[0]?.toUpperCase() || '?'}
         </div>
         <div className={styles.infoWrapper}>
-          <p className={styles.nombre}>{mvp.nombre}</p>
+          <p className={styles.nombre}><NombreConEfectos nombre={mvp.nombre} usuarioId={mvp.usuarioId} grupoId={grupoId} showTitulo /></p>
           <p className={styles.detalle}>
             {mvp.goles} Goles • {mvp.asistencias} Asistencias
             {mvp.valoracion !== null && ` • Calificación ${mvp.valoracion}`}

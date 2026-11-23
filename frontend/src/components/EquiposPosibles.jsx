@@ -3,6 +3,7 @@ import api from '../services/api';
 import Boton from './Boton';
 import { rutaGrupo } from '../utils/rutasGrupo';
 import styles from './EquiposPosibles.module.css';
+import NombreConEfectos from './NombreConEfectos';
 
 export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, soyTitular, soyAnotado, onActualizado, onVerEnCancha }) {
   const [procesando, setProcesando] = useState(null);
@@ -184,13 +185,13 @@ export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, so
                     <div>
                       <p className={styles.equipoLabel}>Equipo A</p>
                       {propuesta.equipoA.map((jugador) => (
-                        <p key={jugador.usuarioId || jugador.invitadoId}>{jugador.nombre}</p>
+                        <p key={jugador.usuarioId || jugador.invitadoId}><NombreConEfectos nombre={jugador.nombre} usuarioId={jugador.usuarioId} grupoId={grupoId} showBadge={false} showEmojiPersonalizado={false} showTitulo={false} /></p>
                       ))}
                     </div>
                     <div>
                       <p className={styles.equipoLabel}>Equipo B</p>
                       {propuesta.equipoB.map((jugador) => (
-                        <p key={jugador.usuarioId || jugador.invitadoId}>{jugador.nombre}</p>
+                        <p key={jugador.usuarioId || jugador.invitadoId}><NombreConEfectos nombre={jugador.nombre} usuarioId={jugador.usuarioId} grupoId={grupoId} showBadge={false} showEmojiPersonalizado={false} showTitulo={false} /></p>
                       ))}
                     </div>
                   </div>
@@ -219,7 +220,7 @@ export default function EquiposPosibles({ grupoId, partidoId, datos, esAdmin, so
                           <div key={opcion.id} className={styles.opcion}>
                             <div className={styles.opcionTexto}>
                               <span className={styles.opcionTitulo}>
-                                Opción {opcion.numero}: {opcion.jugadorA?.nombre} (A) ⇄ {opcion.jugadorB?.nombre} (B)
+                                Opción {opcion.numero}: <NombreConEfectos nombre={opcion.jugadorA?.nombre} usuarioId={opcion.jugadorA?.usuarioId} grupoId={grupoId} showBadge={false} showEmojiPersonalizado={false} showTitulo={false} /> (A) ⇄ <NombreConEfectos nombre={opcion.jugadorB?.nombre} usuarioId={opcion.jugadorB?.usuarioId} grupoId={grupoId} showBadge={false} showEmojiPersonalizado={false} showTitulo={false} /> (B)
                                 {opcion.miVoto && <span className={styles.badgeMiVoto}>Tu voto</span>}
                               </span>
                               <span className={styles.votos}>

@@ -1,4 +1,5 @@
 import { useJugadorDestacado } from '../context/JugadorDestacadoContext';
+import NombreConEfectos from './NombreConEfectos';
 
 // Tooltip global con el nombre del jugador. Se renderiza con position: fixed
 // directamente en el <main> (fuera del contenedor .cancha que tiene
@@ -9,7 +10,7 @@ export default function TooltipJugador() {
 
   if (!jugadorTooltip) return null;
 
-  const { id, nombre, x, y } = jugadorTooltip;
+  const { id, nombre, usuarioId, grupoId, x, y } = jugadorTooltip;
 
   return (
     <div
@@ -18,7 +19,7 @@ export default function TooltipJugador() {
       className="fixed z-[60] pointer-events-none -translate-x-1/2 -translate-y-full mb-1.5 whitespace-nowrap rounded bg-black px-2 py-1 text-xs font-semibold text-white shadow opacity-100 transition-opacity duration-150"
       style={{ left: `${x}px`, top: `${y}px` }}
     >
-      {nombre}
+      <NombreConEfectos nombre={nombre} usuarioId={usuarioId} grupoId={grupoId} showBadge={false} showEmojiPersonalizado={false} showTitulo={false} />
     </div>
   );
 }

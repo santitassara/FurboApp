@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { useParams } from 'react-router-dom';
 import { useGrupo } from '../context/GrupoContext';
 import api, { SERVER_URL } from '../services/api';
+import { obtenerEfectosActivosUsuario } from '../services/apuestasApi';
 import { etiquetaPosicion } from '../constants/posiciones';
 import { etiquetaResistencia } from '../constants/resistencia';
 import { etiquetaRitmoJuego } from '../constants/ritmoJuego';
@@ -17,6 +18,7 @@ export default function PerfilJugador() {
   const [perfil, setPerfil] = useState(null);
   const [estadisticas, setEstadisticas] = useState(null);
   const [estadisticasTotales, setEstadisticasTotales] = useState(null);
+  const [efectos, setEfectos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
 
@@ -26,17 +28,20 @@ export default function PerfilJugador() {
     setError('');
     setEstadisticas(null);
     setEstadisticasTotales(null);
+    setEfectos([]);
 
     Promise.all([
       api.get(`/usuarios/${uid}/perfil`),
       grupoActivo ? api.get(`/usuarios/${uid}/estadisticas/${grupoActivo.id}`) : Promise.resolve(null),
       api.get(`/usuarios/${uid}/estadisticas`),
+      grupoActivo ? obtenerEfectosActivosUsuario(grupoActivo.id, uid) : Promise.resolve([]),
     ])
-      .then(([perfilRes, statsRes, statsTotalesRes]) => {
+      .then(([perfilRes, statsRes, statsTotalesRes, efectosRes]) => {
         if (activo) {
           setPerfil(perfilRes.data);
           if (statsRes) setEstadisticas(statsRes.data);
           setEstadisticasTotales(statsTotalesRes.data);
+          setEfectos(efectosRes || []);
         }
       })
       .catch((err) => {
@@ -83,6 +88,7 @@ export default function PerfilJugador() {
               posicion={perfil.posicionPrincipal}
               habilidades={perfil}
               fotoUrl={perfil.fotoUrl ? `${SERVER_URL}${perfil.fotoUrl}` : null}
+              efectos={efectos}
             />
           </div>
 

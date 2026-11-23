@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import Boton from './Boton';
 import styles from './ModalModificarEquipos.module.css';
+import NombreConEfectos from './NombreConEfectos';
 
 // Identidad de un jugador elegible: real o invitado, nunca ambos (mismo criterio
 // que ModalCargarResultado y el backend).
@@ -25,6 +26,7 @@ export default function ModalModificarEquipos({
   error,
   onConfirmar,
   onCancelar,
+  grupoId,
 }) {
   // asignaciones: [{ clave, nombre, esInvitado, equipo, esNueva? }]
   // esNueva marca a los jugadores que no estaban anotados y se agregan al partido.
@@ -120,10 +122,11 @@ export default function ModalModificarEquipos({
   }
 
   function filaJugador(asig) {
+    const { usuarioId } = declave(asig.clave);
     return (
       <div key={asig.clave} className={styles.filaJugador}>
         <span className={styles.nombreJugador}>
-          {asig.nombre}
+          <NombreConEfectos nombre={asig.nombre} usuarioId={usuarioId} grupoId={grupoId} showBadge={false} showEmojiPersonalizado={false} showTitulo={false} />
           {asig.esInvitado && <span className={styles.invitadoTag}>Invitado</span>}
         </span>
         {opcionesPara(asig).map(({ equipo, label, quitar }) => (

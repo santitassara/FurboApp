@@ -12,6 +12,7 @@ import ModalCargarResultado from '../components/ModalCargarResultado';
 import ModalModificarEquipos from '../components/ModalModificarEquipos';
 import ProgramacionPartidos from '../components/ProgramacionPartidos';
 import FixtureTorneo from '../components/FixtureTorneo';
+import NombreConEfectos from '../components/NombreConEfectos';
 
 const FORMULARIO_INICIAL = {
   fecha: '',
@@ -400,7 +401,7 @@ export default function AdminPanel() {
           <ul className={styles.lista}>
             {sancionados.map((usuario) => (
               <li key={usuario.uid} className={styles.filaSancionado}>
-                <span>{usuario.nombre}</span>
+                <span><NombreConEfectos nombre={usuario.nombre} usuarioId={usuario.uid} grupoId={grupoActivo.id} showBadge={false} showEmojiPersonalizado={false} showTitulo={false} /></span>
                 <Boton
                   variante="ghost"
                   className={styles.botonAccion}
@@ -502,7 +503,7 @@ export default function AdminPanel() {
                   {miembros.map((miembro) => (
                     <li key={miembro.uid} className={styles.filaMiembro}>
                       <div className={styles.miembroInfo}>
-                        <span className={styles.miembroNombre}>{miembro.nombre}</span>
+                        <span className={styles.miembroNombre}><NombreConEfectos nombre={miembro.nombre} usuarioId={miembro.uid} grupoId={grupoActivo.id} showBadge={false} showEmojiPersonalizado={false} showTitulo={false} /></span>
                         <span className={styles.miembroRol}>{miembro.rol === 'admin' ? 'Admin' : 'Jugador'}</span>
                       </div>
                       {miembro.uid !== grupoActivo.creadoPor && (
@@ -574,6 +575,7 @@ export default function AdminPanel() {
           setPartidoParaModificarEquipos(null);
           setError('');
         }}
+        grupoId={grupoActivo.id}
       />
     </div>
   );

@@ -24,6 +24,23 @@ const MARCO_CARTA = '/tarjeta-marco.png';
 
 const MASCARA_FOTO = 'linear-gradient(to bottom, black 65%, transparent 100%)';
 
+const BADGE_DESCRIPCIONES = {
+  apostador_pro: 'Apostador Pro - Ventajas en apuestas',
+  mvp_hunter: 'Cazador MVP - Especialista en valoraciones',
+  goleador: 'Goleador - Máximo anotador',
+  estratega: 'Estratega - Experto en formaciones',
+  ballena: 'Ballena - Gran apostador',
+  badge_apostador_pro: 'Apostador Pro - Ventajas en apuestas',
+  badge_mvp_hunter: 'Cazador MVP - Especialista en valoraciones',
+  badge_goleador: 'Goleador - Máximo anotador',
+  badge_estratega: 'Estratega - Experto en formaciones',
+  badge_ballena: 'Ballena - Gran apostador',
+};
+
+function getBadgeDescripcion(badgeId) {
+  return BADGE_DESCRIPCIONES[badgeId] || BADGE_DESCRIPCIONES[badgeId.replace('badge_', '')] || badgeId;
+}
+
 // Redondeo a entero: el decimal solo sube si supera 0.5 (80.5 -> 80, 80.6 -> 81).
 function redondearEntero(valor) {
   const base = Math.floor(valor);
@@ -54,8 +71,65 @@ function iniciales(nombre) {
     .join('');
 }
 
-export default function TarjetaJugadorFIFA({ nombre, posicion, habilidades = {}, fotoUrl }) {
+// Extraer efectos visuales de la lista de efectos activos
+function extraerEfectosVisuales(efectos) {
+  if (!efectos || !efectos.length) return {};
+  const visuales = { badges: [] };
+  efectos.forEach((efecto) => {
+    try {
+      const metadata = typeof efecto.metadata === 'string' ? JSON.parse(efecto.metadata) : efecto.metadata;
+      switch (efecto.tipo) {
+        case 'badge':
+          if (metadata?.badgeId) visuales.badges.push(metadata.badgeId);
+          break;
+        case 'color_nombre':
+          visuales.colorNombre = metadata?.color;
+          break;
+        case 'emoji_personalizado':
+          visuales.emoji = metadata?.emoji;
+          break;
+        case 'titulo_personalizado':
+          visuales.titulo = metadata?.titulo;
+          break;
+        case 'fondo_carta':
+          visuales.fondo = metadata?.fondo;
+          break;
+      }
+    } catch (e) {
+      console.warn('Error parsing efecto metadata:', e);
+    }
+  });
+  return visuales;
+}
+
+// Mapear badgeId a emoji/icono visible
+function obtenerBadgeEmoji(badgeId) {
+  const badges = {
+    apostador_pro: '🏅',
+    mvp_hunter: '🏆',
+    goleador: '⚽',
+    estratega: '🧠',
+    ballena: '🐋',
+  };
+  // Handle both formats: with and without 'badge_' prefix
+  const normalizedId = badgeId.replace('badge_', '');
+  return badges[normalizedId] || '🏅';
+}
+
+// Fondos de carta disponibles
+const FONDOS_CARTA = {
+  degradado_oro: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+  degradado_fuego: 'linear-gradient(135deg, #FF4500 0%, #FFD700 100%)',
+  patron_rombos: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 20px)',
+  brillo_neon: 'linear-gradient(135deg, #00FFFF 0%, #FF00FF 100%)',
+};
+
+export default function TarjetaJugadorFIFA({ nombre, posicion, habilidades = {}, fotoUrl, efectos = [] }) {
   const rating = calcularRating(habilidades);
+  const { badges, colorNombre, emoji, titulo, fondo } = extraerEfectosVisuales(efectos);
+  const badgeEmojis = (badges || []).map(obtenerBadgeEmoji);
+  const fondoEstilo = fondo && FONDOS_CARTA[fondo] ? FONDOS_CARTA[fondo] : null;
+  const colorEstilo = colorNombre ? { color: colorNombre } : {};
 
   return (
     <div
@@ -63,13 +137,14 @@ export default function TarjetaJugadorFIFA({ nombre, posicion, habilidades = {},
       style={{
         width: ANCHO,
         height: ALTO,
-        backgroundImage: `url('${MARCO_CARTA}')`,
+        backgroundImage: fondoEstilo ? `url('${MARCO_CARTA}')` : `url('${MARCO_CARTA}')`,
         backgroundSize: 'contain',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
+        ...(fondoEstilo && { background: fondoEstilo, backgroundSize: 'cover' }),
       }}
     >
-      <div className={styles.contenido}>
+      <div className={styles.contenido} style={{ ...(fondoEstilo && { background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '8px' }) }}>
         <div className={styles.bloqueRating}>
           <p className={styles.rating}>{rating ?? '–'}</p>
           <p className={styles.posicionAbrev}>
@@ -95,9 +170,27 @@ export default function TarjetaJugadorFIFA({ nombre, posicion, habilidades = {},
           )}
         </div>
 
-        <div className={styles.bloqueNombre}>
+        {titulo && (
+          <div className={styles.bloqueTitulo} style={colorEstilo}>
+            <p className={styles.tituloTexto}>{titulo}</p>
+          </div>
+        )}
+
+        <div className={styles.bloqueNombre} style={colorEstilo}>
           <p className={styles.nombreTexto}>
             {nombre || 'Sin nombre'}
+            {badgeEmojis.length > 0 && (
+              <span className={styles.badgesContainer} aria-label="Badges">
+                {badges.map((badgeId, index) => (
+                  <span key={index} className={styles.badgeWrapper} data-tooltip={getBadgeDescripcion(badgeId)}>
+                    <span className={styles.badgeEmoji}>
+                      {badgeEmojis[index]}
+                    </span>
+                  </span>
+                ))}
+              </span>
+            )}
+            {emoji && <span className={styles.emojiPersonalizado} aria-label="Emoji personalizado">{emoji}</span>}
           </p>
         </div>
 

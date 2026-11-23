@@ -179,3 +179,175 @@
 .exito {
   @apply text-body-sm text-pasto-500;
 }
+
+.sinEfectos {
+  @apply text-center text-white/50 py-12 rounded-2xl border border-white/10 bg-cancha-800/50;
+}
+
+.sinEfectosDetalle {
+  @apply mt-2 text-body-sm text-white/40;
+}
+
+.seccion {
+  @apply space-y-4;
+}
+
+.seccionTitulo {
+  @apply text-title font-semibold text-white;
+}
+
+.seccionDescripcion {
+  @apply text-caption text-white/50;
+}
+
+.listaEfectos {
+  @apply flex flex-col gap-4;
+}
+
+.efectoCard {
+  @apply rounded-2xl border border-white/10 bg-cancha-800/30 p-4 elev-1 motion-base;
+}
+
+.efectoHeader {
+  @apply flex items-center gap-3;
+}
+
+.efectoIcono {
+  @apply text-2xl shrink-0;
+}
+
+.efectoInfo {
+  @apply flex-1 min-w-0;
+}
+
+.efectoNombre {
+  @apply text-body font-semibold text-white;
+}
+
+.efectoDetalle {
+  @apply text-caption text-white/60 mt-1;
+}
+
+.efectoExpira {
+  @apply text-caption text-white/40 mt-2 text-right;
+}
+
+.grupoEfectos {
+  @apply rounded-2xl border border-white/10 bg-cancha-800/30 p-4 space-y-4 elev-1 motion-base;
+}
+
+.tituloEfectos {
+  @apply text-title font-semibold text-white;
+}
+
+.descripcionEfectos {
+  @apply text-caption text-white/50;
+}
+
+.campoEfecto {
+  @apply flex flex-col gap-1;
+}
+
+.etiquetaEfecto {
+  @apply text-caption text-white/50;
+}
+
+.selectEfecto {
+  @apply rounded-lg bg-cancha-950 border border-white/10 px-4 py-2 text-white elev-1 focus:border-albiceleste focus:ring-2 focus:ring-albiceleste/30 motion-base appearance-none;
+}
+
+.colorPreview {
+  @apply w-8 h-8 rounded-lg border border-white/20 mt-2;
+}
+
+.emojiPreview {
+  @apply text-2xl mt-2;
+}
+
+.selectEfecto option {
+  @apply bg-cancha-900 text-white;
+}
+
+.sinBadges {
+  @apply text-body-sm text-white/50 italic;
+}
+
+.colorSwatch {
+  @apply w-5 h-5 rounded border border-white/20 shrink-0;
+}
+
+.colorSwatchWrapper {
+  @apply flex items-center gap-2 mt-2;
+}
+
+.emojiBloqueado {
+  @apply flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10;
+}
+
+.emojiPreviewGrande {
+  @apply text-3xl;
+}
+
+.emojiLockLabel {
+  @apply text-body text-white/60;
+}
+
+.colorBloqueado {
+  @apply flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10;
+}
+
+.colorSwatchGrande {
+  @apply w-10 h-10 rounded-lg border border-white/20;
+}
+
+.colorLockLabel {
+  @apply text-body text-white/60;
+}
+
+.fondoBloqueado {
+  @apply flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10;
+}
+
+.fondoLockLabel {
+  @apply text-body text-white/60;
+}
+
+.tituloBloqueado {
+  @apply flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10;
+}
+
+.tituloLockLabel {
+  @apply text-body text-white/60;
+}
+
+.purchaseHint {
+  @apply text-caption text-pasto-500 mt-1;
+}
+
+.badgesGrid {
+  @apply flex flex-wrap gap-3;
+}
+
+.badgeCheckbox {
+  @apply flex items-center gap-3 px-4 py-2 rounded-xl bg-white/5 border border-white/10 cursor-pointer transition-all hover:bg-white/10 hover:border-white/20 whitespace-nowrap;
+}
+
+.badgeCheckboxActivo {
+  @apply bg-pasto-500/20 border-pasto-500/50;
+}
+
+.badgeCheckbox input[type="checkbox"] {
+  @apply w-4 h-4 accent-pasto-500 flex-shrink-0;
+}
+
+.badgeEmoji {
+  @apply text-xl flex-shrink-0;
+}
+
+.badgeNombre {
+  @apply text-body text-white flex-shrink-0;
+}
+
+.badgeLimitHint {
+  @apply text-caption text-sancion/80 flex-shrink-0;
+}

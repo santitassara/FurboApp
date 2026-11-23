@@ -67,3 +67,58 @@
 .etiquetaAtributo {
   @apply w-1/2 text-left font-normal;
 }
+
+.bloqueTitulo {
+  @apply absolute top-[48%] z-20 flex w-full flex-col items-center mb-1;
+}
+
+.tituloTexto {
+  @apply max-w-[85%] overflow-hidden truncate px-4 text-center font-display text-sm font-bold uppercase tracking-wider drop-shadow-md text-amber-400;
+}
+
+.badgesContainer {
+  @apply inline-flex gap-2 ml-1;
+}
+
+.badgeWrapper {
+  @apply inline-flex relative;
+}
+
+.badgeWrapper:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border-radius: 4px;
+  z-index: 1000;
+  margin-bottom: 4px;
+  pointer-events: none;
+}
+
+.badgeWrapper:hover::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.9);
+  margin-bottom: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.badgeEmoji {
+  @apply ml-1 text-lg cursor-default;
+}
+
+.emojiPersonalizado {
+  @apply ml-1 text-lg;
+}

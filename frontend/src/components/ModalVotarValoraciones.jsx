@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Boton from './Boton';
 import { formatearFechaPartido } from '../utils/fecha';
 import styles from './ModalVotarValoraciones.module.css';
+import NombreConEfectos from './NombreConEfectos';
 
 // Identidad de un jugador elegible: real o invitado, nunca ambos (ver backend
 // claveJugador). Se usa como key/value para no colisionar cuando usuarioId es
@@ -85,7 +86,7 @@ export default function ModalVotarValoraciones({
             return (
               <div key={c} className={styles.filaJugador}>
                 <span className={styles.nombreJugador}>
-                  {sinMvp ? jugador.nombre : `${jugador.nombre} (${jugador.equipo})`}
+                  {sinMvp ? <NombreConEfectos nombre={jugador.nombre} usuarioId={jugador.usuarioId} grupoId={partido.grupoId} showBadge={false} showEmojiPersonalizado={false} showTitulo={false} /> : (<> <NombreConEfectos nombre={jugador.nombre} usuarioId={jugador.usuarioId} grupoId={partido.grupoId} showBadge={false} showEmojiPersonalizado={false} showTitulo={false} /> ({jugador.equipo}) </>)}
                 </span>
                 <input
                   type="number"
@@ -112,7 +113,7 @@ export default function ModalVotarValoraciones({
               <option value="">Sin elegir</option>
               {elegibles.map((j) => (
                 <option key={clave(j.usuarioId, j.invitadoId)} value={clave(j.usuarioId, j.invitadoId)}>
-                  {j.nombre} ({j.equipo})
+                  <NombreConEfectos nombre={j.nombre} usuarioId={j.usuarioId} grupoId={partido.grupoId} showBadge={false} showEmojiPersonalizado={false} showTitulo={false} /> ({j.equipo})
                 </option>
               ))}
             </select>
