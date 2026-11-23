@@ -377,6 +377,12 @@ if (!columnasVotosMvpFecha.some((columna) => columna.name === 'fecha')) {
   db.exec(`UPDATE VotosMvp SET fecha = '${now}' WHERE fecha IS NULL`);
 }
 
+// Agregar columna peso a VotosFormacion para voto doble
+const columnasVotosFormacion = db.prepare('PRAGMA table_info(VotosFormacion)').all();
+if (!columnasVotosFormacion.some((columna) => columna.name === 'peso')) {
+  db.exec('ALTER TABLE VotosFormacion ADD COLUMN peso INTEGER NOT NULL DEFAULT 1');
+}
+
 permitirInvitadoComoJugador(
   'SancionesPartido',
   'usuarioId',

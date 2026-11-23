@@ -7,6 +7,7 @@ import SelectorGrupoActivo from './SelectorGrupoActivo';
 import JugadorDestacadoProvider from '../context/JugadorDestacadoContext';
 import TooltipJugador from './TooltipJugador';
 import styles from './Layout.module.css';
+import NombreConEfectos from './NombreConEfectos';
 
 const ICONOS = {
   inicio: (
@@ -43,6 +44,13 @@ const ICONOS = {
       <path d="M12 7v10" />
     </>
   ),
+  trofeo: (
+    <>
+      <path d="M6 20h12a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z" />
+      <path d="M10 4v4M14 4v4" />
+      <path d="M4 14h16" />
+    </>
+  ),
   salir: (
     <>
       <path d="M9 4H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h3" />
@@ -75,6 +83,7 @@ export default function Layout({ children }) {
   const items = [
     { to: '/inicio', etiqueta: 'Inicio', icono: 'inicio' },
     { to: '/apuestas', etiqueta: 'Apuestas', icono: 'apuestas' },
+    { to: '/mis-premios', etiqueta: 'Mis Premios', icono: 'trofeo' },
     { to: '/perfil', etiqueta: 'Mi Perfil', icono: 'perfil' },
     { to: '/jugadores', etiqueta: 'Jugadores', icono: 'jugadores' },
     { to: '/historial', etiqueta: 'Últimos partidos', icono: 'historial' },
@@ -117,7 +126,7 @@ export default function Layout({ children }) {
 
         <div className={styles.pie}>
           <div className={styles.perfilFila}>
-            <p className={styles.perfilNombre}>{perfil?.nombre}</p>
+            <p className={styles.perfilNombre}><NombreConEfectos nombre={perfil?.nombre} usuarioId={perfil?.uid} grupoId={grupoActivo?.id} showBadge={false} showEmojiPersonalizado={false} showTitulo={false} /></p>
             <BadgeSancion sancionado={Boolean(grupoActivo?.estaSancionado)} />
           </div>
           <button onClick={cerrarSesion} className={styles.botonSalir}>
