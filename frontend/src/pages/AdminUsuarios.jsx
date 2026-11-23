@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../services/api';
 import Boton from '../components/Boton';
 import styles from './AdminUsuarios.module.css';
+import NombreConEfectos from '../components/NombreConEfectos';
 
 export default function AdminUsuarios() {
   const [usuarios, setUsuarios] = useState([]);
@@ -100,7 +101,7 @@ export default function AdminUsuarios() {
             <div key={usuario.uid} className={styles.tarjetaUsuario}>
               <div className={styles.filaUsuario}>
                 <div>
-                  <p className={styles.nombreUsuario}>{usuario.nombre}</p>
+                  <p className={styles.nombreUsuario}><NombreConEfectos nombre={usuario.nombre} usuarioId={usuario.uid} showBadge={false} showEmojiPersonalizado={false} showTitulo={false} /></p>
                   <p className={styles.emailUsuario}>{usuario.email}</p>
                 </div>
                 {uidEnEdicion !== usuario.uid && (

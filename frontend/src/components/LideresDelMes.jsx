@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../services/api';
 import { rutaGrupo } from '../utils/rutasGrupo';
 import styles from './LideresDelMes.module.css';
+import NombreConEfectos from './NombreConEfectos';
 
 export default function LideresDelMes({ grupoId }) {
   const [lideres, setLideres] = useState(null);
@@ -30,7 +31,7 @@ export default function LideresDelMes({ grupoId }) {
         <ol className={styles.listaGoleadores}>
           {lideres.goleadores.map((jugador, indice) => (
             <li key={jugador.usuarioId} className={styles.itemGoleador}>
-              <span>{indice + 1}. {jugador.nombre}</span>
+              <span>{indice + 1}. <NombreConEfectos nombre={jugador.nombre} usuarioId={jugador.usuarioId} grupoId={grupoId} /></span>
               <span className={styles.valorGoles}>{jugador.goles} Goles</span>
             </li>
           ))}
@@ -38,7 +39,7 @@ export default function LideresDelMes({ grupoId }) {
       )}
       {lideres.asistidor && (
         <p className={styles.filaAsistidor}>
-          <span>★ {lideres.asistidor.nombre}</span>
+          <span>★ <NombreConEfectos nombre={lideres.asistidor.nombre} usuarioId={lideres.asistidor.usuarioId} grupoId={grupoId} /></span>
           <span className={styles.valorAsistencias}>{lideres.asistidor.asistencias} Asistencias</span>
         </p>
       )}

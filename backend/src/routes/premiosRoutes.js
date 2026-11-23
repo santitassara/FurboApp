@@ -12,6 +12,9 @@ router.post('/comprar', verificarToken, verificarMiembroGrupo(), envolverAsync(p
 router.post('/usar/:compraId', verificarToken, verificarMiembroGrupo(), envolverAsync(premiosController.usarPremio));
 router.get('/mis-premios', verificarToken, verificarMiembroGrupo(), envolverAsync(premiosController.obtenerMisPremios));
 router.get('/efectos-activos', verificarToken, verificarMiembroGrupo(), envolverAsync(premiosController.obtenerEfectosActivos));
+router.get('/efectos-activos/:uid', verificarToken, verificarMiembroGrupo(), envolverAsync(premiosController.obtenerEfectosActivosUsuario));
 router.get('/efectos-partido/:partidoId', verificarToken, verificarMiembroGrupo(), envolverAsync(premiosController.obtenerEfectosActivosPartido));
+router.post('/efectos/:efectoId/metadata', verificarToken, verificarMiembroGrupo(), envolverAsync(premiosController.actualizarEfectoMetadata));
+router.post('/efectos/armar-equipo-completo/expirar/:partidoId', verificarToken, verificarMiembroGrupo(), envolverAsync(premiosController.expirarEfectoArmarEquipoCompleto));
 
 module.exports = router;

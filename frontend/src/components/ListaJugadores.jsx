@@ -7,6 +7,7 @@ import { etiquetaPosicion } from '../constants/posiciones';
 import { calcularRating } from './TarjetaJugadorFIFA';
 import { useJugadorDestacado } from '../context/JugadorDestacadoContext';
 import styles from './ListaJugadores.module.css';
+import NombreConEfectos from './NombreConEfectos';
 
 const ABREVIATURA_POSICION = {
   arquero: 'POR',
@@ -67,10 +68,10 @@ function FilaJugador({ jugador, accion, onAccion, deshabilitado, grupoId }) {
       </div>
       <div className={styles.infoWrapper}>
         {jugador.esInvitado ? (
-          <span className={clsx(styles.nombreLink, esDestacado && styles.nombreDestacado)}>{jugador.nombre} (invitado)</span>
+          <span className={clsx(styles.nombreLink, esDestacado && styles.nombreDestacado)}><NombreConEfectos nombre={jugador.nombre} usuarioId={jugador.usuarioId} grupoId={grupoId} showBadge={false} showEmojiPersonalizado={false} showTitulo={false} /> (invitado)</span>
         ) : (
           <Link to={`/jugadores/${jugador.usuarioId}`} className={clsx(styles.nombreLink, esDestacado && styles.nombreDestacado)}>
-            {jugador.nombre}
+            <NombreConEfectos nombre={jugador.nombre} usuarioId={jugador.usuarioId} grupoId={grupoId} showBadge={false} showEmojiPersonalizado={false} showTitulo={false} />
           </Link>
         )}
         <span className={styles.subInfo}>

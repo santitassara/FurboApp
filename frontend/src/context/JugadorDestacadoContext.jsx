@@ -10,11 +10,11 @@ const JugadorDestacadoContext = createContext(null);
 
 export function JugadorDestacadoProvider({ children }) {
   const [jugadorDestacadoId, setJugadorDestacadoId] = useState(null);
-  const [jugadorTooltip, setJugadorTooltip] = useState(null); // { id, nombre, x, y }
+  const [jugadorTooltip, setJugadorTooltip] = useState(null); // { id, nombre, usuarioId, grupoId, x, y }
 
-  const mostrarJugadorTooltip = (id, nombre, x, y) => {
-    setJugadorDestacado(id);
-    setJugadorTooltip({ id, nombre, x, y });
+  const mostrarJugadorTooltip = (id, nombre, x, y, usuarioId, grupoId) => {
+    setJugadorDestacadoId(id);
+    setJugadorTooltip({ id, nombre, usuarioId, grupoId, x, y });
   };
 
   const actualizarJugadorTooltip = (x, y) => {
@@ -22,7 +22,7 @@ export function JugadorDestacadoProvider({ children }) {
   };
 
   const ocultarJugadorTooltip = () => {
-    setJugadorDestacado(null);
+    setJugadorDestacadoId(null);
     setJugadorTooltip(null);
   };
 

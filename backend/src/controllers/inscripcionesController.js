@@ -77,6 +77,8 @@ async function listarPorPartido(req, res) {
         tipo: inscripcion.tipo,
         posicionPrincipal: inscripcion.posicionPrincipal,
         posicionSecundaria: inscripcion.posicionSecundaria,
+        equipo: inscripcion.equipo,
+        estado: inscripcion.estado,
         habilidades: invitado
           ? {
               velocidad: invitado.velocidad,

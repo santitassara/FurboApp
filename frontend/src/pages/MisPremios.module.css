@@ -1,0 +1,346 @@
+@reference "../styles/globals.css";
+
+.misPremios {
+  @apply mx-auto px-4 py-6 max-w-3xl;
+}
+
+.header {
+  @apply mb-6 flex items-center justify-between gap-4 flex-wrap;
+}
+
+.headerIzquierda {
+  @apply flex flex-col gap-1;
+}
+
+.titulo {
+  @apply text-display-md text-white;
+}
+
+.subtitulo {
+  @apply text-body-sm text-white/50;
+}
+
+.saldoContenedor {
+  @apply flex flex-col items-end gap-1 rounded-xl border border-white/10 bg-cancha-800/50 px-5 py-3 elev-1 motion-base;
+}
+
+.saldoEtiqueta {
+  @apply text-caption text-white/50;
+}
+
+.saldoValor {
+  @apply text-display-sm font-semibold text-pasto-500;
+}
+
+.saldoUnidad {
+  @apply text-body text-white/40;
+}
+
+.pestañas {
+  @apply flex gap-2 mb-6 border-b border-white/10;
+}
+
+.pestaña {
+  @apply px-4 py-2 rounded-t-xl text-body font-medium text-white/60 hover:text-white hover:bg-white/5 transition-all border-b-2 border-transparent;
+}
+
+.pestañaActiva {
+  @apply text-white border-pasto-500 bg-white/10;
+}
+
+.seccion {
+  @apply space-y-4;
+}
+
+.seccionTitulo {
+  @apply text-title font-semibold text-white mb-1;
+}
+
+.seccionSubtitulo {
+  @apply text-caption text-white/50 mb-4;
+}
+
+.categoriasCargando {
+  @apply flex items-center justify-center gap-2 text-caption text-white/50 py-8;
+}
+
+.spinnerChico {
+  @apply w-4 h-4 border-2 border-white/10 border-t-pasto-500 rounded-full;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sinCategorias {
+  @apply text-center text-body text-white/50 py-8;
+}
+
+.listaCategorias {
+  @apply flex flex-col gap-2;
+}
+
+.categoriaItem {
+  @apply w-full;
+}
+
+.categoriaBoton {
+  @apply flex items-center justify-between gap-3 w-full px-3 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed motion-base;
+}
+
+.categoriaIcono {
+  @apply text-xl shrink-0;
+}
+
+.categoriaNombre {
+  @apply text-body font-medium text-white flex-1 text-left;
+}
+
+.categoriaFlecha {
+  @apply text-white/40 shrink-0;
+}
+
+.sinPremios {
+  @apply flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/10 bg-cancha-800/50 p-8 text-center;
+}
+
+.sinPremiosIcono {
+  @apply text-5xl;
+}
+
+.sinPremiosTitulo {
+  @apply text-title text-white;
+}
+
+.sinPremiosDescripcion {
+  @apply text-body text-white/60 max-w-xs;
+}
+
+.listaPremios {
+  @apply flex flex-col gap-4;
+}
+
+.premioCard {
+  @apply rounded-2xl border border-white/10 bg-cancha-800/30 p-4 elev-1 motion-base;
+}
+
+.premioUsado {
+  @apply opacity-70 border-white/5;
+}
+
+.premioExpirado {
+  @apply opacity-50 border-sancion/30 bg-sancion/10;
+}
+
+.premioInfo {
+  @apply flex-1 min-w-0;
+}
+
+.premioHeader {
+  @apply flex items-start justify-between gap-3 mb-2;
+}
+
+.premioNombre {
+  @apply text-body-lg font-semibold text-white;
+}
+
+.estadoBadge {
+  @apply px-2 py-1 rounded-full text-caption font-medium;
+}
+
+.estadoDisponible {
+  @apply bg-emerald-500/20 text-emerald-400 border border-emerald-500/30;
+}
+
+.estadoUsado {
+  @apply bg-sky-500/20 text-sky-400 border border-sky-500/30;
+}
+
+.estadoExpirado {
+  @apply bg-sancion/20 text-sancion border border-sancion/30;
+}
+
+.premioDescripcion {
+  @apply text-body text-white/70 mb-3;
+}
+
+.premioMeta {
+  @apply flex flex-wrap gap-2;
+}
+
+.metaItem {
+  @apply px-2 py-1 rounded text-caption bg-white/5 text-white/70;
+}
+
+.colorSwatch {
+  @apply w-5 h-5 rounded border border-white/20 shrink-0;
+}
+
+.premioAccion {
+  @apply flex items-center gap-2 shrink-0;
+}
+
+.botonUsar {
+  @apply px-4 py-2;
+}
+
+.yaUsado {
+  @apply text-caption text-emerald-400;
+}
+
+.expirado {
+  @apply text-caption text-sancion;
+}
+
+.contenedorCargando {
+  @apply flex flex-col items-center justify-center gap-4 py-12;
+}
+
+.spinner {
+  @apply w-8 h-8 border-3 border-white/10 border-t-pasto-500 rounded-full;
+  animation: spin 1s linear infinite;
+}
+
+.cargandoTexto {
+  @apply text-body text-white/60;
+}
+
+.contenedorError {
+  @apply flex flex-col items-center justify-center gap-4 py-12 text-center;
+}
+
+.mensajeError {
+  @apply text-body text-sancion;
+}
+
+.listaEfectos {
+  @apply flex flex-col gap-4;
+}
+
+.efectoCard {
+  @apply rounded-2xl border border-white/10 bg-cancha-800/30 p-4 elev-1 motion-base;
+}
+
+.efectoHeader {
+  @apply flex items-start gap-3;
+}
+
+.efectoIcono {
+  @apply text-2xl shrink-0;
+}
+
+.efectoInfo {
+  @apply flex-1 min-w-0;
+}
+
+.efectoNombre {
+  @apply text-body font-semibold text-white;
+}
+
+.efectoExpira {
+  @apply text-caption text-white/60 mt-1;
+}
+
+.efectoMeta {
+  @apply flex flex-wrap gap-2 mt-3;
+}
+
+.efectoPartido {
+  @apply text-caption text-amber-400 mt-3;
+}
+
+@media (max-width: 480px) {
+  .header {
+    @apply flex-col items-start gap-3;
+  }
+
+  .saldoContenedor {
+    @apply w-full items-start;
+  }
+
+  .pestañas {
+    @apply overflow-x-auto pb-2 -mx-4 px-4;
+  }
+
+  .pestaña {
+    @apply whitespace-nowrap;
+  }
+}
+
+/* Match Selector Modal */
+.modalOverlay {
+  @apply fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modalPartido {
+  @apply w-full max-w-md bg-cancha-900 rounded-2xl border border-white/10 elev-3 overflow-hidden;
+  animation: slideUp 0.2s ease-out;
+}
+
+.modalHeader {
+  @apply flex items-center justify-between px-4 py-3 border-b border-white/10;
+}
+
+.modalTitulo {
+  @apply text-title font-semibold text-white;
+}
+
+.modalCerrar {
+  @apply p-1 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors;
+}
+
+.modalContenido {
+  @apply p-4 max-h-[60vh] overflow-y-auto;
+}
+
+.listaPartidos {
+  @apply flex flex-col gap-2;
+}
+
+.partidoItem {
+  @apply w-full;
+}
+
+.partidoBoton {
+  @apply w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed motion-base;
+}
+
+.partidoInfo {
+  @apply flex flex-col gap-1;
+}
+
+.partidoFecha {
+  @apply text-body font-medium text-white;
+}
+
+.partidoCupo {
+  @apply text-caption text-white/60;
+}
+
+.partidoSeleccionar {
+  @apply text-caption font-medium text-pasto-500 shrink-0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

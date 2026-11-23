@@ -5,6 +5,7 @@ const usuariosService = require('./usuariosService');
 const invitadosService = require('./invitadosService');
 const notificacionesService = require('./notificacionesService');
 const whatsappNotificacionesService = require('./whatsappNotificacionesService');
+const premiosService = require('./premiosService');
 
 function crearError(mensaje, status) {
   const error = new Error(mensaje);
@@ -379,7 +380,7 @@ async function eliminarPropuestaAdmin(partidoId, grupoId, propuestaId) {
 function elegirGanadora(partidoId) {
   const filas = db
     .prepare(
-      `SELECT p.id, p.numero, COUNT(v.id) AS votos
+      `SELECT p.id, p.numero, COALESCE(SUM(v.peso), 0) AS votos
        FROM FormacionesPropuestas p
        LEFT JOIN VotosFormacion v ON v.propuestaId = p.id
        WHERE p.partidoId = ?
@@ -426,11 +427,24 @@ async function votar(partidoId, grupoId, propuestaId, usuarioId) {
   const esTitular = listarTitularesConAsiento(partidoId).some((titular) => titular.usuarioId === usuarioId);
   if (!esTitular) throw crearError('Solo los titulares pueden votar', 403);
 
+  // Check for voto_doble_formacion effect
+  const efectoVotoDoble = db.prepare(`
+    SELECT id FROM EfectosActivos
+    WHERE usuarioId = ? AND partidoId = ? AND tipo = 'voto_doble_formacion' AND expiraEn > ?
+  `).get(usuarioId, partidoId, new Date().toISOString());
+
+  const peso = efectoVotoDoble ? 2 : 1;
+
   db.prepare(
-    `INSERT INTO VotosFormacion (id, partidoId, usuarioId, propuestaId, fecha)
-     VALUES (@id, @partidoId, @usuarioId, @propuestaId, @fecha)
-     ON CONFLICT(partidoId, usuarioId) DO UPDATE SET propuestaId = excluded.propuestaId, fecha = excluded.fecha`
-  ).run({ id: crypto.randomUUID(), partidoId, usuarioId, propuestaId, fecha: new Date().toISOString() });
+    `INSERT INTO VotosFormacion (id, partidoId, usuarioId, propuestaId, fecha, peso)
+     VALUES (@id, @partidoId, @usuarioId, @propuestaId, @fecha, @peso)
+     ON CONFLICT(partidoId, usuarioId) DO UPDATE SET propuestaId = excluded.propuestaId, fecha = excluded.fecha, peso = excluded.peso`
+  ).run({ id: crypto.randomUUID(), partidoId, usuarioId, propuestaId, fecha: new Date().toISOString(), peso });
+
+  // If user had voto_doble_formacion effect, expire it immediately (single-use)
+  if (efectoVotoDoble) {
+    await premiosService.expirarEfectoInmediato(efectoVotoDoble.id);
+  }
 
   const totalVotos = db.prepare('SELECT COUNT(*) AS total FROM VotosFormacion WHERE partidoId = ?').get(partidoId).total;
   if (totalVotos >= contarTitularesActivos(partidoId)) {

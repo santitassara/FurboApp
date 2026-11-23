@@ -4,6 +4,7 @@ import api from '../services/api';
 import { useGrupo } from '../context/GrupoContext';
 import { rutaGrupo } from '../utils/rutasGrupo';
 import styles from './Jugadores.module.css';
+import NombreConEfectos from '../components/NombreConEfectos';
 
 const OPCIONES_ORDEN = [
   { valor: 'alfabetico', etiqueta: 'Orden alfabético' },
@@ -105,7 +106,7 @@ export default function Jugadores() {
         <div className={styles.lista}>
           {usuariosFiltrados.map((usuario) => (
             <Link key={usuario.uid} to={`/jugadores/${usuario.uid}`} className={styles.itemJugador}>
-              <span className={styles.nombreJugador}>{usuario.nombre}</span>
+              <span className={styles.nombreJugador}><NombreConEfectos nombre={usuario.nombre} usuarioId={usuario.uid} grupoId={grupoActivo.id} /></span>
               <span className={styles.infoJugador}>
                 {usuario.edad != null ? `${usuario.edad} años` : 'Edad no informada'}
                 {' · '}

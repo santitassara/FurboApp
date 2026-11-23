@@ -16,6 +16,7 @@ import AdminUsuarios from './pages/AdminUsuarios';
 import MiEquipo from './pages/MiEquipo';
 import Apostar from './pages/Apostar';
 import MisApuestas from './pages/MisApuestas';
+import MisPremios from './pages/MisPremios';
 import RutaPrivada from './components/RutaPrivada';
 import RutaAdmin from './components/RutaAdmin';
 import RutaSuperAdmin from './components/RutaSuperAdmin';
@@ -129,6 +130,16 @@ export default function App() {
           <RutaPrivada>
             <Layout>
               <MisApuestas />
+            </Layout>
+          </RutaPrivada>
+        }
+      />
+      <Route
+        path="/mis-premios"
+        element={
+          <RutaPrivada>
+            <Layout>
+              <MisPremios />
             </Layout>
           </RutaPrivada>
         }

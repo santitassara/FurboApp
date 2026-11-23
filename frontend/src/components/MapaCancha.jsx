@@ -18,6 +18,7 @@ import { useAuth } from '../context/AuthContext';
 import { useGrupo } from '../context/GrupoContext';
 import { useJugadorDestacado } from '../context/JugadorDestacadoContext';
 import { rutaGrupo } from '../utils/rutasGrupo';
+import NombreConEfectos from './NombreConEfectos';
 
 function claveUbicacion(equipo, linea, ordenLinea) {
   return `${equipo}-${linea}-${ordenLinea}`;
@@ -56,12 +57,12 @@ function obtenerIniciales(nombre) {
   return (palabras[0][0] + palabras[palabras.length - 1][0]).toUpperCase();
 }
 
-function Jugador({ usuarioId, invitadoId, nombre, linea, draggable }) {
+function Jugador({ usuarioId, invitadoId, nombre, linea, draggable, grupoId }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: usuarioId || invitadoId,
     disabled: !draggable,
   });
-  const { setJugadorDestacado } = useJugadorDestacado();
+  const { setJugadorDestacado, mostrarJugadorTooltip, ocultarJugadorTooltip } = useJugadorDestacado();
   // Identidad del asiento: un jugador real o un invitado, nunca ambos.
   const clave = usuarioId || invitadoId;
   const estilo = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 10 } : undefined;
@@ -71,13 +72,13 @@ function Jugador({ usuarioId, invitadoId, nombre, linea, draggable }) {
       ref={setNodeRef}
       style={estilo}
       {...(draggable ? { ...listeners, ...attributes } : {})}
-      onMouseEnter={() => !isDragging && setJugadorDestacado(clave)}
-      onMouseLeave={() => setJugadorDestacado(null)}
+      onMouseEnter={(e) => !isDragging && mostrarJugadorTooltip(clave, nombre, e.clientX, e.clientY, usuarioId, grupoId)}
+      onMouseLeave={ocultarJugadorTooltip}
       onClick={() => setJugadorDestacado(clave)}
       className={clsx(styles.jugador, 'group', draggable && styles.jugadorDraggable, isDragging && styles.jugadorDragging)}
     >
       <span className={styles.jugadorTooltip}>
-        {nombre}
+        <NombreConEfectos nombre={nombre} usuarioId={usuarioId} grupoId={grupoId} showBadge={false} showEmojiPersonalizado={false} showTitulo={false} />
       </span>
       <div className={styles.jugadorAvatar}>
         {obtenerIniciales(nombre)}
@@ -174,7 +175,7 @@ function coordenadasDeLinea({ equipo, esPlantel, linea, cupo }) {
   }));
 }
 
-function Asiento({ equipo, linea, ordenLinea, jugador, draggable, estilo }) {
+function Asiento({ equipo, linea, ordenLinea, jugador, draggable, estilo, grupoId }) {
   const { setNodeRef, isOver } = useDroppable({
     id: claveUbicacion(equipo, linea, ordenLinea),
     disabled: !draggable,
@@ -193,13 +194,14 @@ function Asiento({ equipo, linea, ordenLinea, jugador, draggable, estilo }) {
           nombre={jugador.nombre}
           linea={linea}
           draggable={draggable}
+          grupoId={grupoId}
         />
       )}
     </div>
   );
 }
 
-function MitadCancha({ equipo, esPlantel, estructura, ubicaciones, draggable }) {
+function MitadCancha({ equipo, esPlantel, estructura, ubicaciones, draggable, grupoId }) {
   const columnas = [{ key: 'arquero', cantidad: 1 }, ...estructura];
   const hayArqueroUbicado = ubicaciones.some((u) => u.equipo === equipo && u.linea === 'arquero');
   const { izq, span } = espacioEquipo(equipo, esPlantel);
@@ -239,6 +241,7 @@ function MitadCancha({ equipo, esPlantel, estructura, ubicaciones, draggable }) 
           jugador={jugadorPorOrden.get(ordenLinea) || null}
           draggable={draggable}
           estilo={{ left: `${fx * 100}%`, top: `${fy * 100}%` }}
+          grupoId={grupoId}
         />
       );
     });
@@ -430,6 +433,7 @@ export default function MapaCancha({
   partidoId,
   formacion,
   esAdmin,
+  puedeEditarFormacionCompleta,
   onGuardado,
   propuestasInfo,
   previewPropuesta,
@@ -529,8 +533,8 @@ export default function MapaCancha({
     return listarFormaciones(cupoEquipo(equipo)).find((f) => f.codigo === codigoVisual)?.lineas || [];
   }
 
-  const lineasVisualA = votacionCerrada && !modoPreview ? lineasVisual('A', formacionVisualA) : null;
-  const lineasVisualB = votacionCerrada && !modoPreview ? lineasVisual('B', formacionVisualB) : null;
+  const lineasVisualA = votacionCerrada && !modoPreview && !puedeEditarFormacionCompleta ? lineasVisual('A', formacionVisualA) : null;
+  const lineasVisualB = votacionCerrada && !modoPreview && !puedeEditarFormacionCompleta ? lineasVisual('B', formacionVisualB) : null;
   const reflowA = lineasVisualA ? reflowVisual(jugadoresDeCampoOrdenados('A'), lineasVisualA) : null;
   const reflowB = lineasVisualB ? reflowVisual(jugadoresDeCampoOrdenados('B'), lineasVisualB) : null;
 
@@ -552,7 +556,7 @@ export default function MapaCancha({
   // reparto parejo sintético como preview/borrador para que el tablero no quede sin asientos.
   const estructuraA = modoPreview
     ? estructuraDesdeUbicaciones(ubicacionesMostradas, 'A')
-    : votacionCerrada
+    : (votacionCerrada && !puedeEditarFormacionCompleta)
       ? lineasVisualA
         ? ordenarLineas(lineasVisualA)
         : estructuraDesdeUbicaciones(ubicaciones, 'A')
@@ -565,7 +569,7 @@ export default function MapaCancha({
           : ordenarLineas(listarFormaciones(cupoEquipo('A')).find((f) => f.codigo === seleccionA.codigo)?.lineas || []);
   const estructuraB = modoPreview
     ? estructuraDesdeUbicaciones(ubicacionesMostradas, 'B')
-    : votacionCerrada
+    : (votacionCerrada && !puedeEditarFormacionCompleta)
       ? lineasVisualB
         ? ordenarLineas(lineasVisualB)
         : estructuraDesdeUbicaciones(ubicaciones, 'B')
@@ -802,7 +806,7 @@ export default function MapaCancha({
         </div>
       )}
 
-      {esAdmin && !modoPreview && !votacionCerrada && (
+      {esAdmin && !modoPreview && !votacionCerrada || puedeEditarFormacionCompleta && !modoPreview && (
         <div className={styles.gridSelectores}>
           {esPlantel ? (
             <SelectorFormacion
@@ -872,7 +876,8 @@ export default function MapaCancha({
             esPlantel
             estructura={estructuraA}
             ubicaciones={ubicacionesMostradas}
-            draggable={esAdmin && !modoPreview && !votacionCerrada}
+            draggable={esAdmin && !modoPreview && !votacionCerrada || puedeEditarFormacionCompleta}
+            grupoId={grupoActivo.id}
           />
         ) : (
           <>
@@ -881,7 +886,8 @@ export default function MapaCancha({
               esPlantel={false}
               estructura={estructuraA}
               ubicaciones={ubicacionesMostradas}
-              draggable={esAdmin && !modoPreview && !votacionCerrada}
+              draggable={esAdmin && !modoPreview && !votacionCerrada || puedeEditarFormacionCompleta}
+              grupoId={grupoActivo.id}
             />
             <div className={styles.divisor} />
             <MitadCancha
@@ -889,13 +895,14 @@ export default function MapaCancha({
               esPlantel={false}
               estructura={estructuraB}
               ubicaciones={ubicacionesMostradas}
-              draggable={esAdmin && !modoPreview && !votacionCerrada}
+              draggable={esAdmin && !modoPreview && !votacionCerrada || puedeEditarFormacionCompleta}
+              grupoId={grupoActivo.id}
             />
           </>
         )}
       </div>
 
-      {esAdmin && !modoPreview && !votacionCerrada && sinUbicar.length > 0 && (
+      {(esAdmin && !modoPreview && !votacionCerrada || puedeEditarFormacionCompleta && !modoPreview) && sinUbicar.length > 0 && (
         <div className={styles.bloque}>
           <p className={styles.seccionLabel}>Sin ubicar</p>
           <div className={styles.listaSinUbicar}>
@@ -906,13 +913,14 @@ export default function MapaCancha({
                 invitadoId={jugador.invitadoId}
                 nombre={jugador.nombre}
                 draggable
+                grupoId={grupoActivo.id}
               />
             ))}
           </div>
         </div>
       )}
 
-      {esAdmin && !modoPreview && !votacionCerrada && suplentes.length > 0 && (
+      {(esAdmin && !modoPreview && !votacionCerrada || puedeEditarFormacionCompleta && !modoPreview) && suplentes.length > 0 && (
         <div className={styles.bloque}>
           <p className={styles.seccionLabel}>Suplentes</p>
           <ul className={styles.listaSuplentes}>
@@ -921,7 +929,7 @@ export default function MapaCancha({
                 key={suplente.usuarioId || suplente.invitadoId}
                 className={styles.itemSuplente}
               >
-                <span className={styles.nombreSuplente}>{suplente.nombre}</span>
+                <span className={styles.nombreSuplente}><NombreConEfectos nombre={suplente.nombre} usuarioId={suplente.usuarioId} grupoId={grupoActivo.id} showBadge={false} showEmojiPersonalizado={false} showTitulo={false} /></span>
                 {!suplente.esInvitado && (
                   <Boton
                     variante="ghost"
@@ -938,10 +946,10 @@ export default function MapaCancha({
         </div>
       )}
 
-      {esAdmin && !modoPreview && (
+      {esAdmin && !modoPreview && !votacionCerrada || puedeEditarFormacionCompleta && !modoPreview && (
         <>
           {error && <p className={styles.mensajeError}>{error}</p>}
-          {!votacionCerrada && (
+          {(esAdmin && !votacionCerrada || puedeEditarFormacionCompleta) && (
             <Boton
               variante="ghost"
               className={styles.botonMt4Full}
@@ -959,11 +967,11 @@ export default function MapaCancha({
             variante="primario"
             className={styles.botonMt2Full}
             onClick={guardar}
-            disabled={guardando || seleccionInvalida || votacionCerrada}
+            disabled={guardando || seleccionInvalida || (votacionCerrada && !puedeEditarFormacionCompleta)}
           >
             {guardando ? 'Guardando…' : 'Guardar formación'}
           </Boton>
-          {!esPlantel && !votacionCerrada && (
+          {!esPlantel && !votacionCerrada && esAdmin && (
             <Boton
               variante="ghost"
               className={styles.botonMt2Full}
@@ -978,7 +986,8 @@ export default function MapaCancha({
     </div>
   );
 
-  if (!esAdmin || modoPreview || votacionCerrada) return contenido;
+  const puedeEditar = (esAdmin && !votacionCerrada) || puedeEditarFormacionCompleta;
+  if (!puedeEditar || modoPreview) return contenido;
 
   return <DndContext onDragEnd={manejarDragEnd}>{contenido}</DndContext>;
 }

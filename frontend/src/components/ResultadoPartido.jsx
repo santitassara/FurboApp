@@ -4,6 +4,7 @@ import { FaFutbol } from 'react-icons/fa';
 import { formatearFechaPartido } from '../utils/fecha';
 import ModalVerGol from './ModalVerGol';
 import styles from './ResultadoPartido.module.css';
+import NombreConEfectos from './NombreConEfectos';
 
 function IconoEscudo({ variante }) {
   if (variante === 'B') {
@@ -129,10 +130,10 @@ export default function ResultadoPartido({ partido, resultado, modo = 'convocato
                         <span className={styles.textoBold}>
                           {gol.minuto}&apos;{gol.segundo ? `"${gol.segundo.toString().padStart(2, '0')}"` : `''`}
                         </span>{' '}
-                        <span className={styles.textoBold}>{gol.nombre}</span>
+                        <span className={styles.textoBold}><NombreConEfectos nombre={gol.nombre} usuarioId={gol.usuarioId} grupoId={partido.grupoId} /></span>
                         {gol.enContra && <span className={styles.textoTenue}> (PP)</span>}
                         {gol.asistenciaNombre && (
-                          <span className={styles.asistenciaTexto}>asistencia de {gol.asistenciaNombre}</span>
+                          <span className={styles.asistenciaTexto}>asistencia de <NombreConEfectos nombre={gol.asistenciaNombre} usuarioId={gol.asistenciaUsuarioId} grupoId={partido.grupoId} /></span>
                         )}
                         {partido.beelupUrl && (
                           <button
@@ -158,7 +159,7 @@ export default function ResultadoPartido({ partido, resultado, modo = 'convocato
           {jugadorDestacado.jugadores.map((jugador) => (
             <span key={jugador.usuarioId || jugador.invitadoId} className={styles.mvpItem}>
               <IconoTrofeo />
-              MVP: <span className={styles.mvpNombre}>{jugador.nombre}</span>
+              MVP: <span className={styles.mvpNombre}><NombreConEfectos nombre={jugador.nombre} usuarioId={jugador.usuarioId} grupoId={partido.grupoId} showTitulo /></span>
             </span>
           ))}
         </div>
@@ -171,7 +172,7 @@ export default function ResultadoPartido({ partido, resultado, modo = 'convocato
           <ul className={styles.listaVertical}>
             {rendimientos.map((rendimiento) => (
               <li key={rendimiento.usuarioId || rendimiento.invitadoId} className={styles.rendimientoItem}>
-                <span className={styles.rendimientoNombre}>{rendimiento.nombre}</span>
+                <span className={styles.rendimientoNombre}><NombreConEfectos nombre={rendimiento.nombre} usuarioId={rendimiento.usuarioId} grupoId={partido.grupoId} /></span>
                 {rendimiento.votos === null ? (
                   // Usuario no administrador: no se muestra la cantidad de votos
                   // (ni abierta ni cerrada la votacion).
@@ -203,7 +204,7 @@ export default function ResultadoPartido({ partido, resultado, modo = 'convocato
             {sanciones.map((sancion, indice) => (
               <li key={indice} className={styles.sancionItem}>
                 <IconoTarjeta />
-                <span className={styles.textoBold}>{sancion.nombre}</span>
+                <span className={styles.textoBold}><NombreConEfectos nombre={sancion.nombre} usuarioId={sancion.usuarioId} grupoId={partido.grupoId} /></span>
                 <span className={styles.sancionMotivo}>— {sancion.motivo}</span>
               </li>
             ))}

@@ -42,8 +42,18 @@ export async function obtenerEfectosActivos(grupoId) {
   return data;
 }
 
+export async function obtenerEfectosActivosUsuario(grupoId, uid) {
+  const { data } = await api.get(rutaGrupo(grupoId, `/premios/efectos-activos/${uid}`));
+  return data;
+}
+
 export async function obtenerEfectosActivosPartido(grupoId, partidoId) {
   const { data } = await api.get(rutaGrupo(grupoId, `/premios/efectos-partido/${partidoId}`));
+  return data;
+}
+
+export async function actualizarEfectoMetadata(grupoId, efectoId, metadata) {
+  const { data } = await api.post(rutaGrupo(grupoId, `/premios/efectos/${efectoId}/metadata`), metadata);
   return data;
 }
 
