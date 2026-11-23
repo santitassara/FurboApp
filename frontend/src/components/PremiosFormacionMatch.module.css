@@ -1,0 +1,60 @@
+@reference "../styles/globals.css";
+
+.contenedor {
+  @apply rounded-2xl border border-white/10 bg-cancha-800/30 p-4 elev-1 motion-base;
+}
+
+.titulo {
+  @apply text-body font-semibold text-white mb-1;
+}
+
+.subtitulo {
+  @apply text-caption text-white/50 mb-3;
+}
+
+.lista {
+  @apply flex flex-col gap-2;
+}
+
+.premioCard {
+  @apply flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-white/5 border border-white/10;
+}
+
+.premioInfo {
+  @apply flex items-center gap-3 flex-1 min-w-0;
+}
+
+.premioIcono {
+  @apply text-xl shrink-0;
+}
+
+.premioTexto {
+  @apply flex flex-col min-w-0;
+}
+
+.premioNombre {
+  @apply text-body text-white;
+}
+
+.premioDescripcion {
+  @apply text-caption text-white/60;
+}
+
+.botonUsar {
+  @apply shrink-0;
+}
+
+.cargando {
+  @apply flex items-center justify-center py-4;
+}
+
+.spinner {
+  @apply w-6 h-6 border-2 border-white/10 border-t-pasto-500 rounded-full;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
