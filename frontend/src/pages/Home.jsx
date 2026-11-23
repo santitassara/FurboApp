@@ -20,6 +20,8 @@ import MvpUltimaFecha from '../components/MvpUltimaFecha';
 import LideresDelMes from '../components/LideresDelMes';
 import InfoGeneralGrupo from '../components/InfoGeneralGrupo';
 import ListaInvitadosGrupo from '../components/ListaInvitadosGrupo';
+import NombreConEfectos from '../components/NombreConEfectos';
+import EfectosFormacionActivos from '../components/EfectosFormacionActivos';
 
 export default function Home() {
   const { perfil, actualizarPosicionesPerfil } = useAuth();
@@ -40,6 +42,7 @@ export default function Home() {
   const [partidoParaAnotarse, setPartidoParaAnotarse] = useState(null);
   const [ultimoJugado, setUltimoJugado] = useState(null);
   const [ultimoJugadoYaVoto, setUltimoJugadoYaVoto] = useState(false);
+  const [partidosConEdicionCompleta, setPartidosConEdicionCompleta] = useState(new Set());
 
   // Detectar si hay un partido jugado con votación de performance abierta
   const partidoConVotoAbierto = useMemo(() => {
@@ -221,6 +224,7 @@ export default function Home() {
     if (!formacionesPorPartido[partido.id]) return null;
     const ocupados = partido.ocupados || { titulares: 0, suplentes: 0 };
     const esperandoTitulares = conOverlayEspera && ocupados.titulares < partido.cupoTitulares;
+    const puedeEditarFormacionCompleta = partidosConEdicionCompleta.has(partido.id);
     return (
       <div id={`mapa-cancha-${partido.id}`} className={styles.mapaWrapper}>
         <div className={clsx(esperandoTitulares && styles.bloqueado)}>
@@ -228,7 +232,29 @@ export default function Home() {
             partidoId={partido.id}
             formacion={formacionesPorPartido[partido.id]}
             esAdmin={grupoActivo?.rol === 'admin'}
-            onGuardado={(data) => setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }))}
+            puedeEditarFormacionCompleta={puedeEditarFormacionCompleta}
+            onGuardado={async (data) => {
+              setFormacionesPorPartido((anterior) => ({ ...anterior, [partido.id]: data }));
+              // If user had the armar_equipo_completo permission, expire the effect
+              if (puedeEditarFormacionCompleta) {
+                setPartidosConEdicionCompleta((anterior) => {
+                  const nueva = new Set(anterior);
+                  nueva.delete(partido.id);
+                  return nueva;
+                });
+                // Call backend to expire the effect (await to ensure it completes)
+                try {
+                  await api.post(rutaGrupo(grupoActivo.id, `/premios/efectos/armar-equipo-completo/expirar/${partido.id}`));
+                  // Refresh effects list so expired effect disappears
+                  cargarPartidos();
+                } catch (err) {
+                  console.error('Error expirando efecto armar_equipo_completo:', err);
+                  // Revert state on failure
+                  setPartidosConEdicionCompleta((anterior) => new Set(anterior).add(partido.id));
+                  alert('Error al finalizar el premio. Intente guardar nuevamente.');
+                }
+              }
+            }}
             propuestasInfo={propuestasPorPartido[partido.id]}
             previewPropuesta={previewPorPartido[partido.id] || null}
             previewEtiqueta={previewEtiquetaPorPartido[partido.id] || null}
@@ -261,7 +287,7 @@ export default function Home() {
       <header className={styles.header}>
         <div>
           <h1 className={styles.titulo}>Próximos partidos</h1>
-          <p className={styles.saludo}>Hola, {perfil?.nombre}</p>
+          <p className={styles.saludo}>Hola, <NombreConEfectos nombre={perfil?.nombre} usuarioId={perfil?.uid} grupoId={grupoActivo?.id} showTitulo /></p>
         </div>
         <div className={styles.headerActions}>
           {canInstall && (
@@ -342,6 +368,17 @@ export default function Home() {
 
                   <div className={clsx(formacionesPorPartido[partido.id] && styles.gridDosColumnas)}>
                     <div>
+                      {formacionesPorPartido[partido.id] && (
+                        <EfectosFormacionActivos
+                          partidoId={partido.id}
+                          onEjecutado={(efecto) => {
+                            if (efecto?.tipo === 'armar_equipo_completo') {
+                              setPartidosConEdicionCompleta((anterior) => new Set(anterior).add(partido.id));
+                            }
+                            cargarPartidos();
+                          }}
+                        />
+                      )}
                       <ListaConvocadosScroll
                         jugadores={inscripcionesPorPartido[partido.id] || []}
                         formacion={formacionesPorPartido[partido.id]}
@@ -387,18 +424,31 @@ export default function Home() {
                   className={clsx(formacionesPorPartido[partido.id] && styles.gridDosColumnas)}
                 >
                   {canchaInline(partido)}
-                  <TarjetaPartido
-                    partido={partido}
-                    inscripcionUsuario={inscripcionDelUsuario(partido.id)}
-                    estaSancionado={grupoActivo?.estaSancionado}
-                    procesando={partidoEnProceso === partido.id}
-                    onAnotarse={() => setPartidoParaAnotarse(partido.id)}
-                    onSolicitarBaja={() => solicitarBaja(partido)}
-                    jugadores={inscripcionesPorPartido[partido.id] || []}
-                    formacion={formacionesPorPartido[partido.id]}
-                    equiposDefinidos={Boolean(propuestasPorPartido[partido.id]?.votacionEquiposCerrada)}
-                    grupoId={grupoActivo.id}
-                  />
+                  <div>
+                    {formacionesPorPartido[partido.id] && (
+                      <EfectosFormacionActivos
+                        partidoId={partido.id}
+                        onEjecutado={(efecto) => {
+                          if (efecto?.tipo === 'armar_equipo_completo') {
+                            setPartidosConEdicionCompleta((anterior) => new Set(anterior).add(partido.id));
+                          }
+                          cargarPartidos();
+                        }}
+                      />
+                    )}
+                    <TarjetaPartido
+                      partido={partido}
+                      inscripcionUsuario={inscripcionDelUsuario(partido.id)}
+                      estaSancionado={grupoActivo?.estaSancionado}
+                      procesando={partidoEnProceso === partido.id}
+                      onAnotarse={() => setPartidoParaAnotarse(partido.id)}
+                      onSolicitarBaja={() => solicitarBaja(partido)}
+                      jugadores={inscripcionesPorPartido[partido.id] || []}
+                      formacion={formacionesPorPartido[partido.id]}
+                      equiposDefinidos={Boolean(propuestasPorPartido[partido.id]?.votacionEquiposCerrada)}
+                      grupoId={grupoActivo.id}
+                    />
+                  </div>
                 </div>
                 {propuestasPorPartido[partido.id]?.propuestas?.length > 0 && (
                   <EquiposPosibles
