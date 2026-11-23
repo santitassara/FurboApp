@@ -64,7 +64,7 @@ async function comprarPremio(usuarioId, premioId, grupoId, partidoId = null) {
   }
 
   // Validar restricciones según el premio
-  const metadata = JSON.parse(premio.metadata || '{}');
+  const metadata = premio.metadata || {};
 
   // Max 1 admin temporal por grupo
   if (premio.clave === 'admin_temporal_semana') {
@@ -79,14 +79,14 @@ async function comprarPremio(usuarioId, premioId, grupoId, partidoId = null) {
     }
   }
 
-  // Max 1 por partido para premios que lo requieren
+  // Max 1 por partido para premios que lo requieren (incluye usados)
   if (metadata.maxPorPartido && partidoId) {
     const yaCompro = db.prepare(`
       SELECT 1 FROM UsuarioPremios
-      WHERE usuarioId = ? AND premioId = ? AND partidoId = ? AND estado = 'disponible'
+      WHERE usuarioId = ? AND premioId = ? AND partidoId = ? AND estado IN ('disponible', 'usado')
     `).get(usuarioId, premioId, partidoId);
     if (yaCompro) {
-      const error = new Error('Ya compraste este premio para este partido');
+      const error = new Error('Ya compraste/usaste este premio para este partido');
       error.status = 400;
       throw error;
     }
@@ -106,7 +106,10 @@ async function comprarPremio(usuarioId, premioId, grupoId, partidoId = null) {
   }
 
   // Validar que se proporciona partidoId cuando es requerido
-  if (metadata.requierePartidoId && !partidoId) {
+  // Solo validamos en compra si el premio NO permite compra anticipada
+  // Los premios de formación se pueden comprar sin partido y usar después
+  const permiteCompraAnticipada = ['elegir_equipo', 'armar_equipo_completo', 'cambiar_jugador_equipo', 'bloquear_formacion'].includes(premio.clave);
+  if (metadata.requierePartidoId && !partidoId && !permiteCompraAnticipada) {
     const error = new Error('Este premio requiere un partido');
     error.status = 400;
     throw error;
@@ -127,6 +130,22 @@ async function comprarPremio(usuarioId, premioId, grupoId, partidoId = null) {
     `).get(usuarioId, premioId).count;
     if (freebetsCompradas >= metadata.maxPorUsuario) {
       const error = new Error(`Máximo ${metadata.maxPorUsuario} freebets por usuario`);
+      error.status = 400;
+      throw error;
+    }
+  }
+
+  // Validar badge único por usuario (por badgeId)
+  if (metadata.badgeId) {
+    const yaTieneBadge = db.prepare(`
+      SELECT up.id FROM UsuarioPremios up
+      JOIN PremiosCatalogo pc ON up.premioId = pc.id
+      WHERE up.usuarioId = ?
+        AND (pc.metadata LIKE ? OR pc.metadata LIKE ? OR pc.metadata LIKE ?)
+        AND up.estado IN ('disponible', 'usado')
+    `).get(usuarioId, `%"badgeId":"${metadata.badgeId}"%`, `%"badgeId": "${metadata.badgeId}"%`, `%"badgeId" : "${metadata.badgeId}"%`);
+    if (yaTieneBadge) {
+      const error = new Error(`Ya tienes la insignia "${metadata.badgeId}"`);
       error.status = 400;
       throw error;
     }
@@ -183,10 +202,19 @@ async function usarPremio(usuarioId, compraId, metadata = {}) {
   const premioMetadata = JSON.parse(compra.premioMetadata || '{}');
 
   // Validar contexto: partidoId debe coincidir si el premio lo requiere
-  if (premioMetadata.requierePartidoId && compra.partidoId && metadata.partidoId !== compra.partidoId) {
-    const error = new Error('Este premio solo se puede usar en el partido para el que se compró');
-    error.status = 400;
-    throw error;
+  if (premioMetadata.requierePartidoId) {
+    // Si se compró con partidoId, debe usarse en ese mismo partido
+    if (compra.partidoId && metadata.partidoId !== compra.partidoId) {
+      const error = new Error('Este premio solo se puede usar en el partido para el que se compró');
+      error.status = 400;
+      throw error;
+    }
+    // Si NO se compró con partidoId, se requiere especificar uno al usarlo
+    if (!compra.partidoId && !metadata.partidoId) {
+      const error = new Error('Este premio requiere un partido para ser activado');
+      error.status = 400;
+      throw error;
+    }
   }
 
   if (premioMetadata.requiereGrupoId && compra.grupoId && metadata.grupoId !== compra.grupoId) {
@@ -218,7 +246,7 @@ async function usarPremio(usuarioId, compraId, metadata = {}) {
           break;
         case 'voto_doble_formacion':
           tipoEfecto = 'voto_doble_formacion';
-          expiraEn = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 días o hasta fin de partido
+          expiraEn = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24hs - single use per match
           break;
         case 'ver_votos_formacion':
           tipoEfecto = 'ver_votos_formacion';
@@ -333,12 +361,49 @@ async function usarPremio(usuarioId, compraId, metadata = {}) {
       }
 
       if (tipoEfecto) {
-        const efectoId = crypto.randomUUID();
-        db.prepare(`
-          INSERT INTO EfectosActivos (id, usuarioId, grupoId, partidoId, tipo, expiraEn, metadata, creadoEn)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(efectoId, usuarioId, compra.grupoId, compra.partidoId, tipoEfecto, expiraEn, JSON.stringify(efectoMetadata), now);
-        efectoCreado = true;
+        // Efectos de un solo valor (reutilizables): color_nombre, emoji_personalizado, fondo_carta, titulo_personalizado
+        // Deben actualizar el existente en lugar de crear uno nuevo
+        const efectosReutilizables = ['color_nombre', 'emoji_personalizado', 'fondo_carta', 'titulo_personalizado'];
+        const esReutilizable = efectosReutilizables.includes(tipoEfecto);
+
+        let efectoId;
+        if (esReutilizable && compra.grupoId) {
+          // Buscar efecto existente del mismo tipo para este usuario en este grupo
+          const efectoExistente = db.prepare(`
+            SELECT id FROM EfectosActivos
+            WHERE usuarioId = ? AND grupoId = ? AND tipo = ? AND expiraEn > ?
+          `).get(usuarioId, compra.grupoId, tipoEfecto, now);
+
+          if (efectoExistente) {
+            // Actualizar efecto existente
+            db.prepare(`
+              UPDATE EfectosActivos
+              SET metadata = ?, creadoEn = ?
+              WHERE id = ?
+            `).run(JSON.stringify(efectoMetadata), now, efectoExistente.id);
+            efectoId = efectoExistente.id;
+            efectoCreado = true;
+          // Usar partidoId de la compra si existe, sino del metadata (compra anticipada)
+          const partidoIdEfecto = compra.partidoId || metadata.partidoId;
+          } else {
+            // Crear nuevo efecto
+            efectoId = crypto.randomUUID();
+            db.prepare(`
+              INSERT INTO EfectosActivos (id, usuarioId, grupoId, partidoId, tipo, expiraEn, metadata, creadoEn)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(efectoId, usuarioId, compra.grupoId, partidoIdEfecto, tipoEfecto, expiraEn, JSON.stringify(efectoMetadata), now);
+            efectoCreado = true;
+          }
+        } else {
+          // Efectos normales (badges, consumibles, etc.) - crear nuevo
+          efectoId = crypto.randomUUID();
+          const partidoIdEfecto = compra.partidoId || metadata.partidoId;
+          db.prepare(`
+            INSERT INTO EfectosActivos (id, usuarioId, grupoId, partidoId, tipo, expiraEn, metadata, creadoEn)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `).run(efectoId, usuarioId, compra.grupoId, partidoIdEfecto, tipoEfecto, expiraEn, JSON.stringify(efectoMetadata), now);
+          efectoCreado = true;
+        }
       }
     }
   });
@@ -365,20 +430,101 @@ async function obtenerMisPremios(usuarioId, grupoId) {
 
 async function obtenerEfectosActivos(usuarioId, grupoId) {
   const now = new Date().toISOString();
-  return db.prepare(`
+  const rows = db.prepare(`
     SELECT * FROM EfectosActivos
     WHERE usuarioId = ? AND (grupoId = ? OR grupoId IS NULL) AND expiraEn > ?
     ORDER BY expiraEn ASC
   `).all(usuarioId, grupoId, now);
+
+  // Para efectos de cambiar_jugador_equipo, enriquecer con nombres de jugadores
+  const efectos = rows.map(row => ({
+    ...row,
+    metadata: row.metadata ? JSON.parse(row.metadata) : null,
+  }));
+
+  for (const efecto of efectos) {
+    if (efecto.tipo === 'cambiar_jugador_equipo' && efecto.metadata) {
+      const metadata = efecto.metadata;
+
+      // Buscar nombre del jugador a mover
+      if (metadata.jugadorId) {
+        const usuario = db.prepare('SELECT nombre FROM Usuarios WHERE uid = ?').get(metadata.jugadorId);
+        if (usuario) {
+          metadata.jugadorNombre = usuario.nombre;
+        } else {
+          const invitado = db.prepare('SELECT nombre FROM Invitados WHERE id = ? AND grupoId = ?').get(metadata.jugadorId, grupoId);
+          if (invitado) {
+            metadata.jugadorNombre = invitado.nombre;
+          }
+        }
+      }
+
+      // Buscar nombre del jugador destino
+      if (metadata.jugadorDestinoId) {
+        const usuario = db.prepare('SELECT nombre FROM Usuarios WHERE uid = ?').get(metadata.jugadorDestinoId);
+        if (usuario) {
+          metadata.jugadorDestinoNombre = usuario.nombre;
+        } else {
+          const invitado = db.prepare('SELECT nombre FROM Invitados WHERE id = ? AND grupoId = ?').get(metadata.jugadorDestinoId, grupoId);
+          if (invitado) {
+            metadata.jugadorDestinoNombre = invitado.nombre;
+          }
+        }
+      }
+    }
+  }
+
+  return efectos;
 }
 
 async function obtenerEfectosActivosPartido(usuarioId, partidoId) {
   const now = new Date().toISOString();
-  return db.prepare(`
+  const rows = db.prepare(`
     SELECT * FROM EfectosActivos
     WHERE usuarioId = ? AND (partidoId = ? OR partidoId IS NULL) AND expiraEn > ?
     ORDER BY expiraEn ASC
   `).all(usuarioId, partidoId, now);
+
+  // Para efectos de cambiar_jugador_equipo, enriquecer con nombres de jugadores
+  const efectos = rows.map(row => ({
+    ...row,
+    metadata: row.metadata ? JSON.parse(row.metadata) : null,
+  }));
+
+  for (const efecto of efectos) {
+    if (efecto.tipo === 'cambiar_jugador_equipo' && efecto.metadata) {
+      const metadata = efecto.metadata;
+      const grupoId = efecto.grupoId;
+
+      // Buscar nombre del jugador a mover
+      if (metadata.jugadorId) {
+        const usuario = db.prepare('SELECT nombre FROM Usuarios WHERE uid = ?').get(metadata.jugadorId);
+        if (usuario) {
+          metadata.jugadorNombre = usuario.nombre;
+        } else if (grupoId) {
+          const invitado = db.prepare('SELECT nombre FROM Invitados WHERE id = ? AND grupoId = ?').get(metadata.jugadorId, grupoId);
+          if (invitado) {
+            metadata.jugadorNombre = invitado.nombre;
+          }
+        }
+      }
+
+      // Buscar nombre del jugador destino
+      if (metadata.jugadorDestinoId) {
+        const usuario = db.prepare('SELECT nombre FROM Usuarios WHERE uid = ?').get(metadata.jugadorDestinoId);
+        if (usuario) {
+          metadata.jugadorDestinoNombre = usuario.nombre;
+        } else if (grupoId) {
+          const invitado = db.prepare('SELECT nombre FROM Invitados WHERE id = ? AND grupoId = ?').get(metadata.jugadorDestinoId, grupoId);
+          if (invitado) {
+            metadata.jugadorDestinoNombre = invitado.nombre;
+          }
+        }
+      }
+    }
+  }
+
+  return efectos;
 }
 
 async function limpiarEfectosExpirados() {
@@ -402,6 +548,159 @@ async function limpiarEfectosExpirados() {
   `).run(now);
 }
 
+async function actualizarEfectoMetadata(usuarioId, efectoId, metadata) {
+  // Primero obtener el efecto para conocer su tipo y partidoId
+  const efecto = db.prepare(`
+    SELECT * FROM EfectosActivos
+    WHERE id = ? AND usuarioId = ?
+  `).get(efectoId, usuarioId);
+
+  if (!efecto) {
+    const error = new Error('Efecto no encontrado');
+    error.status = 404;
+    throw error;
+  }
+
+  // Actualizar metadata
+  const newMetadata = { ...JSON.parse(efecto.metadata || '{}'), ...metadata };
+  const result = db.prepare(`
+    UPDATE EfectosActivos
+    SET metadata = ?
+    WHERE id = ? AND usuarioId = ?
+  `).run(JSON.stringify(newMetadata), efectoId, usuarioId);
+
+  if (result.changes === 0) {
+    const error = new Error('Efecto no encontrado');
+    error.status = 404;
+    throw error;
+  }
+
+  // Ejecutar el efecto si es un efecto de formación que requiere acción inmediata
+  if (efecto.tipo === 'cambiar_jugador_equipo') {
+    await ejecutarCambioJugadorEquipo(efecto.partidoId, newMetadata, usuarioId);
+  } else if (efecto.tipo === 'elegir_equipo') {
+    await ejecutarElegirEquipo(efecto.partidoId, newMetadata, usuarioId);
+  } else if (efecto.tipo === 'bloquear_formacion') {
+    await ejecutarBloquearFormacion(efecto.partidoId, usuarioId);
+  } else if (efecto.tipo === 'voto_doble_formacion') {
+    await expirarEfectoInmediato(efecto.id);
+  }
+
+  return { ok: true };
+}
+
+async function ejecutarCambioJugadorEquipo(partidoId, metadata, usuarioId) {
+  const { jugadorId, jugadorDestinoId } = metadata;
+
+  if (!jugadorId || !jugadorDestinoId) {
+    const error = new Error('Faltan jugadorId o jugadorDestinoId en metadata');
+    error.status = 400;
+    throw error;
+  }
+
+  // Obtener las inscripciones de ambos jugadores para ver su equipo actual
+  const inscripcion1 = db.prepare(`
+    SELECT * FROM Inscripciones
+    WHERE partidoId = ? AND (usuarioId = ? OR invitadoId = ?)
+  `).get(partidoId, jugadorId, jugadorId);
+
+  const inscripcion2 = db.prepare(`
+    SELECT * FROM Inscripciones
+    WHERE partidoId = ? AND (usuarioId = ? OR invitadoId = ?)
+  `).get(partidoId, jugadorDestinoId, jugadorDestinoId);
+
+  if (!inscripcion1 || !inscripcion2) {
+    const error = new Error('Uno o ambos jugadores no están inscritos en este partido');
+    error.status = 400;
+    throw error;
+  }
+
+  // Verificar que están en equipos diferentes
+  if (inscripcion1.equipo === inscripcion2.equipo) {
+    const error = new Error('Ambos jugadores ya están en el mismo equipo');
+    error.status = 400;
+    throw error;
+  }
+
+  // Intercambiar equipos
+  const equipo1 = inscripcion1.equipo;
+  const equipo2 = inscripcion2.equipo;
+
+  db.prepare(`
+    UPDATE Inscripciones SET equipo = ? WHERE id = ?
+  `).run(equipo2, inscripcion1.id);
+
+  db.prepare(`
+    UPDATE Inscripciones SET equipo = ? WHERE id = ?
+  `).run(equipo1, inscripcion2.id);
+
+  // Marcar el efecto como ejecutado
+  db.prepare(`
+    UPDATE EfectosActivos SET metadata = ?, expiraEn = ?
+    WHERE partidoId = ? AND tipo = 'cambiar_jugador_equipo' AND usuarioId = ?
+  `).run(JSON.stringify({ ...metadata, ejecutado: true }), new Date().toISOString(), partidoId, usuarioId);
+}
+
+async function ejecutarElegirEquipo(partidoId, metadata, usuarioId) {
+  const { equipo } = metadata;
+
+  if (!equipo || !['A', 'B'].includes(equipo)) {
+    const error = new Error('Equipo inválido: debe ser A o B');
+    error.status = 400;
+    throw error;
+  }
+
+  // Obtener la inscripción del usuario en este partido
+  const inscripcion = db.prepare(`
+    SELECT * FROM Inscripciones
+    WHERE partidoId = ? AND usuarioId = ? AND estado = 'anotado'
+  `).get(partidoId, usuarioId);
+
+  if (!inscripcion) {
+    const error = new Error('No estás inscrito en este partido');
+    error.status = 400;
+    throw error;
+  }
+
+  // Asignar el equipo
+  db.prepare(`
+    UPDATE Inscripciones SET equipo = ? WHERE id = ?
+  `).run(equipo, inscripcion.id);
+
+  // Encontrar y expirar el efecto inmediatamente (single-use)
+  const efecto = db.prepare(`
+    SELECT id FROM EfectosActivos
+    WHERE partidoId = ? AND tipo = 'elegir_equipo' AND usuarioId = ? AND expiraEn > ?
+  `).get(partidoId, usuarioId, new Date().toISOString());
+
+  if (efecto) {
+    await expirarEfectoInmediato(efecto.id);
+  }
+}
+
+async function ejecutarBloquearFormacion(partidoId, usuarioId) {
+  // Passive effect - just expire it after marking as executed
+  // The frontend already sends metadata.ejecutado = true
+  // We just need to expire the effect
+  // Need to find the effectId first
+  const efecto = db.prepare(`
+    SELECT id FROM EfectosActivos
+    WHERE partidoId = ? AND tipo = 'bloquear_formacion' AND usuarioId = ? AND expiraEn > ?
+  `).get(partidoId, usuarioId, new Date().toISOString());
+
+  if (efecto) {
+    await expirarEfectoInmediato(efecto.id);
+  }
+}
+
+async function expirarEfectoInmediato(efectoId) {
+  const now = new Date(Date.now() - 1000).toISOString(); // 1 second ago to avoid timing issues
+  db.prepare(`
+    UPDATE EfectosActivos SET expiraEn = ?, metadata = JSON_SET(COALESCE(metadata, '{}'), '$.ejecutado', true)
+    WHERE id = ?
+  `).run(now, efectoId);
+}
+
 module.exports = {
   obtenerCatalogo,
   obtenerPremioPorId,
@@ -412,4 +711,9 @@ module.exports = {
   obtenerEfectosActivos,
   obtenerEfectosActivosPartido,
   limpiarEfectosExpirados,
+  actualizarEfectoMetadata,
+  ejecutarCambioJugadorEquipo,
+  ejecutarElegirEquipo,
+  ejecutarBloquearFormacion,
+  expirarEfectoInmediato,
 };
