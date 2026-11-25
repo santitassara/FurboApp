@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import { onAuthStateChanged, signInWithCredential, signInWithPopup, signOut, GoogleAuthProvider } from 'firebase/auth';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
@@ -58,20 +58,7 @@ export function AuthProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  async function refrescarPerfil() {
-    if (!usuarioFirebase && !localStorage.getItem(TOKEN_KEY)) {
-      return;
-    }
-    try {
-      const { data } = await api.post('/auth/sync');
-      setPerfil(data);
-      setErrorAuth('');
-    } catch (error) {
-      // No dejamos que un refresco fallido rompa la app; el perfil queda como estaba.
-    }
-  }
-
-  async function iniciarSesion() {
+  const iniciarSesion = useCallback(async () => {
     if (!auth) {
       throw new Error('Firebase no está configurado. Completá frontend/.env con tus credenciales.');
     }
@@ -85,42 +72,25 @@ export function AuthProvider({ children }) {
       throw new Error('Firebase no está configurado. Completá frontend/.env con tus credenciales.');
     }
     await signInWithPopup(auth, googleProvider);
-  }
+  }, []);
 
-  async function iniciarSesionConPassword(email, password) {
+  const iniciarSesionConPassword = useCallback(async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
     localStorage.setItem(TOKEN_KEY, data.token);
     setPerfil(data.usuario);
     setErrorAuth('');
     await registrarSuscripcionPush(data.token);
-  }
+  }, []);
 
-  async function registrarse(nombre, email, password) {
+  const registrarse = useCallback(async (nombre, email, password) => {
     const { data } = await api.post('/auth/register', { nombre, email, password });
     localStorage.setItem(TOKEN_KEY, data.token);
     setPerfil(data.usuario);
     setErrorAuth('');
     await registrarSuscripcionPush(data.token);
-  }
+  }, []);
 
-  async function actualizarPosicionesPerfil(posicionPrincipal, posicionSecundaria) {
-    const { data } = await api.patch('/usuarios/me/posiciones', { posicionPrincipal, posicionSecundaria });
-    setPerfil(data);
-  }
-
-  async function actualizarMiPerfil(datos) {
-    const { data } = await api.patch('/usuarios/me/perfil', datos);
-    setPerfil(data);
-  }
-
-  async function subirFotoPerfil(archivo) {
-    const formData = new FormData();
-    formData.append('foto', archivo);
-    const { data } = await api.post('/usuarios/me/foto', formData);
-    setPerfil(data);
-  }
-
-  async function cerrarSesion() {
+  const cerrarSesion = useCallback(async () => {
     localStorage.removeItem(TOKEN_KEY);
     if (Capacitor.isNativePlatform()) {
       await FirebaseAuthentication.signOut();
@@ -131,22 +101,68 @@ export function AuthProvider({ children }) {
       setUsuarioFirebase(null);
       setPerfil(null);
     }
-  }
+  }, [usuarioFirebase]);
 
-  const valor = {
-    usuarioFirebase,
-    perfil,
-    cargando,
-    errorAuth,
-    iniciarSesion,
-    iniciarSesionConPassword,
-    registrarse,
-    cerrarSesion,
-    refrescarPerfil,
-    actualizarPosicionesPerfil,
-    actualizarMiPerfil,
-    subirFotoPerfil,
-  };
+  const refrescarPerfil = useCallback(async () => {
+    if (!usuarioFirebase && !localStorage.getItem(TOKEN_KEY)) {
+      return;
+    }
+    try {
+      const { data } = await api.post('/auth/sync');
+      setPerfil(data);
+      setErrorAuth('');
+    } catch (error) {
+      // No dejamos que un refresco fallido rompa la app; el perfil queda como estaba.
+    }
+  }, [usuarioFirebase]);
+
+  const actualizarPosicionesPerfil = useCallback(async (posicionPrincipal, posicionSecundaria) => {
+    const { data } = await api.patch('/usuarios/me/posiciones', { posicionPrincipal, posicionSecundaria });
+    setPerfil(data);
+  }, []);
+
+  const actualizarMiPerfil = useCallback(async (datos) => {
+    const { data } = await api.patch('/usuarios/me/perfil', datos);
+    setPerfil(data);
+  }, []);
+
+  const subirFotoPerfil = useCallback(async (archivo) => {
+    const formData = new FormData();
+    formData.append('foto', archivo);
+    const { data } = await api.post('/usuarios/me/foto', formData);
+    setPerfil(data);
+  }, []);
+
+  const valor = useMemo(
+    () => ({
+      usuarioFirebase,
+      perfil,
+      cargando,
+      errorAuth,
+      iniciarSesion,
+      iniciarSesionConPassword,
+      registrarse,
+      cerrarSesion,
+      refrescarPerfil,
+      actualizarPosicionesPerfil,
+      actualizarMiPerfil,
+      subirFotoPerfil,
+    }),
+    [
+      usuarioFirebase,
+      perfil,
+      cargando,
+      errorAuth,
+      iniciarSesion,
+      iniciarSesionConPassword,
+      registrarse,
+      cerrarSesion,
+      refrescarPerfil,
+      actualizarPosicionesPerfil,
+      actualizarMiPerfil,
+      subirFotoPerfil,
+    ]
+  );
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;
 }
