@@ -1,3 +1,4 @@
+import { useMemo, memo } from 'react';
 import styles from './TarjetaJugadorFIFA.module.css';
 
 const ABREVIATURA_POSICION = {
@@ -124,12 +125,15 @@ const FONDOS_CARTA = {
   brillo_neon: 'linear-gradient(135deg, #00FFFF 0%, #FF00FF 100%)',
 };
 
-export default function TarjetaJugadorFIFA({ nombre, posicion, habilidades = {}, fotoUrl, efectos = [] }) {
-  const rating = calcularRating(habilidades);
-  const { badges, colorNombre, emoji, titulo, fondo } = extraerEfectosVisuales(efectos);
-  const badgeEmojis = (badges || []).map(obtenerBadgeEmoji);
-  const fondoEstilo = fondo && FONDOS_CARTA[fondo] ? FONDOS_CARTA[fondo] : null;
-  const colorEstilo = colorNombre ? { color: colorNombre } : {};
+function TarjetaJugadorFIFA({ nombre, posicion, habilidades = {}, fotoUrl, efectos = [] }) {
+  const rating = useMemo(() => calcularRating(habilidades), [habilidades]);
+  const { badges, colorNombre, emoji, titulo, fondo } = useMemo(
+    () => extraerEfectosVisuales(efectos),
+    [efectos]
+  );
+  const badgeEmojis = useMemo(() => (badges || []).map(obtenerBadgeEmoji), [badges]);
+  const fondoEstilo = useMemo(() => (fondo && FONDOS_CARTA[fondo] ? FONDOS_CARTA[fondo] : null), [fondo]);
+  const colorEstilo = useMemo(() => (colorNombre ? { color: colorNombre } : {}), [colorNombre]);
 
   return (
     <div
@@ -219,3 +223,19 @@ export default function TarjetaJugadorFIFA({ nombre, posicion, habilidades = {},
     </div>
   );
 }
+
+export default memo(TarjetaJugadorFIFA, (prev, next) => {
+  return (
+    prev.nombre === next.nombre &&
+    prev.posicion === next.posicion &&
+    prev.fotoUrl === next.fotoUrl &&
+    prev.habilidades.velocidad === next.habilidades.velocidad &&
+    prev.habilidades.pegada === next.habilidades.pegada &&
+    prev.habilidades.tocaPase === next.habilidades.tocaPase &&
+    prev.habilidades.gambeta === next.habilidades.gambeta &&
+    prev.habilidades.marcaDefensa === next.habilidades.marcaDefensa &&
+    prev.habilidades.fisico === next.habilidades.fisico &&
+    prev.efectos.length === next.efectos.length &&
+    prev.efectos.every((e, i) => e.id === next.efectos[i]?.id && e.tipo === next.efectos[i]?.tipo)
+  );
+});

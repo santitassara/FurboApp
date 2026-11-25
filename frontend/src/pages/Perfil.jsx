@@ -210,6 +210,24 @@ function PerfilDatos({ perfil, grupoActivo, efectos }) {
                     <p className={styles.statValor}>{estadisticas.asistencias}</p>
                   </div>
                   <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>Prom. Goles</p>
+                    <p className={styles.statValor}>
+                      {estadisticas.pj > 0 ? (estadisticas.goles / estadisticas.pj).toFixed(2) : '0.00'}
+                    </p>
+                  </div>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>Prom. Asist.</p>
+                    <p className={styles.statValor}>
+                      {estadisticas.pj > 0 ? (estadisticas.asistencias / estadisticas.pj).toFixed(2) : '0.00'}
+                    </p>
+                  </div>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>G+A / Partido</p>
+                    <p className={styles.statValor}>
+                      {estadisticas.pj > 0 ? ((estadisticas.goles + estadisticas.asistencias) / estadisticas.pj).toFixed(2) : '0.00'}
+                    </p>
+                  </div>
+                  <div className={styles.statTile}>
                     <p className={styles.tileLabel}>Valoración</p>
                     <p className={styles.statValor}>{estadisticas.valoracion}</p>
                   </div>
@@ -226,20 +244,34 @@ function PerfilDatos({ perfil, grupoActivo, efectos }) {
                 <h2 className={styles.panelTitulo}>Totales</h2>
                 <div className={styles.tilesGrid}>
                   <div className={styles.statTile}>
-                    <p className={styles.tileLabel}>
-                      Goles en grupo {grupoActivo?.nombre}
-                    </p>
-                    <p className={styles.statValor}>{estadisticas?.goles || 0}</p>
+                    <p className={styles.tileLabel}>Partidos Jugados</p>
+                    <p className={styles.statValor}>{estadisticasTotales.pj}</p>
                   </div>
                   <div className={styles.statTile}>
                     <p className={styles.tileLabel}>Goles Totales</p>
                     <p className={styles.statValor}>{estadisticasTotales.goles}</p>
                   </div>
                   <div className={styles.statTile}>
-                    <p className={styles.tileLabel}>
-                      MVPs en grupo {grupoActivo?.nombre}
+                    <p className={styles.tileLabel}>Asistencias Totales</p>
+                    <p className={styles.statValor}>{estadisticasTotales.asistencias}</p>
+                  </div>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>Prom. Goles</p>
+                    <p className={styles.statValor}>
+                      {estadisticasTotales.pj > 0 ? (estadisticasTotales.goles / estadisticasTotales.pj).toFixed(2) : '0.00'}
                     </p>
-                    <p className={styles.statValor}>{estadisticas?.mvps || 0}</p>
+                  </div>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>Prom. Asist.</p>
+                    <p className={styles.statValor}>
+                      {estadisticasTotales.pj > 0 ? (estadisticasTotales.asistencias / estadisticasTotales.pj).toFixed(2) : '0.00'}
+                    </p>
+                  </div>
+                  <div className={styles.statTile}>
+                    <p className={styles.tileLabel}>G+A / Partido</p>
+                    <p className={styles.statValor}>
+                      {estadisticasTotales.pj > 0 ? ((estadisticasTotales.goles + estadisticasTotales.asistencias) / estadisticasTotales.pj).toFixed(2) : '0.00'}
+                    </p>
                   </div>
                   <div className={styles.statTile}>
                     <p className={styles.tileLabel}>MVPs Totales</p>

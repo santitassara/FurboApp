@@ -74,6 +74,22 @@ function obtenerEstadisticasTotalesJugador(usuarioId) {
     )
     .get(usuarioId)?.total || 0;
 
+  const asistencias = db
+    .prepare(
+      `SELECT COUNT(*) as total FROM Goles
+       WHERE asistenciaUsuarioId = ?`
+    )
+    .get(usuarioId)?.total || 0;
+
+  const pj = db
+    .prepare(
+      `SELECT COUNT(DISTINCT i.partidoId) as total FROM Inscripciones i
+       JOIN Partidos p ON i.partidoId = p.id
+       WHERE i.usuarioId = ? AND i.estado = 'anotado'
+         AND i.tipo = 'titular' AND i.equipo IS NOT NULL AND p.estado = 'jugado'`
+    )
+    .get(usuarioId)?.total || 0;
+
   const mvps = db
     .prepare(
       `SELECT COUNT(DISTINCT partidoId) as total FROM (
@@ -93,7 +109,7 @@ function obtenerEstadisticasTotalesJugador(usuarioId) {
     )
     .get(usuarioId, usuarioId)?.total || 0;
 
-  return { goles, mvps };
+  return { goles, asistencias, pj, mvps };
 }
 
 async function obtenerLideresDelMes(grupoId) {

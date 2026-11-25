@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, memo } from 'react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
 import styles from './RadarHabilidades.module.css';
 
@@ -28,7 +28,7 @@ const CustomRadarLabel = (props) => {
   );
 };
 
-export default function RadarHabilidades({ perfil }) {
+function RadarHabilidades({ perfil }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
 
   useEffect(() => {
@@ -39,14 +39,17 @@ export default function RadarHabilidades({ perfil }) {
 
   if (!perfil) return null;
 
-  const data = [
-    { name: 'Velocidad', value: perfil.velocidad ?? 0 },
-    { name: 'Pegada', value: perfil.pegada ?? 0 },
-    { name: 'Toca Pase', value: perfil.tocaPase ?? 0 },
-    { name: 'Gambeta', value: perfil.gambeta ?? 0 },
-    { name: 'Marca Defensa', value: perfil.marcaDefensa ?? 0 },
-    { name: 'Físico', value: perfil.fisico ?? 0 },
-  ];
+  const data = useMemo(
+    () => [
+      { name: 'Velocidad', value: perfil.velocidad ?? 0 },
+      { name: 'Pegada', value: perfil.pegada ?? 0 },
+      { name: 'Toca Pase', value: perfil.tocaPase ?? 0 },
+      { name: 'Gambeta', value: perfil.gambeta ?? 0 },
+      { name: 'Marca Defensa', value: perfil.marcaDefensa ?? 0 },
+      { name: 'Físico', value: perfil.fisico ?? 0 },
+    ],
+    [perfil.velocidad, perfil.pegada, perfil.tocaPase, perfil.gambeta, perfil.marcaDefensa, perfil.fisico]
+  );
 
   const chartHeight = isMobile ? 420 : 320;
   const chartMargin = isMobile
@@ -69,3 +72,14 @@ export default function RadarHabilidades({ perfil }) {
     </div>
   );
 }
+
+export default memo(RadarHabilidades, (prev, next) => {
+  return (
+    prev.perfil.velocidad === next.perfil.velocidad &&
+    prev.perfil.pegada === next.perfil.pegada &&
+    prev.perfil.tocaPase === next.perfil.tocaPase &&
+    prev.perfil.gambeta === next.perfil.gambeta &&
+    prev.perfil.marcaDefensa === next.perfil.marcaDefensa &&
+    prev.perfil.fisico === next.perfil.fisico
+  );
+});
