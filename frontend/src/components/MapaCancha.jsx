@@ -806,7 +806,7 @@ export default function MapaCancha({
         </div>
       )}
 
-      {esAdmin && !modoPreview && !votacionCerrada || puedeEditarFormacionCompleta && !modoPreview && (
+      {((esAdmin && !modoPreview && !votacionCerrada) || (puedeEditarFormacionCompleta && !modoPreview)) && (
         <div className={styles.gridSelectores}>
           {esPlantel ? (
             <SelectorFormacion
@@ -946,7 +946,7 @@ export default function MapaCancha({
         </div>
       )}
 
-      {esAdmin && !modoPreview && !votacionCerrada || puedeEditarFormacionCompleta && !modoPreview && (
+      {((esAdmin && !modoPreview && !votacionCerrada) || (puedeEditarFormacionCompleta && !modoPreview)) && (
         <>
           {error && <p className={styles.mensajeError}>{error}</p>}
           {(esAdmin && !votacionCerrada || puedeEditarFormacionCompleta) && (
