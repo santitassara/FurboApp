@@ -1183,8 +1183,6 @@ export default function Perfil() {
       .then((data) => {
         if (activo) {
           setEfectos(data || []);
-          // Invalidar cache del hook para que NombreConEfectos y otros componentes vean los cambios
-          invalidateEfectosCache(perfil.uid, grupoActivo.id);
         }
       })
       .catch((err) => {
