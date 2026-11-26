@@ -63,7 +63,7 @@ async function guardarResultado(partidoId, grupoId, payload = {}) {
   if (!partido) throw crearError('Partido no encontrado', 404);
   if (partido.estado === 'abierto') throw crearError('El partido todavía no cerró', 400);
 
-  const grupo = gruposService.obtenerGrupo(grupoId);
+  const grupo = db.prepare('SELECT * FROM Grupos WHERE id = ?').get(grupoId);
   if (grupo?.modo === 'plantel') {
     return guardarResultadoPlantel(partido, grupoId, payload);
   }
@@ -349,7 +349,7 @@ async function obtenerResultado(partidoId, grupoId, esAdmin = false) {
     })
   );
 
-  const grupo = gruposService.obtenerGrupo(grupoId);
+  const grupo = db.prepare('SELECT * FROM Grupos WHERE id = ?').get(grupoId);
   const esPlantel = grupo?.modo === 'plantel';
 
   // Convocatoria: el marcador sale de los goles por equipo.

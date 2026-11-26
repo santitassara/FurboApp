@@ -257,13 +257,13 @@ async function obtenerFormacion(partidoId, grupoId) {
   const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
 
-  const grupo = gruposService.obtenerGrupo(grupoId);
+  const grupo = db.prepare('SELECT * FROM Grupos WHERE id = ?').get(grupoId);
   if (grupo?.modo === 'plantel') {
     return obtenerFormacionPlantel(partido, partidoId, grupoId);
   }
 
   const ocupados = await contarOcupados(partidoId);
-  const habilitado = ocupados.titulares + ocupados.suplentes >= partido.cupoTitulares;
+  const habilitado = ocupados.titulares >= partido.cupoTitulares;
   const cupoPorEquipo = splitEquipos(partido.cupoTitulares);
 
   const titulares = await listarTitularesActivos(partidoId);
@@ -622,7 +622,7 @@ async function generarFormacionAutomatica(partidoId, grupoId, seleccion = {}) {
   const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
 
-  const grupo = gruposService.obtenerGrupo(grupoId);
+  const grupo = db.prepare('SELECT * FROM Grupos WHERE id = ?').get(grupoId);
   if (grupo?.modo === 'plantel') {
     // El frontend de plantel manda el esquema bajo la clave "A" (el único equipo).
     return generarFormacionAutomaticaPlantel(partido, grupoId, seleccion?.A || seleccion);
@@ -755,7 +755,7 @@ async function guardarFormacion(partidoId, grupoId, payload = {}) {
   const partido = await partidosService.obtenerPartido(partidoId, grupoId);
   if (!partido) throw crearError('Partido no encontrado', 404);
 
-  const grupo = gruposService.obtenerGrupo(grupoId);
+  const grupo = db.prepare('SELECT * FROM Grupos WHERE id = ?').get(grupoId);
   if (grupo?.modo === 'plantel') {
     return guardarFormacionPlantel(partido, grupoId, payload);
   }
