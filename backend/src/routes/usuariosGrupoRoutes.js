@@ -7,6 +7,7 @@ const usuariosController = require('../controllers/usuariosController');
 const router = express.Router({ mergeParams: true });
 
 router.get('/', verificarToken, verificarMiembroGrupo(), envolverAsync(usuariosController.listarUsuariosDeGrupo));
+router.get('/lideres', verificarToken, verificarMiembroGrupo(), envolverAsync(usuariosController.obtenerLideresGrupo));
 router.get('/sancionados', verificarToken, verificarMiembroGrupo('admin'), envolverAsync(usuariosController.listarSancionados));
 router.post('/:uid/perdonar', verificarToken, verificarMiembroGrupo('admin'), envolverAsync(usuariosController.perdonar));
 
