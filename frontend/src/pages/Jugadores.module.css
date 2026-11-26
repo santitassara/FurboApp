@@ -1,7 +1,7 @@
 @reference "../styles/globals.css";
 
 .contenedor {
-  @apply mx-auto flex max-w-2xl flex-col gap-6;
+  @apply mx-auto flex max-w-6xl flex-col gap-6;
 }
 
 .titulo {
@@ -30,6 +30,46 @@
 
 .sinResultados {
   @apply text-white/60;
+}
+
+.grid {
+  @apply grid gap-6 lg:grid-cols-[1fr_320px];
+}
+
+.columnaLista {
+  @apply min-w-0;
+}
+
+.columnaStats {
+  @apply flex flex-col gap-4;
+}
+
+.statCard {
+  @apply rounded-xl border border-white/10 bg-cancha-800 p-4;
+}
+
+.statTitulo {
+  @apply font-display text-lg text-white/80 mb-3;
+}
+
+.statLista {
+  @apply flex flex-col gap-2;
+}
+
+.statItem {
+  @apply flex items-center gap-2 text-sm;
+}
+
+.statPosicion {
+  @apply w-6 text-right text-white/40 font-medium;
+}
+
+.statNombre {
+  @apply flex-1 truncate text-white;
+}
+
+.statValor {
+  @apply text-right text-tarjeta font-semibold;
 }
 
 .lista {

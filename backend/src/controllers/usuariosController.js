@@ -1,6 +1,7 @@
 const usuariosService = require('../services/usuariosService');
 const gruposService = require('../services/gruposService');
 const notificacionesInternasService = require('../services/notificacionesInternasService');
+const estadisticasService = require('../services/estadisticasService');
 
 async function listarSancionados(req, res) {
   const sancionados = await gruposService.listarSancionados(req.params.grupoId);
@@ -45,6 +46,11 @@ async function listarUsuariosDeGrupo(req, res) {
   res.json(usuarios);
 }
 
+async function obtenerLideresGrupo(req, res) {
+  const lideres = await estadisticasService.obtenerLideresGrupo(req.params.grupoId);
+  res.json(lideres);
+}
+
 async function guardarSuscripcionPush(req, res) {
   const suscripcion = req.body;
   await usuariosService.guardarSuscripcionPush(req.usuario.uid, suscripcion);
@@ -82,6 +88,7 @@ module.exports = {
   obtenerPerfilDeJugador,
   listarUsuarios,
   listarUsuariosDeGrupo,
+  obtenerLideresGrupo,
   guardarSuscripcionPush,
   guardarFcmToken,
   obtenerNotificacionesPendientes,
