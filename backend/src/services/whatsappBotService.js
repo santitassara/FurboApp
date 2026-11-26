@@ -66,6 +66,78 @@ function hayVotacionFormacionAbierta(partidoId) {
   return total > 0;
 }
 
+function hayEquiposDefinidos(partidoId) {
+  const count = db
+    .prepare("SELECT COUNT(*) AS total FROM Inscripciones WHERE partidoId = ? AND estado = 'anotado' AND equipo IS NOT NULL")
+    .get(partidoId).total;
+  return count > 0;
+}
+
+function obtenerFormacionesPropuestas(partidoId) {
+  const formaciones = db
+    .prepare(
+      `SELECT fp.*, u.nombre as autorNombre
+       FROM FormacionesPropuestas fp
+       LEFT JOIN Usuarios u ON u.uid = fp.autorId
+       WHERE fp.partidoId = ?
+       ORDER BY fp.fechaCreacion DESC`
+    )
+    .all(partidoId);
+
+  if (!formaciones.length) return [];
+
+  // Obtener detalles de cada formación (jugadores por equipo)
+  const formacionesConDetalle = [];
+  for (const f of formaciones) {
+    const detalle = db
+      .prepare(
+        `SELECT fpd.equipo, fpd.ordenLinea,
+                COALESCE(u.nombre, i.nombre) AS nombre
+         FROM FormacionesPropuestasDetalle fpd
+         LEFT JOIN Usuarios u ON u.uid = fpd.usuarioId
+         LEFT JOIN Invitados i ON i.id = fpd.invitadoId
+         WHERE fpd.formacionId = ?
+         ORDER BY fpd.equipo ASC, fpd.ordenLinea ASC`
+      )
+      .all(f.id);
+
+    const equipoA = detalle.filter(d => d.equipo === 'A').map(d => `• ${d.nombre}`);
+    const equipoB = detalle.filter(d => d.equipo === 'B').map(d => `• ${d.nombre}`);
+
+    formacionesConDetalle.push({
+      id: f.id,
+      autor: f.autorNombre || 'Anónimo',
+      equipoA,
+      equipoB,
+      titularesA: equipoA.length,
+      titularesB: equipoB.length,
+    });
+  }
+
+  return formacionesConDetalle;
+}
+
+function formatearFormacionesPropuestas(partidoId) {
+  const formaciones = obtenerFormacionesPropuestas(partidoId);
+  if (!formaciones.length) {
+    return '🗳️ La votación de formación está abierta. Todavía no hay formaciones propuestas.';
+  }
+
+  let mensaje = '🗳️ *Formaciones propuestas (votación abierta):*\n\n';
+  for (const f of formaciones) {
+    mensaje += `📋 *Formación de ${f.autor}*\n`;
+    if (f.equipoA.length > 0) {
+      mensaje += `⚪ Equipo A (${f.titularesA})\n${f.equipoA.join('\n')}\n`;
+    }
+    if (f.equipoB.length > 0) {
+      mensaje += `⚫ Equipo B (${f.titularesB})\n${f.equipoB.join('\n')}\n`;
+    }
+    mensaje += `\n`;
+  }
+  mensaje += '_Los votos no se muestran hasta que cierre la votación._';
+  return mensaje;
+}
+
 function formatearEquipos(partidoId) {
   const titulares = obtenerTitularesPorEquipo(partidoId);
 
@@ -841,18 +913,34 @@ async function generarRespuestaLocal(grupoId, textoMensaje) {
     return MENSAJE_VOTACION_NO_DISPONIBLE;
   }
 
+  // EQUIPOS: muestra equipos si ya están definidos (equipo asignado en Inscripciones)
   if (
     texto.includes('equipos') ||
-    texto.includes('equipo') ||
+    texto.includes('equipo')
+  ) {
+    if (hayEquiposDefinidos(partido.id)) {
+      return formatearEquipos(partido.id);
+    }
+    if (hayVotacionFormacionAbierta(partido.id)) {
+      return '🗳️ La votación de formación está abierta. Los equipos se van a conocer cuando cierre.';
+    }
+    return 'Todavía no están definidos los equipos para el próximo partido.';
+  }
+
+  // FORMACIONES: si votación abierta muestra propuestas sin votos; si cerrada muestra equipos finales
+  if (
     texto.includes('formacion') ||
     texto.includes('formación') ||
     texto.includes('alineacion') ||
     texto.includes('alineación')
   ) {
     if (hayVotacionFormacionAbierta(partido.id)) {
-      return '🗳️ La votación de formación está abierta. Los equipos se van a conocer cuando cierre.';
+      return formatearFormacionesPropuestas(partido.id);
     }
-    return formatearEquipos(partido.id);
+    if (hayEquiposDefinidos(partido.id)) {
+      return formatearEquipos(partido.id);
+    }
+    return 'Todavía no están definidos los equipos para el próximo partido.';
   }
 
   if (
