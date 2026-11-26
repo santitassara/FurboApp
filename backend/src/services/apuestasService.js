@@ -39,12 +39,8 @@ async function obtenerSaldoCasa() {
 }
 
 async function obtenerSaldoDisponible(usuarioId) {
-  const saldo = await obtenerSaldo(usuarioId);
-  // Restar apuestas pendientes
-  const pendientes = db.prepare(
-    'SELECT COALESCE(SUM(monto), 0) as total FROM Apuestas WHERE usuarioId = ? AND estado = ?'
-  ).get(usuarioId, 'pendiente');
-  return saldo - (pendientes?.total || 0);
+  // El saldo ya tiene descontadas las apuestas pendientes (se descuentan al crear la apuesta)
+  return await obtenerSaldo(usuarioId);
 }
 
 async function obtenerPartidosApostables(grupoId) {
@@ -233,11 +229,16 @@ async function crearApuestas(partidoId, grupoId, usuarioId, apuestasInput) {
     throw crearError('Saldo insuficiente', 400);
   }
 
-  // Crear apuestas en transacción (reserva saldo + insert apuestas)
+  // Crear apuestas en transacción (descuenta saldo + insert apuestas)
   const now = new Date().toISOString();
   const ids = [];
+  const totalMontoApostado = apuestasValidadas.reduce((sum, a) => sum + a.monto, 0);
 
   const tx = db.transaction(() => {
+    // Descontar el monto total del saldo del usuario
+    db.prepare('UPDATE UsuarioPuntos SET saldo = saldo - ?, actualizadoEn = ? WHERE usuarioId = ?')
+      .run(totalMontoApostado, now, usuarioId);
+
     for (const apuesta of apuestasValidadas) {
       const id = crypto.randomUUID();
       ids.push(id);
@@ -398,16 +399,13 @@ async function resolverPartido(partidoId, grupoId) {
 
       if (gana) {
         gananciaReal = Math.round(apuesta.monto * apuesta.cuota);
-        const gananciaNeta = gananciaReal - apuesta.monto;
         totalPagado += gananciaReal;
 
-        // Actualizar saldo del usuario (sumar solo la ganancia neta, ya que el monto apostado ya está en el saldo)
+        // Actualizar saldo del usuario: creditar ganancia real (monto * cuota), el monto ya fue descontado al crear la apuesta
         db.prepare('UPDATE UsuarioPuntos SET saldo = saldo + ?, actualizadoEn = ? WHERE usuarioId = ?')
-          .run(gananciaNeta, new Date().toISOString(), apuesta.usuarioId);
+          .run(gananciaReal, new Date().toISOString(), apuesta.usuarioId);
       } else {
-        // Pierde: descontar el monto apostado del saldo (ya que estaba reservado pero no descontado)
-        db.prepare('UPDATE UsuarioPuntos SET saldo = saldo - ?, actualizadoEn = ? WHERE usuarioId = ?')
-          .run(apuesta.monto, new Date().toISOString(), apuesta.usuarioId);
+        // Pierde: no hacer nada, el monto ya fue descontado al crear la apuesta
       }
 
       // Actualizar apuesta
