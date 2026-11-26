@@ -1,4 +1,7 @@
 const { db } = require('../config/db');
+const apuestasService = require('./apuestasService');
+const premiosService = require('./premiosService');
+const { obtenerCuota } = require('../utils/cuotasApuestas');
 
 const ZONA = 'America/Argentina/Buenos_Aires';
 const TOP_RANKING = 5;
@@ -61,6 +64,78 @@ function hayVotacionFormacionAbierta(partidoId) {
     .prepare('SELECT COUNT(*) AS total FROM FormacionesPropuestas WHERE partidoId = ?')
     .get(partidoId);
   return total > 0;
+}
+
+function hayEquiposDefinidos(partidoId) {
+  const count = db
+    .prepare("SELECT COUNT(*) AS total FROM Inscripciones WHERE partidoId = ? AND estado = 'anotado' AND equipo IS NOT NULL")
+    .get(partidoId).total;
+  return count > 0;
+}
+
+function obtenerFormacionesPropuestas(partidoId) {
+  const formaciones = db
+    .prepare(
+      `SELECT fp.*, u.nombre as autorNombre
+       FROM FormacionesPropuestas fp
+       LEFT JOIN Usuarios u ON u.uid = fp.autorId
+       WHERE fp.partidoId = ?
+       ORDER BY fp.fechaCreacion DESC`
+    )
+    .all(partidoId);
+
+  if (!formaciones.length) return [];
+
+  // Obtener detalles de cada formación (jugadores por equipo)
+  const formacionesConDetalle = [];
+  for (const f of formaciones) {
+    const detalle = db
+      .prepare(
+        `SELECT fpd.equipo, fpd.ordenLinea,
+                COALESCE(u.nombre, i.nombre) AS nombre
+         FROM FormacionesPropuestasDetalle fpd
+         LEFT JOIN Usuarios u ON u.uid = fpd.usuarioId
+         LEFT JOIN Invitados i ON i.id = fpd.invitadoId
+         WHERE fpd.formacionId = ?
+         ORDER BY fpd.equipo ASC, fpd.ordenLinea ASC`
+      )
+      .all(f.id);
+
+    const equipoA = detalle.filter(d => d.equipo === 'A').map(d => `• ${d.nombre}`);
+    const equipoB = detalle.filter(d => d.equipo === 'B').map(d => `• ${d.nombre}`);
+
+    formacionesConDetalle.push({
+      id: f.id,
+      autor: f.autorNombre || 'Anónimo',
+      equipoA,
+      equipoB,
+      titularesA: equipoA.length,
+      titularesB: equipoB.length,
+    });
+  }
+
+  return formacionesConDetalle;
+}
+
+function formatearFormacionesPropuestas(partidoId) {
+  const formaciones = obtenerFormacionesPropuestas(partidoId);
+  if (!formaciones.length) {
+    return '🗳️ La votación de formación está abierta. Todavía no hay formaciones propuestas.';
+  }
+
+  let mensaje = '🗳️ *Formaciones propuestas (votación abierta):*\n\n';
+  for (const f of formaciones) {
+    mensaje += `📋 *Formación de ${f.autor}*\n`;
+    if (f.equipoA.length > 0) {
+      mensaje += `⚪ Equipo A (${f.titularesA})\n${f.equipoA.join('\n')}\n`;
+    }
+    if (f.equipoB.length > 0) {
+      mensaje += `⚫ Equipo B (${f.titularesB})\n${f.equipoB.join('\n')}\n`;
+    }
+    mensaje += `\n`;
+  }
+  mensaje += '_Los votos no se muestran hasta que cierre la votación._';
+  return mensaje;
 }
 
 function formatearEquipos(partidoId) {
@@ -602,7 +677,150 @@ function formatearResultadoPorFecha(grupoId, fecha) {
   return formatearResultadoPartido(partido);
 }
 
-function generarRespuestaLocal(grupoId, textoMensaje) {
+// NUEVA FUNCIÓN: Formatear apuestas disponibles para el próximo partido
+async function formatearApuestasDisponibles(grupoId) {
+  try {
+    const partidosApostables = await apuestasService.obtenerPartidosApostables(grupoId);
+    if (!partidosApostables.length) {
+      return '🎲 *No hay partidos disponibles para apostar ahora.*\nLos partidos deben tener formaciones definidas y votación de equipos cerrada.';
+    }
+
+    const partido = partidosApostables[0];
+    const { dia, hora } = formatearDiaYHora(partido.fecha);
+    const opciones = await apuestasService.obtenerOpcionesPartido(partido.id, grupoId);
+
+    let mensaje = `🎲 *Apuestas disponibles para el partido del ${dia} a las ${hora}*\n`;
+    mensaje += `🏟️ *${partido.rival}* (${partido.estadio || 'Sin estadio'})\n`;
+    mensaje += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+    // Ganador / Perdedor
+    mensaje += `🏆 *GANADOR / PERDEDOR*\n`;
+    for (const opt of opciones.winner) {
+      mensaje += `• ${opt.etiqueta}: x${opt.cuota}\n`;
+    }
+    for (const opt of opciones.loser) {
+      mensaje += `• ${opt.etiqueta}: x${opt.cuota}\n`;
+    }
+    mensaje += `\n`;
+
+    // Goles totales exactos
+    mensaje += `⚽ *GOLES TOTALES EXACTOS*\n`;
+    for (const opt of opciones.total_goals_exact) {
+      mensaje += `• ${opt.etiqueta}: x${opt.cuota}\n`;
+    }
+    mensaje += `\n`;
+
+    // Over / Under
+    mensaje += `📊 *OVER / UNDER*\n`;
+    mensaje += `*Over:*\n`;
+    for (const opt of opciones.total_goals_over) {
+      mensaje += `• ${opt.etiqueta}: x${opt.cuota}\n`;
+    }
+    mensaje += `*Under:*\n`;
+    for (const opt of opciones.total_goals_under) {
+      mensaje += `• ${opt.etiqueta}: x${opt.cuota}\n`;
+    }
+    mensaje += `\n`;
+
+    // Jugadores (goleadores, asistencias, MVP)
+    const jugadoresConEquipo = opciones.goal_scorer_anytime.map(j => {
+      const eq = j.jugador.equipo ? ` (Eq. ${j.jugador.equipo})` : '';
+      return `• ${j.jugador.nombre}${eq}: x${j.cuota}`;
+    });
+
+    if (jugadoresConEquipo.length > 0) {
+      mensaje += `👤 *GOLEADOR (cualquier momento) - x6.0*\n`;
+      mensaje += jugadoresConEquipo.slice(0, 15).join('\n');
+      if (jugadoresConEquipo.length > 15) mensaje += `\n... y ${jugadoresConEquipo.length - 15} más`;
+      mensaje += `\n\n`;
+
+      mensaje += `🥇 *PRIMER GOLEADOR - x10.0*\n`;
+      mensaje += jugadoresConEquipo.slice(0, 15).join('\n');
+      if (jugadoresConEquipo.length > 15) mensaje += `\n... y ${jugadoresConEquipo.length - 15} más`;
+      mensaje += `\n\n`;
+
+      mensaje += `🎯 *ASISTIDOR - x8.0*\n`;
+      mensaje += jugadoresConEquipo.slice(0, 15).join('\n');
+      if (jugadoresConEquipo.length > 15) mensaje += `\n... y ${jugadoresConEquipo.length - 15} más`;
+      mensaje += `\n\n`;
+
+      mensaje += `🏅 *MVP - x10.0*\n`;
+      mensaje += jugadoresConEquipo.slice(0, 15).join('\n');
+      if (jugadoresConEquipo.length > 15) mensaje += `\n... y ${jugadoresConEquipo.length - 15} más`;
+      mensaje += `\n\n`;
+    }
+
+    // Marcador exacto (principales)
+    mensaje += `🎯 *MARCADOR EXACTO (principales)*\n`;
+    const principales = ['0-0', '1-0', '0-1', '1-1', '2-0', '0-2', '2-1', '1-2', '2-2', '3-0', '0-3', '3-1', '1-3'];
+    for (const marcador of principales) {
+      const cuota = obtenerCuota('exact_score', marcador);
+      mensaje += `• ${marcador}: x${cuota}\n`;
+    }
+    mensaje += `• Otros marcadores: x25.0\n\n`;
+
+    mensaje += `💰 *Saldo inicial: 100 pts* | Apuesta máx = tu saldo disponible\n`;
+    mensaje += `📱 Usá la app (sección Apostar) para hacer tus apuestas.`;
+
+    return mensaje;
+  } catch (error) {
+    console.error('[BOT] Error formatearApuestasDisponibles:', error.message);
+    return '❌ Error al obtener apuestas disponibles.';
+  }
+}
+
+// NUEVA FUNCIÓN: Formatear catálogo de premios por categoría
+async function formatearCatalogoPremios(grupoId) {
+  try {
+    const catalogo = await premiosService.obtenerCatalogo();
+    if (!catalogo.length) {
+      return '🏪 *Tienda de premios vacía.*\nNo hay premios disponibles por ahora.';
+    }
+
+    // Agrupar por categoría
+    const porCategoria = {};
+    for (const premio of catalogo) {
+      if (!porCategoria[premio.categoria]) porCategoria[premio.categoria] = [];
+      porCategoria[premio.categoria].push(premio);
+    }
+
+    // Orden de categorías para mostrar
+    const ordenCategorias = [
+      { key: 'formacion', emoji: '⚽', nombre: 'FORMACIONES Y EQUIPOS' },
+      { key: 'informacion', emoji: '👁️', nombre: 'INFORMACIÓN Y VOTACIÓN' },
+      { key: 'social', emoji: '👥', nombre: 'SOCIALES Y SANCIONES' },
+      { key: 'estetica', emoji: '✨', nombre: 'PERSONALIZACIÓN Y ESTÉTICA' },
+      { key: 'apuestas', emoji: '🎲', nombre: 'VENTAJAS DE APUESTAS' },
+      { key: 'rating', emoji: '📊', nombre: 'RATING Y MVP' },
+      { key: 'exotico', emoji: '🎪', nombre: 'EXÓTICOS / DIVERTIDOS' },
+    ];
+
+    let mensaje = `🏪 *TIENDA DE PREMIOS*\n`;
+    mensaje += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+    for (const cat of ordenCategorias) {
+      const premios = porCategoria[cat.key];
+      if (!premios || !premios.length) continue;
+
+      mensaje += `${cat.emoji} *${cat.nombre}*\n`;
+      for (const premio of premios) {
+        mensaje += `• *${premio.nombre}* — ${premio.costo} pts\n`;
+        mensaje += `  ${premio.descripcion}\n`;
+      }
+      mensaje += `\n`;
+    }
+
+    mensaje += `💰 *Pozo de la casa:* ${await apuestasService.obtenerSaldoCasa()} pts\n`;
+    mensaje += `📱 Usá la app (sección Apostar → Tienda) para canjear premios.`;
+
+    return mensaje;
+  } catch (error) {
+    console.error('[BOT] Error formatearCatalogoPremios:', error.message);
+    return '❌ Error al obtener catálogo de premios.';
+  }
+}
+
+async function generarRespuestaLocal(grupoId, textoMensaje) {
   const texto = textoMensaje.toLowerCase();
 
   const preguntaPorUltimoPartido = texto.includes('ultimo') || texto.includes('último');
@@ -612,6 +830,18 @@ function generarRespuestaLocal(grupoId, textoMensaje) {
   const preguntaPorAsistidor = texto.includes('asistidor') || texto.includes('asistencia');
   const preguntaPorResultado =
     texto.includes('resultado') || texto.includes('salio') || texto.includes('salió');
+
+  // NUEVOS: Palabras clave para apuestas y premios
+  const preguntaPorApuestas = texto.includes('apuesta') || texto.includes('apuestas') || texto.includes('cuota') || texto.includes('cuotas');
+  const preguntaPorPremios = texto.includes('premio') || texto.includes('premios') || texto.includes('tienda') || texto.includes('canjear');
+
+  if (preguntaPorApuestas) {
+    return await formatearApuestasDisponibles(grupoId);
+  }
+
+  if (preguntaPorPremios) {
+    return await formatearCatalogoPremios(grupoId);
+  }
 
   if (preguntaPorResultado) {
     const fecha = parsearFechaDelTexto(texto);
@@ -683,18 +913,34 @@ function generarRespuestaLocal(grupoId, textoMensaje) {
     return MENSAJE_VOTACION_NO_DISPONIBLE;
   }
 
+  // EQUIPOS: muestra equipos si ya están definidos (equipo asignado en Inscripciones)
   if (
     texto.includes('equipos') ||
-    texto.includes('equipo') ||
+    texto.includes('equipo')
+  ) {
+    if (hayEquiposDefinidos(partido.id)) {
+      return formatearEquipos(partido.id);
+    }
+    if (hayVotacionFormacionAbierta(partido.id)) {
+      return '🗳️ La votación de formación está abierta. Los equipos se van a conocer cuando cierre.';
+    }
+    return 'Todavía no están definidos los equipos para el próximo partido.';
+  }
+
+  // FORMACIONES: si votación abierta muestra propuestas sin votos; si cerrada muestra equipos finales
+  if (
     texto.includes('formacion') ||
     texto.includes('formación') ||
     texto.includes('alineacion') ||
     texto.includes('alineación')
   ) {
     if (hayVotacionFormacionAbierta(partido.id)) {
-      return '🗳️ La votación de formación está abierta. Los equipos se van a conocer cuando cierre.';
+      return formatearFormacionesPropuestas(partido.id);
     }
-    return formatearEquipos(partido.id);
+    if (hayEquiposDefinidos(partido.id)) {
+      return formatearEquipos(partido.id);
+    }
+    return 'Todavía no están definidos los equipos para el próximo partido.';
   }
 
   if (
@@ -711,10 +957,10 @@ function generarRespuestaLocal(grupoId, textoMensaje) {
   }
 
   if (texto.includes('hola') || texto.includes('buenas')) {
-    return '¡Hola! ⚽ Preguntame *cuándo* jugamos, *cuántos* estamos anotados o cómo quedaron los *equipos*.';
+    return '¡Hola! ⚽ Preguntame *cuándo* jugamos, *cuántos* estamos anotados, *apuestas* disponibles, *premios* de la tienda o cómo quedaron los *equipos*.';
   }
 
-  return '⚽ No entendí bien. Podés preguntarme *cuándo* jugamos, *cuántos* están anotados o cómo quedaron los *equipos*.';
+  return '⚽ No entendí bien. Podés preguntarme *cuándo* jugamos, *cuántos* están anotados, *apuestas* disponibles, *premios* de la tienda o cómo quedaron los *equipos*.';
 }
 
 function normalizarJid(jid) {
@@ -772,7 +1018,7 @@ function registrarListenerBot(socket) {
       // Si el texto incluye "@todos", el bot repite el mensaje mencionando a todos
       const respuesta = cleanText.toLowerCase().includes('@todos')
         ? cleanText
-        : generarRespuestaLocal(grupo.id, cleanText);
+        : await generarRespuestaLocal(grupo.id, cleanText);
 
       // Reemplazamos socket.sendMessage por nuestra nueva función
       await enviarMensajeConMenciones(socket, chatId, respuesta, msg);
