@@ -49,11 +49,18 @@ export default function AdminPanel() {
     if (!grupoActivo) return;
     setError('');
     try {
-      const [{ data: partidosAbiertos }, { data: sancionadosActuales }, { data: miembrosActuales }] = await Promise.all([
-        api.get(rutaGrupo(grupoActivo.id, '/partidos')),
-        api.get(rutaGrupo(grupoActivo.id, '/usuarios/sancionados')),
-        api.get(rutaGrupo(grupoActivo.id, '/miembros')),
-      ]);
+      // El admin necesita ver los partidos abiertos, los cerrados pendientes de
+      // resultado (fixture) y el último jugado (para poder editar su resultado).
+      // GET /partidos ya no sirve: solo devuelve abiertos con fecha futura.
+      const [{ data: fixture }, { data: historial }, { data: sancionadosActuales }, { data: miembrosActuales }] =
+        await Promise.all([
+          api.get(rutaGrupo(grupoActivo.id, '/partidos/fixture')),
+          api.get(rutaGrupo(grupoActivo.id, '/partidos/historial')),
+          api.get(rutaGrupo(grupoActivo.id, '/usuarios/sancionados')),
+          api.get(rutaGrupo(grupoActivo.id, '/miembros')),
+        ]);
+      const ultimoJugado = historial[0];
+      const partidosAbiertos = ultimoJugado ? [...fixture, ultimoJugado] : fixture;
       setPartidos(partidosAbiertos);
       setSancionados(sancionadosActuales);
       setMiembros(miembrosActuales);
